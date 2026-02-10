@@ -1,5 +1,4 @@
 import 'evento_model.dart';
-import 'dart:convert';
 
 enum StatusSumula { pendente, emAndamento, encerrada }
 

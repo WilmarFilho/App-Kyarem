@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/partida_model.dart';
-import '../../data/repositories/partida_repository.dart'; // Importe o repositório
+import '../../data/repositories/partida_repository.dart';
+import '../widgets/partida_card_widget.dart';
 import 'sumula_screen.dart';
 
 class ListaPartidasScreen extends StatefulWidget {
@@ -21,7 +22,6 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
     _carregarDadosIniciais();
   }
 
-  // Chame a função inicial que popula o banco e retorna a lista
   Future<void> _carregarDadosIniciais() async {
     try {
       final partidasCarregadas = await _repository.buscarPartidasDoDia();
@@ -30,7 +30,7 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
         _carregando = false;
       });
     } catch (e) {
-      print("Erro ao carregar dados: $e");
+      debugPrint("Erro ao carregar dados: $e");
       setState(() => _carregando = false);
     }
   }
@@ -38,12 +38,14 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A), // Fundo Dark da identidade
       appBar: AppBar(
-        title: const Text('Jogos do Dia'),
+        title: const Text('Jogos do Dia', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
-          // Botão para recarregar manualmente se necessário
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.blueAccent),
             onPressed: () {
               setState(() => _carregando = true);
               _carregarDadosIniciais();
@@ -52,73 +54,71 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
         ],
       ),
       body: _carregando
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent))
           : _partidas.isEmpty
-              ? const Center(child: Text("Nenhuma partida encontrada."))
+              ? _buildEmptyState()
               : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                   itemCount: _partidas.length,
                   itemBuilder: (context, index) {
-                    final partida = _partidas[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      child: ListTile(
-                        title: Text('${partida.nomeTimeA} x ${partida.nomeTimeB}'),
-                        subtitle: Text('ID: ${partida.id} | Status: ${partida.sumula.status.name}'),
-                        trailing: const Icon(Icons.play_circle_outline, color: Colors.blue),
-                        onTap: () => _abrirPartida(context, partida),
-                      ),
+                    return PartidaCardWidget(
+                      partida: _partidas[index],
+                      onTap: () => _confirmarInicioPartida(context, _partidas[index]),
                     );
                   },
                 ),
     );
   }
 
-  void _abrirPartida(BuildContext context, Partida partida) {
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.event_busy, color: Colors.white24, size: 60),
+          SizedBox(height: 10),
+          Text("Nenhuma partida para hoje.", style: TextStyle(color: Colors.white38)),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarInicioPartida(BuildContext context, Partida partida) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              Icon(Icons.play_circle_fill, color: Colors.blueAccent),
               SizedBox(width: 10),
-              Text('Iniciar Súmula?'),
+              Text('Iniciar Súmula?', style: TextStyle(color: Colors.white)),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Você iniciará a partida entre ${partida.nomeTimeA} e ${partida.nomeTimeB}.',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 15),
-              const Text('• O registro será salvo no banco local.'),
-              const Text('• O cronômetro será ativado.'),
-            ],
+          content: Text(
+            'Deseja iniciar o cronômetro e o registro oficial para ${partida.nomeTimeA} x ${partida.nomeTimeB}?',
+            style: const TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('CANCELAR', style: TextStyle(color: Colors.grey)),
+              child: const Text('CANCELAR', style: TextStyle(color: Colors.white38)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () async {
-                // Importante: Notifica o repositório que a partida iniciou
                 await _repository.iniciarPartida(partida);
-                
                 if (!mounted) return;
-                Navigator.of(context).pop(); 
+                Navigator.of(context).pop();
                 _navegarParaSumula(context, partida);
               },
-              child: const Text('CONFIRMAR E INICIAR'),
+              child: const Text('CONFIRMAR'),
             ),
           ],
         );
@@ -130,6 +130,6 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => SumulaScreen(partida: partida)),
-    ).then((_) => _carregarDadosIniciais()); // Atualiza a lista ao voltar
+    ).then((_) => _carregarDadosIniciais());
   }
 }
