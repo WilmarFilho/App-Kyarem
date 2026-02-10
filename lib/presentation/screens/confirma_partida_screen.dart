@@ -4,19 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/models/partida_model.dart';
 import '../../data/repositories/partida_repository.dart';
-import 'resumo_partida_screen.dart';
 
 // --- TELA PRINCIPAL DA SÚMULA (JOGO EM ANDAMENTO) ---
-class SumulaScreen extends StatefulWidget {
+class ConfirmaPartidaScreen extends StatefulWidget {
   final Partida partida;
 
-  const SumulaScreen({super.key, required this.partida});
+  const ConfirmaPartidaScreen({super.key, required this.partida});
 
   @override
-  State<SumulaScreen> createState() => _SumulaScreenState();
+  State<ConfirmaPartidaScreen> createState() => _ConfirmaPartidaScreenState();
 }
 
-class _SumulaScreenState extends State<SumulaScreen> {
+class _ConfirmaPartidaScreenState extends State<ConfirmaPartidaScreen> {
   final PartidaRepository _repository = PartidaRepository();
   late int placarA;
   late int placarB;
@@ -95,7 +94,7 @@ class _SumulaScreenState extends State<SumulaScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => ResumoPartidaScreen(partida: widget.partida),
+        builder: (context) => ConfirmaPartidaScreen(partida: widget.partida),
       ),
     );
   }

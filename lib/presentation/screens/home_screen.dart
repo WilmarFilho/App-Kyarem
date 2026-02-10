@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import '../../data/models/partida_model.dart';
 import '../../data/repositories/partida_repository.dart';
 import '../widgets/partida_card_widget.dart';
-import 'sumula_screen.dart';
+import 'confirma_partida_screen.dart';
+import '../widgets/logout_button.dart';
 
-class ListaPartidasScreen extends StatefulWidget {
-  const ListaPartidasScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<ListaPartidasScreen> createState() => _ListaPartidasScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
+class _HomeScreenState extends State<HomeScreen> {
   final PartidaRepository _repository = PartidaRepository();
   List<Partida> _partidas = [];
   bool _carregando = true;
@@ -50,7 +51,8 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
               setState(() => _carregando = true);
               _carregarDadosIniciais();
             },
-          )
+          ),
+          const LogoutButton(),
         ],
       ),
       body: _carregando
@@ -129,7 +131,7 @@ class _ListaPartidasScreenState extends State<ListaPartidasScreen> {
   void _navegarParaSumula(BuildContext context, Partida partida) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => SumulaScreen(partida: partida)),
+      MaterialPageRoute(builder: (_) => ConfirmaPartidaScreen(partida: partida)),
     ).then((_) => _carregarDadosIniciais());
   }
 }

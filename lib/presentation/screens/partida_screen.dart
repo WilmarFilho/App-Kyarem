@@ -6,15 +6,15 @@ import '../../services/pdf_service.dart';
 import '../widgets/placar_final_widget.dart';
 import '../widgets/evento_timeline_tile.dart';
 
-class ResumoPartidaScreen extends StatefulWidget {
+class PartidaScreen extends StatefulWidget {
   final Partida partida;
-  const ResumoPartidaScreen({super.key, required this.partida});
+  const PartidaScreen({super.key, required this.partida});
 
   @override
-  State<ResumoPartidaScreen> createState() => _ResumoPartidaScreenState();
+  State<PartidaScreen> createState() => _PartidaScreenState();
 }
 
-class _ResumoPartidaScreenState extends State<ResumoPartidaScreen> {
+class _PartidaScreenState extends State<PartidaScreen> {
   final PartidaRepository _repository = PartidaRepository();
   List<Evento> _eventos = [];
   bool _carregando = true;
