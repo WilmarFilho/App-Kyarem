@@ -15,6 +15,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Partida> _partidas = [];
   bool _carregando = true;
 
+  String _abaSelecionada = 'Jogos';
+  bool _verMeus = false; // false = Ver Tudo, true = Ver Meus
+
   @override
   void initState() {
     super.initState();
@@ -233,19 +236,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildOptionButton(IconData icon, String label) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 30,
-          backgroundColor: const Color(0xFFF85C39),
-          child: Icon(icon, color: Colors.white, size: 28),
+    bool isSelected = _abaSelecionada == label;
+
+    return GestureDetector(
+      onTap: () => setState(() => _abaSelecionada = label),
+      child: AnimatedScale(
+        scale: isSelected ? 1.1 : 1.0, // Aumenta levemente se selecionado
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+        child: Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? const Color(0xFFF85C39)
+                    : const Color.fromARGB(159, 248, 92, 57),
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.black : Colors.grey,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
-        ),
-      ],
+      ),
     );
   }
 
@@ -264,42 +289,118 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       child: Column(
-        // Alterado para Column para separar o cabeçalho
         children: [
-          // ESTE BLOCO FICA FIXO
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 30, 22, 15),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Jogos',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
+                // Título dinâmico conforme a aba selecionada
                 Text(
-                  'Ver Todos / Ver Meus',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  _abaSelecionada,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                // Filtro clicável
+                GestureDetector(
+                  onTap: () => setState(() => _verMeus = !_verMeus),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    child: Text(
+                      _verMeus ? 'Ver Tudo' : 'Ver Meus',
+                      key: ValueKey<bool>(
+                        _verMeus,
+                      ), // Importante para o Switcher reconhecer a mudança
+                      style: TextStyle(
+                        color: _verMeus
+                            ? const Color(0xFFF85C39)
+                            : Colors.grey[600],
+                        fontSize: 13,
+                        fontWeight: _verMeus
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
 
-          // ESTE BLOCO É O ÚNICO QUE SCROLLA
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                22,
-                0,
-                22,
-                120,
-              ), // Padding inferior para a Navbar
-              physics: const BouncingScrollPhysics(),
-              itemCount: _partidas.isNotEmpty ? _partidas.length : 10,
-              itemBuilder: (context, index) {
-                final partida = _partidas.isNotEmpty ? _partidas[index] : null;
-                return _buildGameListItem(partida: partida);
-              },
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: ListView.builder(
+                key: ValueKey<String>(
+                  '$_abaSelecionada$_verMeus',
+                ), // Chave para disparar a animação
+                padding: const EdgeInsets.fromLTRB(22, 0, 22, 120),
+                physics: const BouncingScrollPhysics(),
+                itemCount: (_abaSelecionada == 'Jogos' && _partidas.isNotEmpty)
+                    ? _partidas.length
+                    : 10,
+                // Dentro do ListView.builder
+                itemBuilder: (context, index) {
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: Duration(
+                      milliseconds: 200 + (index * 50),
+                    ), // Efeito cascata
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - value)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _abaSelecionada == 'Jogos'
+                        ? _buildGameListItem(
+                            partida: _partidas.isNotEmpty
+                                ? _partidas[index]
+                                : null,
+                          )
+                        : _buildMockListItem(),
+                  );
+                },
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMockListItem() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _abaSelecionada == 'Árbitros'
+                ? Icons.person
+                : Icons.workspace_premium,
+            size: 28,
+          ),
+          const SizedBox(width: 15),
+          Text(
+            'Item de $_abaSelecionada Mockado',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
         ],
       ),
