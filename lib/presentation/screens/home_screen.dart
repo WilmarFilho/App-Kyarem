@@ -41,13 +41,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      // Fundo branco garante que o scroll infinito continue branco
-      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. O Fundo com Gradiente (altura reduzida para 50% da tela)
+          // 1. Fundo com Gradiente (Atrás de tudo)
           Container(
-            height: MediaQuery.of(context).size.height * 0.5,
+            height: MediaQuery.of(context).size.height * 0.8,
             decoration: const BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment(0.7, -0.6),
@@ -57,34 +55,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   Color(0xFFB7FFEB),
                   Color(0xFFCBFFFB),
                 ],
-                stops: [0.0, 0.5, 1.0],
               ),
             ),
           ),
 
-          // 2. O Conteúdo com Scroll
+          // 2. Estrutura Principal Fixa
           SafeArea(
-            bottom: false,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildHeaderSection(),
-                  _buildCardsSection(),
-                  const SizedBox(height: 15), // Reduzido de 30 para 15
-                  _buildWhatDoYouWantSection(),
-                  
-                  // O Container Branco que "sobe" e "estica"
-                  Transform.translate(
-                    offset: const Offset(0, -15), // Puxa o container para cima
+            child: Column(
+              children: [
+                // AJUSTE AQUI: Aumentar o padding top da tela
+                const SizedBox(height: 30),
+
+                // Seção de Cabeçalho e Cards (Estáticos/Não scrollam verticalmente)
+                _buildHeaderSection(),
+                _buildCardsSection(),
+                const SizedBox(height: 20),
+                _buildWhatDoYouWantSection(),
+
+                // 3. Container Branco SCROLLÁVEL
+                Expanded(
+                  child: Transform.translate(
+                    offset: const Offset(
+                      0,
+                      10,
+                    ), // Ajuste de posição para cima/baixo
                     child: _buildMainGamesSection(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
-          // 3. Barra de Navegação Fixa
+          // 4. Barra de Navegação Fixa
           _buildBottomNavigation(),
         ],
       ),
@@ -92,23 +94,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeaderSection() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 10, 22, 15), // Padding inferior reduzido
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('Olá {Nome},', style: TextStyle(fontFamily: 'Poppins', fontSize: 22)),
-              Text('Seja bem vindo!', style: TextStyle(fontFamily: 'Poppins', fontSize: 24, fontWeight: FontWeight.bold)),
+            children: [
+              Text(
+                'Olá {Nome},',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 20),
+              ),
+              Text(
+                'Seja bem vindo!',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
-          const CircleAvatar(
+          CircleAvatar(
             radius: 25,
             backgroundColor: Color(0xFF555555),
-            child: Icon(Icons.person_outline, color: Colors.white, size: 30),
-          )
+            child: Icon(Icons.person_outline, color: Colors.white, size: 22),
+          ),
         ],
       ),
     );
@@ -116,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCardsSection() {
     return SizedBox(
-      height: 180, // Reduzido de 200 para 180
+      height: 130,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -125,9 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, index) {
           final partida = _partidas.isNotEmpty ? _partidas[index] : null;
           return GestureDetector(
-            onTap: partida != null ? () => _confirmarInicioPartida(context, partida) : null,
+            onTap: partida != null
+                ? () => _confirmarInicioPartida(context, partida)
+                : null,
             child: Container(
-              width: 260, // Largura levemente reduzida
+              width: 260,
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFFF3A68F),
@@ -139,21 +153,53 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Futsal', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Futsal',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 5),
-                        Text('ID: ${partida?.id ?? '13123142'}', style: const TextStyle(color: Colors.white, fontSize: 13)),
-                        const Text('Data: 21/10/2026', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        const Text('Hora: 14:00', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        Text(
+                          'ID: ${partida?.id ?? '13123142'}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Text(
+                          'Data: 21/10/2026',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                        const Text(
+                          'Hora: 14:00',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
                   Positioned(
-                    top: 15,
-                    right: 15,
+                    top: 5,
+                    right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('SEU JOGO', style: TextStyle(color: Color(0xFFF3A68F), fontSize: 9, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'SEU JOGO',
+                        style: TextStyle(
+                          color: Color(0xFFF3A68F),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -168,7 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWhatDoYouWantSection() {
     return Column(
       children: [
-        const Text('OQUE VOCÊ QUER VER?', style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 28)),
+        const Text(
+          'OQUE VOCÊ QUER VER?',
+          style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 28),
+        ),
         const SizedBox(height: 15),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -178,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildOptionButton(Icons.emoji_events, 'Campeonatos'),
           ],
         ),
-        const SizedBox(height: 20), // Espaço para o container branco não colar nos ícones
+        const SizedBox(height: 15),
       ],
     );
   }
@@ -192,7 +241,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Icon(icon, color: Colors.white, size: 28),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
       ],
     );
   }
@@ -200,29 +252,55 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMainGamesSection() {
     return Container(
       width: double.infinity,
-      // Padding inferior de 120 para não esconder o último item atrás da navegação
-      padding: const EdgeInsets.fromLTRB(22, 30, 22, 120),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -5),
+          ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Alterado para Column para separar o cabeçalho
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Jogos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              Text('Ver Todos / Ver Meus', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-            ],
+          // ESTE BLOCO FICA FIXO
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 30, 22, 15),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Jogos',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Ver Todos / Ver Meus',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          ...(_partidas.isNotEmpty 
-            ? _partidas.map((partida) => _buildGameListItem(partida: partida)).toList()
-            : List.generate(10, (index) => _buildGameListItem())),
+
+          // ESTE BLOCO É O ÚNICO QUE SCROLLA
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(
+                22,
+                0,
+                22,
+                120,
+              ), // Padding inferior para a Navbar
+              physics: const BouncingScrollPhysics(),
+              itemCount: _partidas.isNotEmpty ? _partidas.length : 10,
+              itemBuilder: (context, index) {
+                final partida = _partidas.isNotEmpty ? _partidas[index] : null;
+                return _buildGameListItem(partida: partida);
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -230,11 +308,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildGameListItem({Partida? partida}) {
     return GestureDetector(
-      onTap: partida != null ? () => _confirmarInicioPartida(context, partida) : null,
+      onTap: partida != null
+          ? () => _confirmarInicioPartida(context, partida)
+          : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-        decoration: BoxDecoration(color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F2),
+          borderRadius: BorderRadius.circular(18),
+        ),
         child: Row(
           children: [
             const Icon(Icons.sports_basketball, size: 28),
@@ -243,13 +326,26 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Futsal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  Text(partida != null ? '${partida.nomeTimeA} x ${partida.nomeTimeB}' : 'Computaria Masculina', 
-                       style: const TextStyle(fontSize: 12, color: Color(0xFF555555))),
+                  const Text(
+                    'Futsal',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  Text(
+                    partida != null
+                        ? '${partida.nomeTimeA} x ${partida.nomeTimeB}'
+                        : 'Computaria Masculina',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF555555),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Text('14/10/2026 14:00', style: TextStyle(fontSize: 9, color: Colors.grey)),
+            const Text(
+              '14/10/2026 14:00',
+              style: TextStyle(fontSize: 9, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -258,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomNavigation() {
     return Positioned(
-      bottom: 25,
+      bottom: 20,
       left: 20,
       right: 20,
       child: Container(
@@ -276,7 +372,10 @@ class _HomeScreenState extends State<HomeScreen> {
               offset: const Offset(0, -5),
               child: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.add, color: Colors.black, size: 32),
               ),
             ),
@@ -295,7 +394,9 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Row(
             children: [
               Icon(Icons.play_circle_fill, color: Colors.blueAccent),
@@ -310,12 +411,17 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('CANCELAR', style: TextStyle(color: Colors.white38)),
+              child: const Text(
+                'CANCELAR',
+                style: TextStyle(color: Colors.white38),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () async {
                 await _repository.iniciarPartida(partida);
@@ -334,7 +440,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navegarParaSumula(BuildContext context, Partida partida) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ConfirmaPartidaScreen(partida: partida)),
+      MaterialPageRoute(
+        builder: (_) => ConfirmaPartidaScreen(partida: partida),
+      ),
     ).then((_) => _carregarDadosIniciais());
   }
 }
