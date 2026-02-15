@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/presentation/screens/game/partida_screen.dart';
 import '../../../data/models/partida_model.dart';
 import '../../../data/repositories/partida_repository.dart';
-import '../game/partida_screen.dart';
 import '../../widgets/bottom_navigation_widget.dart';
 
 class HomeScreen extends StatefulWidget {
