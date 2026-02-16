@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos/presentation/screens/game/resumo_partida_screen.dart';
 
 // Enum para controlar os períodos da partida
 enum PeriodoPartida {
@@ -912,36 +913,43 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                 // Botão Gerar Súmula (só aparece quando partida finalizada)
                 if (_periodoAtual == PeriodoPartida.finalizada) ...[
                   SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: null, // Por enquanto sem ação
-                    style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    disabledBackgroundColor: Colors.blue.withValues(alpha: 0.7),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    ),
-                    child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                      Icons.description,
-                      color: Colors.white,
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // pushReplacement impede que o usuário volte para a tela de jogo
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MatchSummaryScreen(
+                              timeA: widget.timeA,
+                              timeB: widget.timeB,
+                              golsA: _golsA,
+                              golsB: _golsB,
+                              eventos: _eventosPartida,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
                       ),
-                      SizedBox(width: 8),
-                      Text(
-                      'Gerar Súmula',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.analytics),
+                          SizedBox(width: 8),
+                          Text(
+                            'VER RESUMO DA PARTIDA',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                      ),
-                    ],
                     ),
-                  ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -1444,40 +1452,49 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          
+          // --- INÍCIO DO GRID DE SAÍDAS AJUSTADO ---
+          // Linha 1: Tiro de Saída e Tiro Livre Direto
+          Row(
             children: [
-              _btnSaida(
-                "Tiro de saída",
-                onTap: () => _registrarEvento("Tiro de Saída"),
-              ),
-              _btnSaida(
-                "Tiro livre direto",
-                onTap: () => _registrarEvento("Tiro Livre Direto"),
-              ),
-              _btnSaida(
-                "Tiro livre indireto",
-                onTap: () => _registrarEvento("Tiro Livre Indireto"),
-              ),
-              _btnSaida(
-                "Tiro Lateral",
-                onTap: () => _registrarEvento("Tiro Lateral"),
-              ),
-              _btnSaida(
-                "Tiro de Canto",
-                onTap: () => _registrarEvento("Tiro de Canto"),
-              ),
-              _btnSaida(
-                "Arremesso de Meta",
-                onTap: () => _registrarEvento("Arremesso de Meta"),
-              ),
+              Expanded(child: _btnSaida("Tiro de saída", onTap: () => _registrarEvento("Tiro de Saída"))),
+              const SizedBox(width: 8),
+              Expanded(child: _btnSaida("Tiro livre direto", onTap: () => _registrarEvento("Tiro Livre Direto"))),
             ],
           ),
+          const SizedBox(height: 8),
+          
+          // Linha 2: Tiro Livre Indireto e Tiro Lateral
+          Row(
+            children: [
+              Expanded(child: _buildBtnSaidaAjustado("Tiro livre indireto", () => _registrarEvento("Tiro Livre Indireto"))),
+              const SizedBox(width: 8),
+              Expanded(child: _btnSaida("Tiro Lateral", onTap: () => _registrarEvento("Tiro Lateral"))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          
+          // Linha 3: Tiro de Canto e Arremesso de Meta
+          Row(
+            children: [
+              Expanded(child: _btnSaida("Tiro de Canto", onTap: () => _registrarEvento("Tiro de Canto"))),
+              const SizedBox(width: 8),
+              Expanded(child: _btnSaida("Arremesso de Meta", onTap: () => _registrarEvento("Arremesso de Meta"))),
+            ],
+          ),
+          // --- FIM DO GRID DE SAÍDAS ---
         ],
       ),
     );
   }
+
+// Pequeno Helper para garantir que o texto não quebre o layout se for muito longo
+Widget _buildBtnSaidaAjustado(String texto, VoidCallback acao) {
+  return _btnSaida(
+    texto,
+    onTap: acao,
+  );
+}
 
   Widget _btnAcaoFull(
     String label,
