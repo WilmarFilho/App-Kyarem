@@ -1,0 +1,22 @@
+# build outputs
+build/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# secrets
+.env
+.env.*
+
+# git
+.git/

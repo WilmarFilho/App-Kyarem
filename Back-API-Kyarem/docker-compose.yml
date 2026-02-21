@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+    container_name: kyarem-api
+    env_file:
+      - ./.env
+    environment:
+      # Se quiser forçar porta diferente, pode sobrescrever APP_PORT aqui.
+      APP_PORT: 8080
+      # Quando estiver atrás do Nginx, ajuda o Spring a respeitar headers X-Forwarded-*
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: kyarem-nginx
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
