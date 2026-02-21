@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/partida_model.dart';
 import '../models/arbitro_model.dart';
 import '../models/campeonato_model.dart';
+import '../models/tipo_evento_model.dart';
 
 class PartidaService {
   final _supabase = Supabase.instance.client;
@@ -51,8 +52,65 @@ class PartidaService {
       // Regra de negócio: Você pode filtrar apenas as que não foram encerradas, por exemplo
       return partidas;
     } catch (e) {
-      print('Erro ao buscar partidas no Service: $e');
-      return []; // Retorna lista vazia em caso de erro para não quebrar a UI
+      return [];
+    }
+  }
+
+  /// Salvar novo evento da partida
+  Future<void> salvarEvento({
+    required String partidaId,
+    required String tipoEventoId,
+    String? equipeId,
+    String? atletaId, // UUID do atleta
+    String? atletaSaiId, // UUID do atleta que sai (em caso de substituição)
+    required int tempoFormatado, // Texto como "08:15"
+    String? descricao,
+    bool isSubstitution = false,
+  }) async {
+    try {
+      await _supabase.from('eventos_partida').insert({
+        'partida_id': partidaId,
+        'tipo_evento_id': tipoEventoId,
+        'equipe_id': equipeId,
+        'atleta_id': atletaId,
+        'atleta_sai_id': atletaSaiId,
+        'tempo_cronometro': tempoFormatado,
+        'descricao_detalhada': descricao,
+        'is_substitution': isSubstitution,
+        'criado_em': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Busca tipos de eventos do esporte da modalidade específica
+  Future<List<TipoEventoEsporte>> buscarTiposDeEventoDaPartida(
+    String modalidadeId,
+  ) async {
+    try {
+      // 1. Busca a modalidade para obter o esporte_id vinculado
+      final modalidadeData = await _supabase
+          .from('modalidades')
+          .select('esporte_id')
+          .eq('id', modalidadeId)
+          .single();
+
+      final String? esporteId = modalidadeData['esporte_id'];
+
+      if (esporteId == null) return [];
+
+      // 2. Com o esporte_id, buscamos todos os tipos de eventos associados a esse esporte
+      // Note: No seu banco a tabela chama-se 'tipos_eventos'
+      final List<dynamic> eventosData = await _supabase
+          .from('tipos_eventos')
+          .select('*')
+          .eq('esporte_id', esporteId);
+
+      // 3. Converte para sua lista de modelos
+      return eventosData.map((e) => TipoEventoEsporte.fromJson(e)).toList();
+    } catch (e) {
+      return [];
     }
   }
 

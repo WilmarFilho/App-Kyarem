@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos/models/partida_model.dart';
+import 'package:kyarem_eventos/models/tipo_evento_model.dart';
 import 'package:kyarem_eventos/presentation/screens/game/resumo_partida_screen.dart';
+import 'package:kyarem_eventos/services/partida_service.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/game_scoreboard.dart';
 import '../../widgets/game/game_events_feed.dart';
@@ -38,14 +41,16 @@ class EventoPartida {
 
   String get descricao {
     switch (tipo) {
-      case 'Gol':
-        return 'Gol de #$jogadorNumero';
-      case 'Cartão Amarelo':
-        return 'Cartão Amarelo #$jogadorNumero';
-      case 'Cartão Vermelho':
-        return 'Cartão Vermelho #$jogadorNumero';
-      case 'Falta':
-        return 'Falta #$jogadorNumero';
+      case 'INICIO_1_TEMPO':
+        return '🟢 Início do 1º Tempo';
+      case 'INICIO_2_TEMPO':
+        return '🟢 Início do 2º Tempo';
+      case 'PARTIDA_PAUSADA':
+        return '⏸️ Partida Pausada';
+      case 'PARTIDA_RETOMADA':
+        return '▶️ Partida Retomada';
+      case 'PAUSA_TECNICA':
+        return '🔴 Pausa Técnica';
       case 'Substituição':
         return jogadorNome.contains('↔')
             ? jogadorNome
@@ -95,14 +100,9 @@ class JogadorFutsal {
 }
 
 class PartidaRunningScreen extends StatefulWidget {
-  final String timeA;
-  final String timeB;
+  final Partida partida;
 
-  const PartidaRunningScreen({
-    super.key,
-    this.timeA = "COMPUTARIA",
-    this.timeB = "FISIOTERAPIA",
-  });
+  const PartidaRunningScreen({super.key, required this.partida});
 
   @override
   State<PartidaRunningScreen> createState() => _PartidaRunningScreenState();
@@ -111,33 +111,103 @@ class PartidaRunningScreen extends StatefulWidget {
 class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
   // Constantes de tempo da partida (em segundos) - fácil configuração
   static const int duracaoPrimeiroTempo = 20 * 60; // 20 minutos
-  static const int duracaoSegundoTempo = 20 * 60;  // 20 minutos
-  
-  int _golsA = 0;
-  int _golsB = 0;
+  static const int duracaoSegundoTempo = 20 * 60; // 20 minutos
+
+  final PartidaService _partidaService = PartidaService();
+
+  // 2. Lista para armazenar os tipos vindos do banco
+  List<TipoEventoEsporte> _tiposDeEventosDisponiveis = [];
+
+  late int _golsA;
+  late int _golsB;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _golsA = widget.partida.placarA;
+    _golsB = widget.partida.placarB;
+
+    // Chama a busca dos eventos assim que a tela inicia
+    _buscarConfiguracoesDeEventos();
+  }
+
+  Future<void> _buscarConfiguracoesDeEventos() async {
+    try {
+      final tipos = await _partidaService.buscarTiposDeEventoDaPartida(
+        widget.partida.modalidadeId,
+      );
+      setState(() {
+        _tiposDeEventosDisponiveis = tipos;
+      });
+      // ignore: empty_catches
+    } catch (e) {}
+  }
+
+  // Método para registrar eventos sistêmicos usando as IDs reais carregadas
+  Future<void> _registrarEventoSistemico(String nomeEventoNoBanco) async {
+    // 1. Tentar encontrar o tipo de evento na lista carregada
+    final tipoEvento = _tiposDeEventosDisponiveis.firstWhere(
+      (e) => e.nome == nomeEventoNoBanco,
+      orElse: () => TipoEventoEsporte(
+        id: '',
+        nome: nomeEventoNoBanco,
+        esporteId: '',
+        idx: 0,
+      ),
+    );
+
+    // 2. Registrar visualmente no feed
+    final eventoFeed = EventoPartida(
+      tipo:
+          nomeEventoNoBanco, // O switch do descricao no modelo vai precisar lidar com isso
+      jogadorNome: '',
+      jogadorNumero: 0,
+      corTime: Colors.green,
+      horario: _formatarTempo(_segundos),
+      timestamp: DateTime.now(),
+    );
+
+    setState(() {
+      _eventosPartida.insert(0, eventoFeed);
+    });
+
+    // 3. Salvar no Banco de Dados com a ID real
+    if (tipoEvento.id.isNotEmpty) {
+      debugPrint(
+        'Salvando no banco: ${tipoEvento.nome} (ID: ${tipoEvento.id})',
+      );
+       await _partidaService.salvarEvento(
+         partidaId: widget.partida.id,
+         tipoEventoId: tipoEvento.id,
+         tempoFormatado: _segundos,
+       );
+    }
+  }
+
   Timer? _timer;
   int _segundos = 0;
   bool _rodando = false;
-  
+
   // Variáveis para controle de pausa
   Timer? _timerPausa;
   int _segundosPausa = 0;
   bool _partidaJaIniciou = false;
-  
+
   // Controle dos períodos da partida
   PeriodoPartida _periodoAtual = PeriodoPartida.naoIniciada;
-  
+
   // Variáveis para controle de prorrogação
   int _tempoProrrogacao = 0; // Em segundos
   bool _temProrrogacao = false;
   bool _estaNaProrrogacao = false;
-  
+
   // Variáveis para controle de pausa técnica
   Timer? _timerPausaTecnica;
   int _segundosPausaTecnica = 0;
   bool _emPausaTecnica = false;
   String _timeEmPausaTecnica = '';
-  
+
   // Controle de uso das pausas técnicas por período
   int _pausasTecnicasTimeAPrimeiroTempo = 0;
   int _pausasTecnicasTimeBPrimeiroTempo = 0;
@@ -276,7 +346,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
     _timerPausaTecnica?.cancel(); // Limpar timer de pausa técnica
     super.dispose();
   }
-  
+
   // Verifica se deve finalizar período automaticamente
   void _verificarFimPeriodo() {
     switch (_periodoAtual) {
@@ -309,7 +379,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
         break;
     }
   }
-  
+
   // Inicia período de prorrogação
   void _iniciarProrrogacao(String descricao) {
     _timer?.cancel();
@@ -319,15 +389,15 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
       _periodoAtual = PeriodoPartida.prorrogacao;
       _segundos = 0; // Reset do cronômetro para a prorrogação
     });
-    
+
     _registrarEventoOficial(descricao);
   }
-  
+
   // Finaliza o primeiro tempo automaticamente ou manualmente
   void _finalizarPrimeiroTempo() {
     _timer?.cancel();
     _timerPausa?.cancel();
-    
+
     setState(() {
       _rodando = false;
       _periodoAtual = PeriodoPartida.intervalo;
@@ -336,32 +406,32 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
       _tempoProrrogacao = 0;
       _estaNaProrrogacao = false;
     });
-    
+
     _registrarEventoOficial('Fim do 1º Tempo');
   }
-  
+
   // Finaliza o segundo tempo e a partida
   void _finalizarPartida() {
     _timer?.cancel();
     _timerPausa?.cancel();
-    
+
     setState(() {
       _rodando = false;
       _periodoAtual = PeriodoPartida.finalizada;
     });
-    
+
     _registrarEventoOficial('Fim da Partida');
   }
-  
+
   // Finaliza o segundo tempo manualmente
   void _finalizarSegundoTempo() {
     _finalizarPartida();
   }
-  
+
   // Abre modal para selecionar tempo de prorrogação
   void _abrirModalProrrogacao() {
     final TextEditingController controller = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -392,27 +462,31 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
             onPressed: () {
               final String input = controller.text.trim();
               final int? minutos = int.tryParse(input);
-              
+
               if (minutos == null || minutos <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Por favor, digite um número válido de minutos!'),
+                    content: Text(
+                      'Por favor, digite um número válido de minutos!',
+                    ),
                     backgroundColor: Colors.red,
                   ),
                 );
                 return;
               }
-              
+
               setState(() {
                 _tempoProrrogacao = minutos * 60; // Converter para segundos
                 _temProrrogacao = true;
               });
-              
+
               Navigator.pop(context);
-              
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Prorrogação de $minutos minutos configurada com sucesso!'),
+                  content: Text(
+                    'Prorrogação de $minutos minutos configurada com sucesso!',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -423,26 +497,30 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
       ),
     );
   }
-  
+
   // Verifica se o time ainda pode usar pausa técnica no período atual
   bool _podeUsarPausaTecnica(bool isTimeA) {
     switch (_periodoAtual) {
       case PeriodoPartida.primeiroTempo:
       case PeriodoPartida.prorrogacao:
-        return isTimeA 
-          ? _pausasTecnicasTimeAPrimeiroTempo < 1
-          : _pausasTecnicasTimeBPrimeiroTempo < 1;
+        return isTimeA
+            ? _pausasTecnicasTimeAPrimeiroTempo < 1
+            : _pausasTecnicasTimeBPrimeiroTempo < 1;
       case PeriodoPartida.segundoTempo:
-        return isTimeA 
-          ? _pausasTecnicasTimeASegundoTempo < 1
-          : _pausasTecnicasTimeBSegundoTempo < 1;
+        return isTimeA
+            ? _pausasTecnicasTimeASegundoTempo < 1
+            : _pausasTecnicasTimeBSegundoTempo < 1;
       default:
         return false;
     }
   }
-  
+
   // Inicia pausa técnica para um time
   void _iniciarPausaTecnica(bool isTimeA) {
+    // 1. Pegar nomes corretos das equipes de dentro do objeto partida
+    final nomeTimeA = widget.partida.equipeA?.nome ?? "Time A";
+    final nomeTimeB = widget.partida.equipeB?.nome ?? "Time B";
+
     // Verificações de segurança
     if (_emPausaTecnica) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -453,17 +531,19 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
       );
       return;
     }
-    
+
     if (!_podeUsarPausaTecnica(isTimeA)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("${isTimeA ? widget.timeA : widget.timeB} já usou sua pausa técnica neste período!"),
+          content: Text(
+            "${isTimeA ? nomeTimeA : nomeTimeB} já usou sua pausa técnica neste período!",
+          ),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    
+
     // Pausar cronometro principal se estiver rodando
     if (_rodando) {
       _timer?.cancel();
@@ -471,14 +551,14 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
         _rodando = false;
       });
     }
-    
+
     // Iniciar pausa técnica
     setState(() {
       _emPausaTecnica = true;
-      _timeEmPausaTecnica = isTimeA ? widget.timeA : widget.timeB;
+      _timeEmPausaTecnica = isTimeA ? nomeTimeA : nomeTimeB;
       _segundosPausaTecnica = 0;
     });
-    
+
     // Incrementar contador do time no período atual
     switch (_periodoAtual) {
       case PeriodoPartida.primeiroTempo:
@@ -499,33 +579,36 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
       default:
         break;
     }
-    
+
     // Timer de 1 minuto (60 segundos) para pausa técnica
     _timerPausaTecnica = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _segundosPausaTecnica++;
-        // Finalizar automaticamente após 60 segundos
-        if (_segundosPausaTecnica >= 60) {
-          _finalizarPausaTecnica();
-        }
-      });
+      if (mounted) {
+        // Verificação para evitar erros se a tela for fechada
+        setState(() {
+          _segundosPausaTecnica++;
+          if (_segundosPausaTecnica >= 60) {
+            _finalizarPausaTecnica();
+          }
+        });
+      }
     });
-    
-    // Registrar evento de pausa técnica
-    _registrarEventoOficial('Pausa Técnica - $_timeEmPausaTecnica');
+
+    // 2. Registrar evento usando a ID oficial do arquivo events.txt
+    // O nome deve ser 'PAUSA_TECNICA' para bater com o id '33a611e7-1038-44b1-b811-0063d3ffdbc9'
+    _registrarEventoOficial('PAUSA_TECNICA');
   }
-  
+
   // Finaliza pausa técnica manualmente ou automaticamente
   void _finalizarPausaTecnica() {
     _timerPausaTecnica?.cancel();
-    
+
     setState(() {
       _emPausaTecnica = false;
     });
-    
+
     // Registrar evento de fim de pausa técnica
     _registrarEventoOficial('Fim Pausa Técnica - $_timeEmPausaTecnica');
-    
+
     _timeEmPausaTecnica = '';
     _segundosPausaTecnica = 0;
   }
@@ -533,71 +616,46 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
   void _alternarCronometro() {
     setState(() {
       _rodando = !_rodando;
-      
+
       if (_rodando) {
-        // Lógica para iniciar baseado no período atual
         switch (_periodoAtual) {
           case PeriodoPartida.naoIniciada:
-            // Primeira vez - inicia primeiro tempo
             _periodoAtual = PeriodoPartida.primeiroTempo;
-            _segundos = 0; // Reset do cronômetro
-            _registrarEventoOficial('Início do 1º Tempo');
+            _segundos = 0;
+            // ID: e736283c-6874-4b53-8386-8f3b14569501 (idx: 5)
+            _registrarEventoSistemico('INICIO_1_TEMPO');
             break;
-            
+
           case PeriodoPartida.intervalo:
-            // Saindo do intervalo - inicia segundo tempo
             _periodoAtual = PeriodoPartida.segundoTempo;
-            _segundos = 0; // Reset do cronômetro para o 2º tempo
-            _registrarEventoOficial('Início do 2º Tempo');
+            _segundos = 0;
+            // ID: b8eb310e-bfe3-4618-8af1-33d86ee51bb5 (idx: 12)
+            _registrarEventoSistemico('INICIO_2_TEMPO');
             break;
-            
-          case PeriodoPartida.prorrogacao:
-            // Continuando na prorrogação após pausa
-            if (_partidaJaIniciou) {
-              _registrarEventoPausa('Pausa Finalizada');
-            }
-            // Retomando de uma pausa durante o tempo
-            if (_partidaJaIniciou) {
-              _registrarEventoPausa('Pausa Finalizada');
-            }
-            break;
-            
-          case PeriodoPartida.finalizada:
-            // Partida já finalizada, não pode reiniciar
-            _rodando = false;
-            return;
-            
+
           default:
+            // Se for apenas um "Resume" após um pause comum
+            _registrarEventoSistemico('PARTIDA_RETOMADA');
             break;
         }
-        
-        // Iniciar cronômetro da partida
+
         _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
           setState(() {
             _segundos++;
-            _verificarFimPeriodo(); // Verificar se deve finalizar automaticamente
+            _verificarFimPeriodo();
           });
         });
-        
-        // Parar cronômetro de pausa
         _timerPausa?.cancel();
         _partidaJaIniciou = true;
-        
       } else {
-        // Pausar cronômetro da partida
         _timer?.cancel();
-        
-        // Só inicia cronometro de pausa se não estiver finalizada e não estiver em pausa técnica
         if (_periodoAtual != PeriodoPartida.finalizada && !_emPausaTecnica) {
-          // Iniciar cronômetro de pausa
           _timerPausa = Timer.periodic(const Duration(seconds: 1), (timer) {
             setState(() => _segundosPausa++);
           });
-          
-          // Registrar evento de pausa iniciada (se já iniciou antes)
-          if (_partidaJaIniciou) {
-            _registrarEventoPausa('Pausa Iniciada');
-          }
+
+          // ID: 165522c0-25cf-4941-a1e1-451c63da7b23 (idx: 11)
+          _registrarEventoSistemico('PARTIDA_PAUSADA');
         }
       }
     });
@@ -608,33 +666,39 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
     if (_periodoAtual == PeriodoPartida.naoIniciada) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Não é possível registrar eventos antes de iniciar a partida!"),
+          content: Text(
+            "Não é possível registrar eventos antes de iniciar a partida!",
+          ),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
-    
+
     if (_periodoAtual == PeriodoPartida.finalizada) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Não é possível registrar eventos com a partida encerrada!"),
+          content: Text(
+            "Não é possível registrar eventos com a partida encerrada!",
+          ),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    
+
     if (_periodoAtual == PeriodoPartida.intervalo) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Não é possível registrar eventos durante o intervalo!"),
+          content: Text(
+            "Não é possível registrar eventos durante o intervalo!",
+          ),
           backgroundColor: Colors.blue,
         ),
       );
       return;
     }
-    
+
     if (_jogadorSelecionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -730,7 +794,6 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
   }
 
   Future<void> _salvarEventoNoBanco(String tipo, JogadorFutsal jogador) async {
-   
     // Exemplo:
     // await _partidaRepository.registrarEvento(
     //   sumulaId: widget.partidaId,
@@ -853,7 +916,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Não é possível sair com a partida em andamento!"),
+                content: Text(
+                  "Não é possível sair com a partida em andamento!",
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -864,10 +929,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
           padding: const EdgeInsets.all(16),
         ),
         child: Text(
-          _periodoAtual == PeriodoPartida.finalizada 
-            ? "Voltar"
-            : _rodando 
-              ? "Pause para sair" 
+          _periodoAtual == PeriodoPartida.finalizada
+              ? "Voltar"
+              : _rodando
+              ? "Pause para sair"
               : "Voltar",
           style: const TextStyle(color: Colors.white),
         ),
@@ -898,8 +963,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                   children: [
                     const SizedBox(height: 10),
                     GameScoreboard(
-                      timeA: widget.timeA,
-                      timeB: widget.timeB,
+                      timeA: widget.partida.equipeA?.nome ?? "Time A",
+                      timeB: widget.partida.equipeB?.nome ?? "Time B",
                       golsA: _golsA,
                       golsB: _golsB,
                       periodoAtual: _periodoAtual,
@@ -957,8 +1022,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => MatchSummaryScreen(
-                                  timeA: widget.timeA,
-                                  timeB: widget.timeB,
+                                  timeA:
+                                      widget.partida.equipeA?.nome ?? "Time A",
+                                  timeB:
+                                      widget.partida.equipeB?.nome ?? "Time B",
                                   golsA: _golsA,
                                   golsB: _golsB,
                                   eventos: _eventosPartida,
@@ -981,7 +1048,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                               SizedBox(width: 8),
                               Text(
                                 'VER RESUMO DA PARTIDA',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -1040,7 +1110,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "SUBSTITUIÇÃO",
+                        "SUBSTITUIÇÃO", // Nome do evento conforme events.txt
                         style: TextStyle(
                           color: Color(0xFF00FFC2),
                           fontWeight: FontWeight.bold,
@@ -1048,7 +1118,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                         ),
                       ),
                       Text(
-                        isTimeA ? widget.timeA : widget.timeB,
+                        // Acessando o nome da equipe corretamente através do modelo da partida
+                        isTimeA
+                            ? (widget.partida.equipeA?.nome ?? "Time A")
+                            : (widget.partida.equipeB?.nome ?? "Time B"),
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
@@ -1071,7 +1144,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
               decoration: BoxDecoration(
                 color: Colors.black26,
                 borderRadius: BorderRadius.circular(15),
-                 // ignore: deprecated_member_use
+                // ignore: deprecated_member_use
                 border: Border.all(color: Colors.red.withOpacity(0.3)),
               ),
               child: Row(
@@ -1081,7 +1154,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
                   Text(
                     "SAINDO:",
                     style: TextStyle(
-                       // ignore: deprecated_member_use
+                      // ignore: deprecated_member_use
                       color: Colors.white.withOpacity(0.5),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -1153,7 +1226,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-               // ignore: deprecated_member_use
+              // ignore: deprecated_member_use
               colors: [reserva.corTime.withOpacity(0.2), Colors.white10],
             ),
             borderRadius: BorderRadius.circular(15),

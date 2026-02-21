@@ -6,7 +6,7 @@ import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/home/home_header.dart';
 import '../../widgets/home/partida_card.dart';
 import '../../widgets/home/option_button.dart';
-import '../../widgets/home/home_list.dart'; 
+import '../../widgets/home/home_list.dart';
 import '../game/partida_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,15 +19,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PartidaService _partidaService = PartidaService();
 
-  List<Partida> _partidasDestaque = []; 
-  List<dynamic> _itensListaInferior = []; 
+  List<Partida> _partidasDestaque = [];
+  List<dynamic> _itensListaInferior = [];
 
   bool _carregandoDestaques = false;
   bool _carregandoListaAba = false;
 
   // Controladores separados para evitar que o topo reanime ao trocar de aba
-  late AnimationController _mainController;   // Controla Header e Cards
-  late AnimationController _listController;   // Controla apenas a lista dinâmica inferior
+  late AnimationController _mainController; // Controla Header e Cards
+  late AnimationController
+  _listController; // Controla apenas a lista dinâmica inferior
 
   late List<Animation<double>> _fadeAnimations;
   late List<Animation<Offset>> _slideAnimations;
@@ -38,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    
+
     // Inicializa o controller principal (topo)
     _mainController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -57,22 +58,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _initializeAnimations() {
     // As animações de entrada do topo agora são vinculadas ao _mainController
-    _fadeAnimations = List.generate(3, (index) => 
-      Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimations = List.generate(
+      3,
+      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(
           parent: _mainController,
-          curve: Interval(index * 0.2, (index * 0.2) + 0.8, curve: Curves.easeOutCubic),
+          curve: Interval(
+            index * 0.2,
+            (index * 0.2) + 0.8,
+            curve: Curves.easeOutCubic,
+          ),
         ),
       ),
     );
 
-    _slideAnimations = List.generate(3, (index) => 
-      Tween<Offset>(begin: const Offset(0.0, 0.4), end: Offset.zero).animate(
-        CurvedAnimation(
-          parent: _mainController,
-          curve: Interval(index * 0.2, (index * 0.2) + 0.8, curve: Curves.easeOutCubic),
-        ),
-      ),
+    _slideAnimations = List.generate(
+      3,
+      (index) => Tween<Offset>(begin: const Offset(0.0, 0.4), end: Offset.zero)
+          .animate(
+            CurvedAnimation(
+              parent: _mainController,
+              curve: Interval(
+                index * 0.2,
+                (index * 0.2) + 0.8,
+                curve: Curves.easeOutCubic,
+              ),
+            ),
+          ),
     );
   }
 
@@ -86,7 +98,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _carregarTudo() async {
     await Future.wait([
       _buscarPartidasDestaque(),
-      _buscarDadosAba(isFirstLoad: true), // Passamos flag para não resetar animação agora
+      _buscarDadosAba(
+        isFirstLoad: true,
+      ), // Passamos flag para não resetar animação agora
     ]);
     // Dispara a animação do topo apenas na carga inicial
     _mainController.forward();
@@ -117,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _itensListaInferior = dados;
           _carregandoListaAba = false;
         });
-        
+
         // Se não for a carga inicial da tela, resetamos apenas o controller da lista
         if (!isFirstLoad) {
           _listController.reset();
@@ -133,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (_abaSelecionada == novaAba) return;
     setState(() {
       _abaSelecionada = novaAba;
-      _itensListaInferior = []; 
+      _itensListaInferior = [];
     });
     _buscarDadosAba();
   }
@@ -150,12 +164,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 const SizedBox(height: 10),
                 // HomeHeader agora está fixo ou pode ser envolvido em FadeTransition se desejar
                 const HomeHeader(),
-                _buildCardsSection(), 
+                _buildCardsSection(),
                 const SizedBox(height: 20),
-                _buildWhatDoYouWantSection(), 
-                Expanded(
-                  child: _buildMainGamesSection(), 
-                ),
+                _buildWhatDoYouWantSection(),
+                Expanded(child: _buildMainGamesSection()),
               ],
             ),
           ),
@@ -170,25 +182,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       height: 155,
       child: _carregandoDestaques && _partidasDestaque.isEmpty
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : _partidasDestaque.isEmpty 
-              ? const Center(child: Text("Nenhuma partida em destaque", style: TextStyle(color: Colors.white)))
-              : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _partidasDestaque.length,
-                  itemBuilder: (context, index) {
-                    final partida = _partidasDestaque[index];
-                    final animationIndex = index.clamp(0, 2);
+          : _partidasDestaque.isEmpty
+          ? const Center(
+              child: Text(
+                "Nenhuma partida em destaque",
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              physics: const BouncingScrollPhysics(),
+              itemCount: _partidasDestaque.length,
+              itemBuilder: (context, index) {
+                final partida = _partidasDestaque[index];
+                final animationIndex = index.clamp(0, 2);
 
-                    return PartidaCard(
-                      partida: partida,
-                      fadeAnimation: _fadeAnimations[animationIndex],
-                      slideAnimation: _slideAnimations[animationIndex],
-                      onTap: () => _navegarParaPartida(partida),
-                    );
-                  },
-                ),
+                return PartidaCard(
+                  partida: partida,
+                  fadeAnimation: _fadeAnimations[animationIndex],
+                  slideAnimation: _slideAnimations[animationIndex],
+                  onTap: () => _navegarParaPartida(partida),
+                );
+              },
+            ),
     );
   }
 
@@ -235,7 +252,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5)),
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -5),
+          ),
         ],
       ),
       child: Column(
@@ -247,14 +268,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 Text(
                   _abaSelecionada,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => setState(() => _verMeus = !_verMeus),
                   child: Text(
                     _verMeus ? 'Ver Tudo' : 'Ver Meus',
                     style: TextStyle(
-                      color: _verMeus ? const Color(0xFFF85C39) : Colors.grey[600],
+                      color: _verMeus
+                          ? const Color(0xFFF85C39)
+                          : Colors.grey[600],
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -269,7 +295,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     opacity: _listController,
                     child: SlideTransition(
                       position: _listController.drive(
-                        Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero)
+                        Tween<Offset>(
+                          begin: const Offset(0.0, 0.05),
+                          end: Offset.zero,
+                        ),
                       ),
                       child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(22, 0, 22, 120),
@@ -293,12 +322,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _navegarParaPartida(Partida partida) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => PartidaRunningScreen(
-          timeA: partida.equipeA?.atletica?.nome ?? 'Time A',
-          timeB: partida.equipeB?.atletica?.nome ?? 'Time B',
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => PartidaRunningScreen(partida: partida)),
     ).then((_) => _carregarTudo());
   }
 }
