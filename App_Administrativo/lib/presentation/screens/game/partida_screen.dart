@@ -183,9 +183,13 @@ class PartidaRunningScreen extends StatefulWidget {
 
 class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     with WidgetsBindingObserver {
-  static const int duracaoPrimeiroTempo = 20 * 60; // 1200 segundos
+  //static const int duracaoPrimeiroTempo = 20 * 60; // 1200 segundos
+  //static const int duracaoSegundoTempo =
+  //    40 * 60; // 2400 segundos (Total acumulado)
+
+  static const int duracaoPrimeiroTempo = 10 * 10; // 1200 segundos
   static const int duracaoSegundoTempo =
-      40 * 60; // 2400 segundos (Total acumulado)
+      12 * 10; // 2400 segundos (Total acumulado)
 
   final PartidaService _partidaService = PartidaService();
   List<TipoEventoEsporte> _tiposDeEventosDisponiveis = [];
@@ -593,7 +597,6 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         if (_segundos >= duracaoPrimeiroTempo) {
           if (_temAcrescimo && !_estaNoAcrescimo) {
             _iniciarAcrescimo();
-            _estaNoAcrescimo = true;
           } else {
             _finalizarPrimeiroTempo();
           }
@@ -604,12 +607,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           // 1º Prioridade: Se tem acréscimo e ainda não iniciou, inicia o acréscimo
           if (_temAcrescimo && !_estaNoAcrescimo) {
             _iniciarAcrescimo();
-            _estaNoAcrescimo = true;
           }
-          // 2º Prioridade: Se não tem acréscimo (ou já acabou) e tem prorrogação
+          // 2º Prioridade: Se não tem acréscimo (ou já acabou) e tem prorrogação finaliza o segundo tempo para zerar cronometro e começar a prorrogação assim que arbitro despausar
           else if (_temProrrogacao && !_estaNaProrrogacao) {
-            _iniciarProrrogacao();
-            _estaNaProrrogacao = true;
+            _finalizarSegundoTempo();
           }
           // 3º Prioridade: Finaliza se não houver mais nada pendente
           else {
@@ -626,12 +627,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           });
           if (_periodoAntesDoAcrescimo == PeriodoPartida.primeiroTempo) {
             _finalizarPrimeiroTempo();
-            // 2º Prioridade: Se não tem acréscimo (ou já acabou) e tem prorrogação
           } else if (_periodoAntesDoAcrescimo == PeriodoPartida.segundoTempo &&
               _temProrrogacao &&
               !_estaNaProrrogacao) {
-            _iniciarProrrogacao();
-            _estaNaProrrogacao = true;
+            _finalizarSegundoTempo();
           }
           // 3º Prioridade: Finaliza se não houver mais nada pendente
           else {
@@ -669,7 +668,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   void _iniciarProrrogacao() {
     _timer?.cancel();
     setState(() {
-      _rodando = false;
+      _rodando = true;
       _estaNaProrrogacao = true;
       _periodoAtual = PeriodoPartida.prorrogacao;
       _segundos = 0; // Reset do cronômetro para a prorrogação
@@ -679,8 +678,6 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       widget.partida.id,
       novoStatus: 'prorrogação',
     );
-
-    _registrarEventoSistemico('PRORROGACAO');
   }
 
   // Inicia período de prorrogação
@@ -721,6 +718,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     setState(() {
       _rodando = false;
       _periodoAtual = PeriodoPartida.intervalo;
+      _periodoAntesDoPausa = PeriodoPartida.primeiroTempo;
       _temAcrescimo = false;
       _tempoAcrescimo = 0;
       _estaNoAcrescimo = false;
@@ -752,6 +750,29 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       novoStatus: 'finalizada',
     );
     _registrarEventoSistemico('FIM_PARTIDA');
+  }
+
+  void _finalizarSegundoTempo() {
+    _timer?.cancel();
+    _timerPausa?.cancel();
+
+    setState(() {
+      _rodando = false;
+      _periodoAtual = PeriodoPartida.intervalo;
+      _periodoAntesDoPausa = PeriodoPartida.segundoTempo;
+      _estaNoAcrescimo = false;
+      _tempoAcrescimo = 0;
+      _temAcrescimo = false;
+    });
+
+    _partidaService.atualizarPartida(
+      widget.partida.id,
+      novoStatus: 'intervalo',
+    );
+    _registrarEventoSistemico('FIM_2_TEMPO');
+
+    _registrarEventoSistemico('INTERVALO');
+    _iniciarTimerIntervalo();
   }
 
   // Abre modal para selecionar tempo de prorrogação
@@ -1026,16 +1047,19 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   }
 
   Future<void> _alternarCronometro() async {
-    // ✅ 1. Decide o que vai acontecer ANTES do setState
+    // DEFINI QUAL O PROXIMO ESTADO DO CRONOMETRO (RODANDO OU PARADO)
     final bool novoRodando = !_rodando;
+
+    // DEFINI QUAL O EVENTO QUE SERA REGISTRADO NO BANCO
     String? eventoParaRegistrar;
+
+    // DEFINI QUAL O SERVIÇO QUE SERA EXECUTADO
     Future<void> Function()? atualizarServico;
 
+    // VAI COMEÇAR A RODAR
     if (novoRodando) {
-      debugPrint("INICIOU");
       switch (_periodoAtual) {
         case PeriodoPartida.naoIniciada:
-          debugPrint("NAO INICIADA");
           eventoParaRegistrar = 'INICIO_1_TEMPO';
           atualizarServico = () => _partidaService.atualizarPartida(
             widget.partida.id,
@@ -1043,11 +1067,21 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           );
           break;
         case PeriodoPartida.intervalo:
-          eventoParaRegistrar = 'INICIO_2_TEMPO';
-          atualizarServico = () => _partidaService.atualizarPartida(
-            widget.partida.id,
-            novoStatus: '2° tempo',
-          );
+          debugPrint('AA intervalo');
+          if (_periodoAntesDoPausa == PeriodoPartida.primeiroTempo) {
+            eventoParaRegistrar = 'INICIO_2_TEMPO';
+            atualizarServico = () => _partidaService.atualizarPartida(
+              widget.partida.id,
+              novoStatus: '2° tempo',
+            );
+          } else if (_periodoAntesDoPausa == PeriodoPartida.segundoTempo) {
+            _iniciarProrrogacao();
+            eventoParaRegistrar = 'PRORROGACAO';
+            atualizarServico = () => _partidaService.atualizarPartida(
+              widget.partida.id,
+              novoStatus: 'prorrogação',
+            );
+          }
           break;
         default:
           if (_periodoAntesDoPausa == PeriodoPartida.primeiroTempo) {
@@ -1066,35 +1100,43 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
               novoStatus: 'prorrogação',
             );
           }
-          debugPrint("PARTIDA RETOMADA");
           eventoParaRegistrar = 'PARTIDA_RETOMADA';
           break;
       }
+      // VAI PARAR
     } else {
       if (_periodoAtual != PeriodoPartida.finalizada && !_emPausaTecnica) {
         _periodoAntesDoPausa = _periodoAtual;
+
         _partidaService.atualizarPartida(
           widget.partida.id,
           novoStatus: 'pausada',
         );
-        debugPrint("AAAAAAAAA: PARTIDA PAUSADA");
+
         eventoParaRegistrar = 'PARTIDA_PAUSADA';
       }
     }
 
-    // ✅ 2. setState com APENAS mutações síncronas (sem async, sem timers, sem serviços)
+    // APENAS mutações síncronas (sem async, sem timers, sem serviços)
     setState(() {
       _rodando = novoRodando;
+
       if (novoRodando) {
         switch (_periodoAtual) {
           case PeriodoPartida.naoIniciada:
             _periodoAtual = PeriodoPartida.primeiroTempo;
             _segundos = 0;
+
             break;
+
           case PeriodoPartida.intervalo:
-            _periodoAtual = PeriodoPartida.segundoTempo;
-            _segundos = duracaoPrimeiroTempo;
+            if (_periodoAntesDoPausa == PeriodoPartida.primeiroTempo) {
+              _periodoAtual = PeriodoPartida.segundoTempo;
+              _segundos = duracaoPrimeiroTempo;
+            }
+
             break;
+
           default:
             break;
         }
@@ -1545,7 +1587,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                 onToggleCronometro: _alternarCronometro,
                                 onFinalizarPrimeiroTempo:
                                     _finalizarPrimeiroTempo,
-                                onFinalizarSegundoTempo: _finalizarPartida,
+                                onFinalizarSegundoTempo: _finalizarSegundoTempo,
                                 onAbrirModalProrrogacao: _abrirModalProrrogacao,
                                 onAbrirModalAcrescimo: _abrirModalAcrescimo,
                                 segundosIntervalo: _segundosIntervalo,

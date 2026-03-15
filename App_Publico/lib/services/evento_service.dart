@@ -7,6 +7,7 @@ class EventoService {
   static const Map<String, String> friendlyNames = {
     'INICIO_1_TEMPO': 'Início do 1° Tempo',
     'FIM_1_TEMPO': 'Fim do 1° Tempo',
+    'FIM_2_TEMPO': 'Fim do 2° Tempo',
     'INICIO_2_TEMPO': 'Início do 2° Tempo',
     'FIM_PARTIDA': 'Fim da Partida',
     'GOL': '⚽ Gol',

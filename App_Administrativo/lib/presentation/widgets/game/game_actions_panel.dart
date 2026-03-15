@@ -53,12 +53,15 @@ class GameActionsPanel extends StatelessWidget {
       "inicio_2_tempo",
       "fim_partida",
       "fim_1_tempo",
+      "fim_2_tempo",
       "pausa_tecnica",
+      "fim_pausa_tecnica",
       "prorrogacao_dada",
       "partida_pausada",
       "acrescimo_dado",
       "intervalo",
       'acrescimo',
+      'prorrogacao',
       'partida_retomada',
     ];
 
