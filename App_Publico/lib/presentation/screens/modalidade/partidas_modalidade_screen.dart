@@ -419,11 +419,16 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           backgroundColor: color.withOpacity(0.2),
           child: CircleAvatar(
             radius: pos == 1 ? 28 : 23,
-            backgroundImage:
-                (est.equipeEscudoUrl != null && est.equipeEscudoUrl!.isNotEmpty)
-                ? NetworkImage(est.equipeEscudoUrl!)
-                : null,
-            child: (est.equipeEscudoUrl == null || est.equipeEscudoUrl!.isEmpty)
+            backgroundColor: Colors.white,
+            backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
+                ? NetworkImage(est.fotoUrl!)
+                : (est.equipeEscudoUrl != null &&
+                        est.equipeEscudoUrl!.isNotEmpty)
+                    ? NetworkImage(est.equipeEscudoUrl!)
+                    : null,
+            child: ((est.fotoUrl == null || est.fotoUrl!.isEmpty) &&
+                    (est.equipeEscudoUrl == null ||
+                        est.equipeEscudoUrl!.isEmpty))
                 ? const Icon(Icons.person)
                 : null,
           ),
@@ -506,11 +511,15 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           CircleAvatar(
             radius: 20,
             backgroundColor: Colors.grey.shade50,
-            backgroundImage:
-                (est.equipeEscudoUrl != null && est.equipeEscudoUrl!.isNotEmpty)
-                ? NetworkImage(est.equipeEscudoUrl!)
-                : null,
-            child: (est.equipeEscudoUrl == null || est.equipeEscudoUrl!.isEmpty)
+            backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
+                ? NetworkImage(est.fotoUrl!)
+                : (est.equipeEscudoUrl != null &&
+                        est.equipeEscudoUrl!.isNotEmpty)
+                    ? NetworkImage(est.equipeEscudoUrl!)
+                    : null,
+            child: ((est.fotoUrl == null || est.fotoUrl!.isEmpty) &&
+                    (est.equipeEscudoUrl == null ||
+                        est.equipeEscudoUrl!.isEmpty))
                 ? const Icon(Icons.person, size: 20, color: Colors.grey)
                 : null,
           ),

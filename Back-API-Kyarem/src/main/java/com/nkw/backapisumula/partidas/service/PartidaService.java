@@ -412,7 +412,7 @@ public class PartidaService {
         if (status == null) return;
         String s = status.trim().toLowerCase(Locale.ROOT);
         if (!VALID_STATUS.contains(s)) {
-            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, finalizada.");
+            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, finalizada.");
         }
     }
 

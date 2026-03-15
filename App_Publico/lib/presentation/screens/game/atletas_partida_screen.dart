@@ -219,8 +219,10 @@ class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: const Color(0xFFF5F5F5),
-          backgroundImage: escudoUrl != null ? NetworkImage(escudoUrl) : null,
-          child: escudoUrl == null
+          backgroundImage: atleta.fotoUrl != null
+              ? NetworkImage(atleta.fotoUrl!)
+              : null,
+          child: atleta.fotoUrl == null
               ? const Icon(Icons.person, color: Colors.grey)
               : null,
         ),

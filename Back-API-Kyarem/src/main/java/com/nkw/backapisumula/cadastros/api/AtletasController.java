@@ -61,10 +61,10 @@ public class AtletasController {
     public record CreateAtletaRequest(@NotNull UUID atleticaId, @NotBlank String nome) {}
     public record UpdateAtletaRequest(@NotBlank String nome) {}
 
-    public record AtletaResponse(UUID id, UUID atleticaId, String nome) {
+    public record AtletaResponse(UUID id, UUID atleticaId, String nome, String fotoUrl) {
         static AtletaResponse from(Atleta a) {
             UUID atleticaId = a.getAtletica() != null ? a.getAtletica().getId() : null;
-            return new AtletaResponse(a.getId(), atleticaId, a.getNome());
+            return new AtletaResponse(a.getId(), atleticaId, a.getNome(), a.getFotoUrl());
         }
     }
 }

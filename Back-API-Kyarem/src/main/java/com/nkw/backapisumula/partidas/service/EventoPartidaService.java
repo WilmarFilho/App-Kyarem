@@ -35,6 +35,7 @@ public class EventoPartidaService {
     private static final Map<String, String> FRIENDLY_NAMES = Map.ofEntries(
         entry("INICIO_1_TEMPO", "Início do 1° Tempo"),
         entry("FIM_1_TEMPO", "Fim do 1° Tempo"),
+        entry("FIM_2_TEMPO", "Fim do 2° Tempo"),
         entry("INICIO_2_TEMPO", "Início do 2° Tempo"),
         entry("FIM_PARTIDA", "Fim da Partida"),
         entry("GOL", "⚽ Gol"),

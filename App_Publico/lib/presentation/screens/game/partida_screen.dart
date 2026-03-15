@@ -305,7 +305,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       if (nome != null) parts.add(nome);
     }
 
-    if (descricao.isNotEmpty) parts.add('Obs: $descricao');
+    if (descricao.isNotEmpty) parts.add(descricao);
 
     return parts.join(' — ');
   }
@@ -640,15 +640,13 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       iconData = Icons.sports_soccer;
       iconColor = Colors.deepOrange;
     } else if (rawNome.contains('INICIO') ||
-        rawNome.contains('FIM') ||
         rawNome.contains('ACRESCIMO') ||
-        rawNome.contains('PRORROGACAO') ||
-        rawNome.contains('PEDIDO_TEMPO')) {
+        rawNome.contains('PRORROGACAO')) {
+      iconData = Icons.timer;
+      iconColor = Colors.green;
+    } else if (rawNome.contains('FIM')) {
       iconData = Icons.timer;
       iconColor = const Color(0xFFF85C39);
-    } else if (rawNome.contains('WO')) {
-      iconData = Icons.cancel;
-      iconColor = Colors.red;
     }
 
     return IntrinsicHeight(

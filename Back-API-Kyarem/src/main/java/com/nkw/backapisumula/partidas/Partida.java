@@ -60,6 +60,9 @@ public class Partida {
     @Column(name = "encerrada_em")
     private OffsetDateTime encerradaEm;
 
+    @Column(name = "status_antes_pausa")
+    private String statusAntesPausa;
+
     @Column(name = "criado_em", updatable = false, insertable = false)
     private OffsetDateTime criadoEm;
 
@@ -107,4 +110,7 @@ public class Partida {
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
+
+    public String getStatusAntesPausa() { return statusAntesPausa; }
+    public void setStatusAntesPausa(String statusAntesPausa) { this.statusAntesPausa = statusAntesPausa; }
 }

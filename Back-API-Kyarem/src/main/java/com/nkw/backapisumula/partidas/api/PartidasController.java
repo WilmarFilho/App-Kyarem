@@ -144,7 +144,8 @@ public class PartidasController {
             Integer placarB,
             JsonNode snapshotSumula,
             String sumulaPdfUrl,
-            String hashIntegridade
+            String hashIntegridade,
+            String statusAntesPausa
     ) {
         public static PartidaResponse from(Partida p) {
             return new PartidaResponse(
@@ -161,7 +162,8 @@ public class PartidasController {
                     p.getPlacarB(),
                     p.getSnapshotSumula(),
                     p.getSumulaPdfUrl(),
-                    p.getHashIntegridade()
+                    p.getHashIntegridade(),
+                    p.getStatusAntesPausa()
             );
         }
     }

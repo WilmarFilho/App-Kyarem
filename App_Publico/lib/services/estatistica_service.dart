@@ -6,6 +6,7 @@ class EstatisticaAtleta {
   final String nomeAtleta;
   final String equipeNome;
   final String? equipeEscudoUrl;
+  final String? fotoUrl;
 
   int gols;
   int cartoesAmarelos;
@@ -18,6 +19,7 @@ class EstatisticaAtleta {
     required this.nomeAtleta,
     required this.equipeNome,
     this.equipeEscudoUrl,
+    this.fotoUrl,
     this.gols = 0,
     this.cartoesAmarelos = 0,
     this.cartoesVermelhos = 0,
@@ -52,7 +54,7 @@ class EstatisticaService {
           .from('eventos_partida')
           .select('''
             *,
-            atletas!eventos_partida_atleta_id_fkey(nome, atletica_id),
+            atletas!eventos_partida_atleta_id_fkey(nome, atletica_id, foto_url),
             equipes!eventos_partida_equipe_id_fkey(nome_equipe, atleticas(escudo_url)),
             tipo_evento:tipo_evento_id(nome)
           ''')
@@ -68,6 +70,7 @@ class EstatisticaService {
         // Extrai informações do atleta
         final atletaInfo = evento['atletas'];
         final nomeAtleta = atletaInfo?['nome'] ?? 'Desconhecido';
+        final fotoUrl = atletaInfo?['foto_url'];
 
         // Extrai informações da equipe
         final equipeInfo = evento['equipes'];
@@ -84,6 +87,7 @@ class EstatisticaService {
             nomeAtleta: nomeAtleta,
             equipeNome: nomeEquipe,
             equipeEscudoUrl: equipeEscudoUrl,
+            fotoUrl: fotoUrl,
           );
         }
 

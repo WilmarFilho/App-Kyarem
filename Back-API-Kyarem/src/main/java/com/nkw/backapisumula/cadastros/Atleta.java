@@ -20,6 +20,9 @@ public class Atleta {
     @Column(nullable = false)
     private String nome;
 
+    @Column(name = "foto_url")
+    private String fotoUrl;
+
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
 
@@ -34,4 +37,7 @@ public class Atleta {
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
+
+    public String getFotoUrl() { return fotoUrl; }
+    public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
 }

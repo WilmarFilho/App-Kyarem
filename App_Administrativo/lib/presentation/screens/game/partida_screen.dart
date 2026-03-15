@@ -183,13 +183,9 @@ class PartidaRunningScreen extends StatefulWidget {
 
 class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     with WidgetsBindingObserver {
-  //static const int duracaoPrimeiroTempo = 20 * 60; // 1200 segundos
-  //static const int duracaoSegundoTempo =
-  //    40 * 60; // 2400 segundos (Total acumulado)
-
-  static const int duracaoPrimeiroTempo = 10 * 10; // 1200 segundos
+  static const int duracaoPrimeiroTempo = 20 * 60; // 1200 segundos
   static const int duracaoSegundoTempo =
-      12 * 10; // 2400 segundos (Total acumulado)
+      40 * 60; // 2400 segundos (Total acumulado)
 
   final PartidaService _partidaService = PartidaService();
   List<TipoEventoEsporte> _tiposDeEventosDisponiveis = [];

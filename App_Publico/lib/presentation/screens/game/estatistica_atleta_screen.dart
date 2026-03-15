@@ -176,10 +176,10 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
           CircleAvatar(
             radius: 40,
             backgroundColor: const Color(0xFFF5F5F5),
-            backgroundImage: widget.escudoUrl != null
-                ? NetworkImage(widget.escudoUrl!)
+            backgroundImage: widget.atleta.fotoUrl != null
+                ? NetworkImage(widget.atleta.fotoUrl!)
                 : null,
-            child: widget.escudoUrl == null
+            child: widget.atleta.fotoUrl == null
                 ? const Icon(Icons.person, size: 40, color: Colors.grey)
                 : null,
           ),
