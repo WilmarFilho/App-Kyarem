@@ -1,5 +1,6 @@
 package com.nkw.backapisumula.partidas.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.service.PartidaService;
@@ -97,7 +98,7 @@ public class PartidasController {
                                         @Valid @RequestBody UpdateStatusRequest req) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
-        Partida p = service.updateStatus(id, userId, arbitroOnly, req.status());
+        Partida p = service.updateStatus(id, userId, arbitroOnly, req.status(), req.statusAntesPausa());
         return PartidaResponse.from(p);
     }
 
@@ -127,7 +128,8 @@ public class PartidasController {
     ) {}
 
     public record UpdateStatusRequest(
-            @NotBlank String status
+            @NotBlank String status,
+            @JsonProperty("status_antes_pausa") String statusAntesPausa
     ) {}
 
     public record PartidaResponse(

@@ -246,7 +246,7 @@ public class PartidaService {
         return repo.save(p);
     }
 
-    public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status) {
+    public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status, String statusAntesPausa) {
         Partida p = getOrThrow(partidaId);
 
         // Se for árbitro (sem ser admin/delegado), só pode alterar se estiver atribuído à partida
@@ -263,6 +263,10 @@ public class PartidaService {
         validateStatus(normalized);
 
         p.setStatus(normalized);
+
+        if (statusAntesPausa != null) {
+            p.setStatusAntesPausa(statusAntesPausa);
+        }
 
         // Se saiu de agendada, marca iniciadaEm caso ainda não exista
         if (!STATUS_AGENDADA.equalsIgnoreCase(normalized) && p.getIniciadaEm() == null) {

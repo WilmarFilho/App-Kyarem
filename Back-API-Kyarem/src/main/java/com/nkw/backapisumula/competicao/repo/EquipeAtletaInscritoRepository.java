@@ -20,6 +20,8 @@ public interface EquipeAtletaInscritoRepository extends JpaRepository<EquipeAtle
 
     boolean existsByEquipe_IdAndAtleta_Id(UUID equipeId, UUID atletaId);
 
+    java.util.Optional<EquipeAtletaInscrito> findByEquipe_IdAndAtleta_Id(UUID equipeId, UUID atletaId);
+
     /**
      * Retorna apenas os IDs dos atletas inscritos em uma equipe dentro de um conjunto de atletas.
      * Útil para validações em lote sem carregar entidades completas.

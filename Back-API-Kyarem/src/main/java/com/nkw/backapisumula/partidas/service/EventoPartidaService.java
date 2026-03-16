@@ -5,6 +5,7 @@ import com.nkw.backapisumula.cadastros.TipoEvento;
 import com.nkw.backapisumula.cadastros.repo.AtletaRepository;
 import com.nkw.backapisumula.cadastros.repo.TipoEventoRepository;
 import com.nkw.backapisumula.competicao.Equipe;
+import com.nkw.backapisumula.competicao.EquipeAtletaInscrito;
 import com.nkw.backapisumula.competicao.Modalidade;
 import com.nkw.backapisumula.competicao.repo.EquipeAtletaInscritoRepository;
 import com.nkw.backapisumula.competicao.repo.EquipeRepository;
@@ -458,6 +459,10 @@ public class EventoPartidaService {
                     golsB++;
                 }
             }
+
+            if (isSub) {
+                handleSubstitutionAtivoStatus(r.equipeId(), r.atletaId(), r.atletaSaiId());
+            }
         }
 
         List<EventoPartida> saved = repo.saveAll(toSave);
@@ -580,6 +585,10 @@ public class EventoPartidaService {
             partidaRepo.save(partida);
         }
 
+        if (isSubstitution) {
+            handleSubstitutionAtivoStatus(equipeId, atletaId, atletaSaiId);
+        }
+
         // Send push notification
         String topic = "partida_" + partidaId.toString();
         String title = (partida.getEquipeA() != null ? partida.getEquipeA().getNomeEquipe() : "Equipe A") + " x " + 
@@ -588,5 +597,22 @@ public class EventoPartidaService {
         firebaseMessagingService.sendNotificationToTopic(topic, title, body);
 
         return saved;
+    }
+
+    private void handleSubstitutionAtivoStatus(UUID equipeId, UUID entraId, UUID saiId) {
+        if (entraId != null) {
+            inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, entraId)
+                    .ifPresent(i -> {
+                        i.setAtivo(true);
+                        inscritoRepo.save(i);
+                    });
+        }
+        if (saiId != null) {
+            inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, saiId)
+                    .ifPresent(i -> {
+                        i.setAtivo(false);
+                        inscritoRepo.save(i);
+                    });
+        }
     }
 }

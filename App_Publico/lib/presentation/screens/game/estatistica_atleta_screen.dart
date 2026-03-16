@@ -66,6 +66,8 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
 
       debugPrint('eventosDocs: $eventosDocs');
 
+      debugPrint('widget.atleta.id: ${widget.atleta.id}');
+
       // 3. Processa e calcula as estatísticas
       int calcGols = 0;
       int calcFaltas = 0;
