@@ -60,7 +60,7 @@ class GameTimerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isIntervalo = periodoAtual == PeriodoPartida.intervalo;
 
-    if (periodoAtual == PeriodoPartida.finalizada) {
+    if (periodoAtual == PeriodoPartida.finalizada || periodoAtual == PeriodoPartida.fechada) {
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(

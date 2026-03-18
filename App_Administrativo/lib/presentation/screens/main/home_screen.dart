@@ -111,6 +111,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (mounted) setState(() => _carregandoDestaques = true);
     try {
       final partidas = await _partidaService.listarPartidasMinhas();
+
+      debugPrint('partidas: ${partidas}');
+      for (var partida in partidas) {
+        debugPrint('partida TESTE: ${partida.equipeA?.atleticaEscudoUrl}');
+        debugPrint('partida TESTE: ${partida.equipeB?.atleticaEscudoUrl}');
+        //ESTA PRINTANDO CERTO
+      }
+
       if (mounted) {
         setState(() {
           _partidasDestaque = partidas;

@@ -15,6 +15,8 @@ class PartidaCard extends StatelessWidget {
     this.onTap,
   });
 
+  
+
   @override
   Widget build(BuildContext context) {
     return SlideTransition(
@@ -80,7 +82,8 @@ class PartidaCard extends StatelessWidget {
                   children: [
                     _buildTeamInfo(
                       partida.equipeA?.nome ?? "Time A",
-                      partida.equipeA?.atleticaEscudoUrl,
+                      partida.equipeA?.atleticaEscudoUrl ??
+                          partida.equipeA?.atletica?.escudoUrl,
                     ),
 
                     // Placar Central
@@ -106,10 +109,12 @@ class PartidaCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    
 
                     _buildTeamInfo(
                       partida.equipeB?.nome ?? "Time B",
-                      partida.equipeB?.atleticaEscudoUrl,
+                      partida.equipeB?.atleticaEscudoUrl ??
+                          partida.equipeB?.atletica?.escudoUrl,
                     ),
                   ],
                 ),
@@ -123,6 +128,9 @@ class PartidaCard extends StatelessWidget {
   }
 
   Widget _buildTeamInfo(String nome, String? logoUrl) {
+    final sanitizedUrl =
+        (logoUrl != null && logoUrl.trim().isNotEmpty) ? logoUrl.trim() : null;
+    debugPrint('logoUrl: $sanitizedUrl');
     return SizedBox(
       width: 80, // Aumentado levemente de 75 para 80 para dar mais margem
       child: Column(
@@ -131,17 +139,35 @@ class PartidaCard extends StatelessWidget {
           CircleAvatar(
             radius: 20,
             backgroundColor: Colors.white.withOpacity(0.3),
-            backgroundImage: logoUrl != null ? NetworkImage(logoUrl) : null,
-            child: logoUrl == null
+            child: sanitizedUrl == null
                 ? Text(
-                    nome[0].toUpperCase(),
+                    nome.isNotEmpty ? nome[0].toUpperCase() : '?',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   )
-                : null,
+                : ClipOval(
+                    child: Image.network(
+                      sanitizedUrl,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) {
+                        return Center(
+                          child: Text(
+                            nome.isNotEmpty ? nome[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
           const SizedBox(height: 6),
           Text(

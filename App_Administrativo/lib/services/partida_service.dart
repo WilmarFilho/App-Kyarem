@@ -285,14 +285,18 @@ class PartidaService {
 
     await _precarregarEquipes(ids);
 
-    return partidas
-        .map(
-          (p) => p.copyWith(
-            equipeA: p.equipeA ?? _equipesCache[p.equipeAId],
-            equipeB: p.equipeB ?? _equipesCache[p.equipeBId],
-          ),
-        )
-        .toList();
+    return partidas.map((p) {
+      // Buscamos as equipes no cache (que têm os escudos)
+      final eqA = _equipesCache[p.equipeAId];
+      final eqB = _equipesCache[p.equipeBId];
+
+      return p.copyWith(
+        // Forçamos o uso da equipe do cache se ela existir,
+        // ignorando o que veio "seco" no snapshotSumula
+        equipeA: eqA ?? p.equipeA,
+        equipeB: eqB ?? p.equipeB,
+      );
+    }).toList();
   }
 
   Future<Partida> carregarEquipesDaPartida(Partida partida) async {
@@ -506,7 +510,10 @@ class PartidaService {
     }
   }
 
-  Future<(int?, String?)> endPartida(String partidaId, {String? sumulaPdfUrl}) async {
+  Future<(int?, String?)> endPartida(
+    String partidaId, {
+    String? sumulaPdfUrl,
+  }) async {
     try {
       final res = await _dio.post(
         '/partidas/$partidaId/end',

@@ -36,41 +36,42 @@ class Partida {
   });
 
   factory Partida.fromMap(Map<String, dynamic> map) {
-    // A API agrupa os dados detalhados dentro de snapshotSumula
     final sumula = map['snapshotSumula'] as Map<String, dynamic>?;
 
     return Partida(
       id: map['id'] ?? '',
       modalidadeId: map['modalidadeId'] ?? '',
-      status: map['status'],
-      statusAntesPausa:
-          (map['statusAntesPausa'] ?? map['status_antes_pausa'])?.toString(),
-      sumulaPdfUrl:
-          (map['sumulaPdfUrl'] ?? map['sumula_pdf_url'])?.toString(),
-      equipeAId: map['equipeAId'],
-      equipeBId: map['equipeBId'],
+      status: map['status'] ?? '',
+      statusAntesPausa: map['status_antes_pausa'] ?? map['statusAntesPausa'],
+      sumulaPdfUrl: map['sumula_pdf_url'] ?? map['sumulaPdfUrl'],
+      equipeAId: map['equipeAId'] ?? map['equipe_a_id'] ?? '',
+      equipeBId: map['equipeBId'] ?? map['equipe_b_id'] ?? '',
       placarA: map['placarA'] ?? 0,
       placarB: map['placarB'] ?? 0,
       local: map['local'] ?? '',
-
-      // Tratamento de Datas (API usa camelCase e ISO8601)
       iniciadaEm: map['iniciadaEm'] != null
           ? DateTime.tryParse(map['iniciadaEm'])
           : null,
       encerradaEm: map['encerradaEm'] != null
           ? DateTime.tryParse(map['encerradaEm'])
           : null,
-      agendadaPara: map['agendadoPara'] != null
-          ? DateTime.tryParse(map['agendadoPara'])
+      agendadaPara: (map['agendadoPara'] ?? map['agendada_para']) != null
+          ? DateTime.tryParse(map['agendadoPara'] ?? map['agendada_para'])
           : null,
 
-      // Mapeamento das Equipes (Estão dentro de snapshotSumula)
-      equipeA: sumula?['equipeA'] != null
-          ? Equipe.fromMap(sumula!['equipeA'])
-          : null,
-      equipeB: sumula?['equipeB'] != null
-          ? Equipe.fromMap(sumula!['equipeB'])
-          : null,
+      // Tenta pegar o objeto da equipe da raiz (onde o Service injeta via copyWith)
+      // Se não houver, tenta o do snapshot (que pode estar incompleto)
+      equipeA: map['equipeA'] != null
+          ? Equipe.fromMap(map['equipeA'])
+          : (sumula?['equipeA'] != null
+                ? Equipe.fromMap(sumula!['equipeA'])
+                : null),
+
+      equipeB: map['equipeB'] != null
+          ? Equipe.fromMap(map['equipeB'])
+          : (sumula?['equipeB'] != null
+                ? Equipe.fromMap(sumula!['equipeB'])
+                : null),
     );
   }
 

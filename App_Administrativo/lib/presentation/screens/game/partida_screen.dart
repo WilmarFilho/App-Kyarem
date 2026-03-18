@@ -23,6 +23,7 @@ enum PeriodoPartida {
   prorrogacao,
   acrescimo,
   finalizada,
+  fechada,
 }
 
 class _ObservacaoEventoModal extends StatefulWidget {
@@ -241,6 +242,14 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     _periodoAtual = _converterStatusParaPeriodo(widget.partida.status);
     if (_periodoAtual != PeriodoPartida.naoIniciada) _partidaJaIniciou = true;
 
+    // Se entrar em partida encerrada, não liga timers nem permite interação
+    if (_periodoAtual == PeriodoPartida.finalizada ||
+        _periodoAtual == PeriodoPartida.fechada) {
+      _rodando = false;
+      _timer?.cancel();
+      _timerPausa?.cancel();
+    }
+
     // Se a partida já entrar pausada, recupera qual era o status antes da pausa
     if (_periodoAtual == PeriodoPartida.pausada) {
       final rawAntes = widget.partida.statusAntesPausa?.trim();
@@ -425,6 +434,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         return PeriodoPartida.prorrogacao;
       case 'finalizada':
         return PeriodoPartida.finalizada;
+      case 'fechada':
+        return PeriodoPartida.fechada;
 
       default:
         return PeriodoPartida.naoIniciada;
@@ -449,6 +460,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         return 'acréscimo';
       case PeriodoPartida.finalizada:
         return 'finalizada';
+      case PeriodoPartida.fechada:
+        return 'fechada';
     }
   }
 
@@ -546,8 +559,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   Future<void> _sincronizarCronometro() async {
     // Só faz sentido sincronizar se a partida já começou
     if (_periodoAtual == PeriodoPartida.naoIniciada ||
-        _periodoAtual == PeriodoPartida.finalizada)
-      return;
+        _periodoAtual == PeriodoPartida.finalizada ||
+        _periodoAtual == PeriodoPartida.fechada) return;
 
     final ultimoEvento = await _partidaService.buscarUltimoEventoComTempo(
       widget.partida.id,
@@ -1140,7 +1153,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       }
       // VAI PARAR
     } else {
-      if (_periodoAtual != PeriodoPartida.finalizada && !_emPausaTecnica) {
+      if (_periodoAtual != PeriodoPartida.finalizada && _periodoAtual != PeriodoPartida.fechada && !_emPausaTecnica) {
         _periodoAntesDoPausa = _periodoAtual;
 
         _partidaService.atualizarPartida(
@@ -1199,7 +1212,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       atualizarServico?.call();
     } else {
       _timer?.cancel();
-      if (_periodoAtual != PeriodoPartida.finalizada && !_emPausaTecnica) {
+      if (_periodoAtual != PeriodoPartida.finalizada && _periodoAtual != PeriodoPartida.fechada && !_emPausaTecnica) {
         _timerPausa = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (mounted) setState(() => _segundosPausa++);
         });
@@ -1250,7 +1263,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       return;
     }
 
-    if (_periodoAtual == PeriodoPartida.finalizada) {
+    if (_periodoAtual == PeriodoPartida.finalizada || _periodoAtual == PeriodoPartida.fechada) {
       _mostrarAviso("Partida já encerrada!", Colors.red);
       return;
     }
@@ -1523,7 +1536,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       child: ElevatedButton(
         onPressed: () {
           // Permite voltar da tela se a partida estiver finalizada ou não estiver rolando
-          if (_periodoAtual == PeriodoPartida.finalizada || !_rodando) {
+          if (_periodoAtual == PeriodoPartida.finalizada || _periodoAtual == PeriodoPartida.fechada || !_rodando) {
             Navigator.pop(context);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1541,7 +1554,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           padding: const EdgeInsets.all(16),
         ),
         child: Text(
-          _periodoAtual == PeriodoPartida.finalizada
+          _periodoAtual == PeriodoPartida.finalizada || _periodoAtual == PeriodoPartida.fechada
               ? "Voltar"
               : _rodando
               ? "Pause para sair"
@@ -1644,9 +1657,23 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                 jogadoresB: _jogadoresB,
                                 jogadorSelecionado: _jogadorSelecionado,
                                 onJogadorSelecionado: (jogador) {
+                                  if (_periodoAtual ==
+                                          PeriodoPartida.finalizada ||
+                                      _periodoAtual ==
+                                          PeriodoPartida.fechada) {
+                                    return;
+                                  }
                                   setState(() => _jogadorSelecionado = jogador);
                                 },
-                                onJogadorDoubleTap: _abrirDetalhesJogador,
+                                onJogadorDoubleTap: (j) {
+                                  if (_periodoAtual ==
+                                          PeriodoPartida.finalizada ||
+                                      _periodoAtual ==
+                                          PeriodoPartida.fechada) {
+                                    return;
+                                  }
+                                  _abrirDetalhesJogador(j);
+                                },
                               ),
 
                               const SizedBox(height: 16),
@@ -1663,7 +1690,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
                               // Botão Gerar Súmula (Só aparece no fim)
                               if (_periodoAtual ==
-                                  PeriodoPartida.finalizada) ...[
+                                  PeriodoPartida.finalizada || _periodoAtual == PeriodoPartida.fechada) ...[
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
@@ -1725,7 +1752,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                               const SizedBox(height: 12),
 
                               if (_partidaJaIniciou &&
-                                  _periodoAtual != PeriodoPartida.finalizada)
+                                  _periodoAtual != PeriodoPartida.finalizada && _periodoAtual != PeriodoPartida.fechada)
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 4,
@@ -1773,7 +1800,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                 ),
 
                               if (_partidaJaIniciou &&
-                                  _periodoAtual != PeriodoPartida.finalizada)
+                                  _periodoAtual != PeriodoPartida.finalizada && _periodoAtual != PeriodoPartida.fechada)
                                 const SizedBox(height: 30),
 
                               // Botão Sair/Voltar dinâmico

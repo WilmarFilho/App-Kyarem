@@ -30,7 +30,7 @@ class Atletica {
 class Equipe {
   final String id;
   final String nome;
-  final String atleticaEscudoUrl;
+  final String? atleticaEscudoUrl;
   final String atleticaId;
   final Atletica?
   atletica; // Relacionamento para facilitar o acesso ao escudo/cor
@@ -38,18 +38,53 @@ class Equipe {
   Equipe({
     required this.id,
     required this.nome,
-    required this.atleticaEscudoUrl,
+    this.atleticaEscudoUrl,
     required this.atleticaId,
     this.atletica,
   });
 
   factory Equipe.fromMap(Map<String, dynamic> map) {
+    final nestedAtletica = map['atletica'];
+    final nestedAtleticaMap =
+        nestedAtletica is Map<String, dynamic> ? nestedAtletica : null;
+
+    final atleticaId =
+        (map['atleticaId'] ??
+                map['atletica_id'] ??
+                nestedAtleticaMap?['id'] ??
+                nestedAtleticaMap?['atleticaId'] ??
+                nestedAtleticaMap?['atletica_id'])
+            ?.toString() ??
+            '';
+    final atleticaNome =
+        (map['atleticaNome'] ??
+                map['atletica_nome'] ??
+                nestedAtleticaMap?['nome'] ??
+                nestedAtleticaMap?['atleticaNome'])
+            ?.toString();
+    final escudo = (map['atleticaEscudoUrl'] ??
+            map['atletica_escudo_url'] ??
+            map['escudo_url'] ??
+            nestedAtleticaMap?['escudoUrl'] ??
+            nestedAtleticaMap?['escudo_url'])
+        ?.toString();
+
     return Equipe(
       id: map['id'] ?? '',
-      // No seu JSON a chave é "nomeEquipe" e não "nome"
-      nome: map['nomeEquipe'] ?? 'Time Desconhecido',
-      atleticaEscudoUrl: map['atleticaEscudoUrl'],
-      atleticaId: map['atleticaId'] ?? '',
+      // Aceita payloads camelCase (API) e snake_case (DB/Supabase)
+      nome: (map['nomeEquipe'] ?? map['nome'] ?? map['nome_equipe'])?.toString() ??
+          'Time Desconhecido',
+      atleticaEscudoUrl: escudo,
+      atleticaId: atleticaId,
+      atletica: atleticaId.isEmpty &&
+              (atleticaNome == null || atleticaNome.isEmpty) &&
+              escudo == null
+          ? null
+          : Atletica(
+              id: atleticaId,
+              nome: atleticaNome ?? '',
+              escudoUrl: escudo,
+            ),
     );
   }
 }
