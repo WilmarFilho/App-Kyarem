@@ -438,6 +438,46 @@ class PartidaService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  Future<void> atualizarEvento({
+    required String partidaId,
+    required String eventoId,
+    required String tipoEventoId,
+    String? equipeId,
+    String? atletaId,
+    String? atletaSaiId,
+    bool isSubstitution = false,
+    required String tempoFormatado,
+    String? descricao,
+  }) async {
+    try {
+      await _dio.put(
+        '/partidas/$partidaId/eventos/$eventoId',
+        data: {
+          'equipeId': equipeId,
+          'atletaId': atletaId,
+          'atletaSaiId': atletaSaiId,
+          'isSubstitution': isSubstitution,
+          'tipoEventoId': tipoEventoId,
+          'tempoCronometro': tempoFormatado,
+          'descricaoDetalhada': descricao ?? '',
+        },
+      );
+    } catch (e) {
+      debugPrint('Erro atualizarEvento: $e');
+    }
+  }
+
+  Future<void> excluirEvento({
+    required String partidaId,
+    required String eventoId,
+  }) async {
+    try {
+      await _dio.delete('/partidas/$partidaId/eventos/$eventoId');
+    } catch (e) {
+      debugPrint('Erro excluirEvento: $e');
+    }
+  }
+
   Future<void> atualizarPartida(
     String partidaId, {
     String? novoStatus,

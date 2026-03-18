@@ -139,6 +139,135 @@ public class EventoPartidaService {
         return repo.findByPartida_IdOrderByCriadoEmAsc(partidaId);
     }
 
+    @Transactional
+    public EventoPartida updateEvento(UUID partidaId,
+                                      UUID eventoId,
+                                      UUID userId,
+                                      boolean isArbitroOnly,
+                                      UUID equipeId,
+                                      UUID atletaId,
+                                      UUID atletaSaiId,
+                                      boolean isSubstitution,
+                                      UUID tipoEventoId,
+                                      String tempoCronometro,
+                                      String novaDescricao) {
+
+        Partida partida = partidaRepo.findById(partidaId)
+                .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
+
+        // Não permitir edição em partida fechada
+        if (PartidaService.isStatusFechada(partida.getStatus())) {
+            throw new IllegalStateException("Não é possível editar eventos de partidas com súmula fechada.");
+        }
+
+        if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
+            throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
+        }
+
+        EventoPartida ev = repo.findById(eventoId)
+                .orElseThrow(() -> new IllegalStateException("Evento não encontrado."));
+
+        if (ev.getPartida() == null || !ev.getPartida().getId().equals(partidaId)) {
+            throw new IllegalStateException("Evento não pertence à partida informada.");
+        }
+
+        // Valida e atualiza equipe/tipo/atletas usando mesma lógica do add(...)
+        if (equipeId != null) {
+            Equipe equipe = equipeRepo.findById(equipeId)
+                    .orElseThrow(() -> new IllegalStateException("Equipe não encontrada."));
+
+            if (!Objects.equals(equipe.getId(), partida.getEquipeA().getId())
+                    && !Objects.equals(equipe.getId(), partida.getEquipeB().getId())) {
+                throw new IllegalStateException("Equipe do evento deve ser uma das equipes da partida.");
+            }
+            ev.setEquipe(equipe);
+        }
+
+        if (tipoEventoId != null) {
+            TipoEvento tipoEvento = tipoEventoRepo.findById(tipoEventoId)
+                    .orElseThrow(() -> new IllegalStateException("Tipo de evento não encontrado."));
+
+            Modalidade modalidade = partida.getModalidade();
+            if (modalidade.getEsporte() == null || tipoEvento.getEsporte() == null) {
+                throw new IllegalStateException("Modalidade/Tipo de evento sem esporte vinculado.");
+            }
+            if (!Objects.equals(modalidade.getEsporte().getId(), tipoEvento.getEsporte().getId())) {
+                throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
+            }
+            ev.setTipoEvento(tipoEvento);
+        }
+
+        if (isSubstitution) {
+            if (atletaId == null || atletaSaiId == null) {
+                throw new IllegalStateException("Substituição requer atletaId (entra) e atletaSaiId (sai).");
+            }
+            if (Objects.equals(atletaId, atletaSaiId)) {
+                throw new IllegalStateException("Em substituição, atletaId e atletaSaiId devem ser diferentes.");
+            }
+        }
+
+        if (atletaId != null) {
+            Atleta atleta = atletaRepo.findById(atletaId)
+                    .orElseThrow(() -> new IllegalStateException("Atleta não encontrado."));
+            boolean inscrito = inscritoRepo.existsByEquipe_IdAndAtleta_Id(equipeId, atletaId);
+            if (!inscrito) {
+                throw new IllegalStateException("Atleta não está inscrito nesta equipe.");
+            }
+            ev.setAtleta(atleta);
+        } else {
+            ev.setAtleta(null);
+        }
+
+        if (atletaSaiId != null) {
+            Atleta atletaSai = atletaRepo.findById(atletaSaiId)
+                    .orElseThrow(() -> new IllegalStateException("Atleta (sai) não encontrado."));
+            boolean inscritoSai = inscritoRepo.existsByEquipe_IdAndAtleta_Id(equipeId, atletaSaiId);
+            if (!inscritoSai) {
+                throw new IllegalStateException("Atleta (sai) não está inscrito nesta equipe.");
+            }
+            ev.setAtletaSai(atletaSai);
+        } else {
+            ev.setAtletaSai(null);
+        }
+
+        ev.setIsSubstitution(isSubstitution);
+
+        if (tempoCronometro != null && !tempoCronometro.isBlank()) {
+            ev.setTempoCronometro(tempoCronometro);
+        }
+
+        ev.setDescricaoDetalhada(novaDescricao);
+        return repo.save(ev);
+    }
+
+    @Transactional
+    public void deleteEvento(UUID partidaId,
+                             UUID eventoId,
+                             UUID userId,
+                             boolean isArbitroOnly) {
+
+        Partida partida = partidaRepo.findById(partidaId)
+                .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
+
+        // Não permitir exclusão em partida fechada
+        if (PartidaService.isStatusFechada(partida.getStatus())) {
+            throw new IllegalStateException("Não é possível excluir eventos de partidas com súmula fechada.");
+        }
+
+        if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
+            throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
+        }
+
+        EventoPartida ev = repo.findById(eventoId)
+                .orElseThrow(() -> new IllegalStateException("Evento não encontrado."));
+
+        if (ev.getPartida() == null || !ev.getPartida().getId().equals(partidaId)) {
+            throw new IllegalStateException("Evento não pertence à partida informada.");
+        }
+
+        repo.delete(ev);
+    }
+
     /**
      * Cria eventos gerais da partida (sem equipe/atleta), em lote.
      *

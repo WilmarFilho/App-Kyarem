@@ -61,6 +61,47 @@ public class EventosPartidaController {
         return saved.stream().map(EventoPartidaResponse::from).toList();
     }
 
+    @PutMapping("/{eventoId}")
+    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    public EventoPartidaResponse update(@PathVariable UUID partidaId,
+                                        @PathVariable UUID eventoId,
+                                        Authentication authentication,
+                                        @AuthenticationPrincipal Jwt jwt,
+                                        @Valid @RequestBody UpdateEventoRequest req) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+        boolean arbitroOnly = isArbitroOnly(authentication);
+
+        EventoPartida ev = service.updateEvento(
+                partidaId,
+                eventoId,
+                userId,
+                arbitroOnly,
+                req.equipeId(),
+                req.atletaId(),
+                req.atletaSaiId(),
+                Boolean.TRUE.equals(req.isSubstitution()),
+                req.tipoEventoId(),
+                req.tempoCronometro(),
+                req.descricaoDetalhada()
+        );
+        return EventoPartidaResponse.from(ev);
+    }
+
+    @DeleteMapping("/{eventoId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    public void delete(@PathVariable UUID partidaId,
+                       @PathVariable UUID eventoId,
+                       Authentication authentication,
+                       @AuthenticationPrincipal Jwt jwt) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+        boolean arbitroOnly = isArbitroOnly(authentication);
+
+        service.deleteEvento(partidaId, eventoId, userId, arbitroOnly);
+    }
+
     private boolean isArbitroOnly(Authentication authentication) {
         boolean isAdminOrDelegado = authentication.getAuthorities().stream().anyMatch(a ->
                 a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_delegado"));
@@ -78,6 +119,16 @@ public class EventosPartidaController {
             @NotBlank String tempoCronometro,
             String descricaoDetalhada,
             String localEventoId  // ← ADD (nullable, sem validação)
+    ) {}
+
+    public record UpdateEventoRequest(
+            UUID equipeId,
+            UUID atletaId,
+            UUID atletaSaiId,
+            Boolean isSubstitution,
+            UUID tipoEventoId,
+            String tempoCronometro,
+            String descricaoDetalhada
     ) {}
 
     public record EventoPartidaResponse(

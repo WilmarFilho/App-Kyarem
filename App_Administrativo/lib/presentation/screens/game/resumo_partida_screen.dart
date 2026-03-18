@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
+import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,18 +42,17 @@ class MatchSummaryScreen extends StatefulWidget {
 class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   final PartidaService _partidaService = PartidaService();
 
-  List<dynamic> _eventosExibidos = [];
+  List<SummaryEventItem> _eventosExibidos = [];
   bool _carregando = false;
   Partida? _partidaApi;
+  List<Atleta> _jogadoresA = [];
+  List<Atleta> _jogadoresB = [];
 
   @override
   void initState() {
     super.initState();
 
-    if (widget.eventos.isNotEmpty) {
-      // Fluxo normal: veio direto da tela de arbitragem
-      _eventosExibidos = widget.eventos;
-    } else if (widget.partidaId != null) {
+    if (widget.partidaId != null) {
       // Fluxo retroativo: partida já finalizada, busca do banco
       _carregarEventosDoBanco();
     }
@@ -67,9 +67,332 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       final p = await _partidaService.buscarPartidaPorId(widget.partidaId!);
       if (!mounted) return;
       setState(() => _partidaApi = p);
+      await _carregarAtletasEquipes();
     } catch (e) {
       debugPrint('Erro ao carregar partida da API: $e');
     }
+  }
+
+  Future<void> _carregarAtletasEquipes() async {
+    if (_partidaApi == null) return;
+    try {
+      final aId = _partidaApi!.equipeAId;
+      final bId = _partidaApi!.equipeBId;
+
+      if (aId.isNotEmpty) {
+        final inscritosA = await _partidaService.buscarInscritos(aId);
+        _jogadoresA =
+            inscritosA.map((m) => Atleta.fromMap(m as Map<String, dynamic>)).toList();
+      }
+      if (bId.isNotEmpty) {
+        final inscritosB = await _partidaService.buscarInscritos(bId);
+        _jogadoresB =
+            inscritosB.map((m) => Atleta.fromMap(m as Map<String, dynamic>)).toList();
+      }
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar atletas para edição: $e');
+    }
+  }
+
+  List<DropdownMenuItem<String>> _buildAtletasItems(String equipeId) {
+    final lista = equipeId == _partidaApi?.equipeAId ? _jogadoresA : _jogadoresB;
+    return lista
+        .map(
+          (a) => DropdownMenuItem(
+            value: a.atletaId,
+            child: Text(
+              '${a.numero} - ${a.nome}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> _abrirEdicaoEvento(SummaryEventItem item) async {
+    if (_partidaApi == null || widget.partidaId == null) return;
+
+    final tipos = await _partidaService.buscarTiposDeEventoDaPartida(
+      _partidaApi!.modalidadeId,
+    );
+
+    final isFinalizada =
+        _partidaApi!.status.trim().toLowerCase() == 'finalizada';
+    if (!isFinalizada) return;
+
+    String? tipoSelecionadoId = item.tipoEventoId;
+    String? equipeSelecionadaId = item.equipeId ?? _partidaApi!.equipeAId;
+    String? atletaEntraId = item.atletaId;
+    String? atletaSaiId = item.atletaSaiId;
+    bool isSubstitution = item.isSubstitution;
+    String descricao = item.evento.observacao ?? '';
+
+    final descricaoController = TextEditingController(text: descricao);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF2D2D2D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 20,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Editar evento',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      dropdownColor: const Color(0xFF2D2D2D),
+                      value: tipoSelecionadoId,
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo de evento',
+                        labelStyle: TextStyle(color: Colors.white70),
+                      ),
+                      items: tipos
+                          .map(
+                            (t) => DropdownMenuItem(
+                              value: t.id,
+                              child: Text(
+                                t.nomeFormatado,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setModalState(() => tipoSelecionadoId = v),
+                    ),
+                    const SizedBox(height: 12),
+                    // Equipe (opcional para eventos gerais; obrigatória se houver atleta)
+                    DropdownButtonFormField<String>(
+                      dropdownColor: const Color(0xFF2D2D2D),
+                      value: equipeSelecionadaId,
+                      decoration: const InputDecoration(
+                        labelText: 'Equipe (se aplicável)',
+                        labelStyle: TextStyle(color: Colors.white70),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: _partidaApi!.equipeAId,
+                          child: Text(
+                            widget.timeA,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: _partidaApi!.equipeBId,
+                          child: Text(
+                            widget.timeB,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (v) =>
+                          setModalState(() => equipeSelecionadaId = v),
+                    ),
+                    const SizedBox(height: 12),
+                    // Toggle substituição
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'É substituição?',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      value: isSubstitution,
+                      onChanged: (v) {
+                        setModalState(() {
+                          isSubstitution = v;
+                          if (!v) {
+                            atletaSaiId = null;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    // Atleta entra
+                    if (equipeSelecionadaId != null)
+                      DropdownButtonFormField<String>(
+                        dropdownColor: const Color(0xFF2D2D2D),
+                        value: atletaEntraId,
+                        decoration: const InputDecoration(
+                          labelText: 'Atleta (entra) - opcional',
+                          labelStyle: TextStyle(color: Colors.white70),
+                        ),
+                        items: _buildAtletasItems(equipeSelecionadaId!),
+                        onChanged: (v) =>
+                            setModalState(() => atletaEntraId = v),
+                      ),
+                    const SizedBox(height: 8),
+                    // Atleta sai (apenas se substituição)
+                    if (isSubstitution && equipeSelecionadaId != null)
+                      DropdownButtonFormField<String>(
+                        dropdownColor: const Color(0xFF2D2D2D),
+                        value: atletaSaiId,
+                        decoration: const InputDecoration(
+                          labelText: 'Atleta (sai)',
+                          labelStyle: TextStyle(color: Colors.white70),
+                        ),
+                        items: _buildAtletasItems(equipeSelecionadaId!),
+                        onChanged: (v) =>
+                            setModalState(() => atletaSaiId = v),
+                      ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descricaoController,
+                      onChanged: (v) => descricao = v,
+                      maxLines: 3,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Descrição',
+                        labelStyle: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (tipoSelecionadoId == null ||
+                              tipoSelecionadoId!.isEmpty) {
+                            Navigator.pop(context);
+                            return;
+                          }
+
+                          // Se tiver atleta, precisa de equipe
+                          if ((atletaEntraId != null || atletaSaiId != null) &&
+                              (equipeSelecionadaId == null ||
+                                  equipeSelecionadaId!.isEmpty)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Selecione a equipe para associar o atleta.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          await _partidaService.atualizarEvento(
+                            partidaId: widget.partidaId!,
+                            eventoId: item.id,
+                            tipoEventoId: tipoSelecionadoId!,
+                            equipeId: equipeSelecionadaId,
+                            atletaId: atletaEntraId,
+                            atletaSaiId: atletaSaiId,
+                            isSubstitution: isSubstitution,
+                            tempoFormatado: item.evento.horario,
+                            descricao: descricao,
+                          );
+
+                          if (!mounted) return;
+                          setState(() {
+                            final idx = _eventosExibidos
+                                .indexWhere((e) => e.id == item.id);
+                            if (idx >= 0) {
+                              _eventosExibidos[idx] = SummaryEventItem(
+                                id: item.id,
+                                tipoEventoId: tipoSelecionadoId!,
+                                equipeId: equipeSelecionadaId,
+                                atletaId: atletaEntraId,
+                                atletaSaiId: atletaSaiId,
+                                isSubstitution: isSubstitution,
+                                tempoCronometro: item.evento.horario,
+                                evento: EventoPartida(
+                                  tipo: tipos
+                                      .firstWhere(
+                                        (t) => t.id == tipoSelecionadoId,
+                                        orElse: () => tipos.first,
+                                      )
+                                      .nomeFormatado,
+                                  jogadorNome: item.evento.jogadorNome,
+                                  jogadorNumero: item.evento.jogadorNumero,
+                                  corTime: item.evento.corTime,
+                                  horario: item.evento.horario,
+                                  observacao: descricao,
+                                ),
+                              );
+                            }
+                          });
+
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00FFC2),
+                          foregroundColor: Colors.black,
+                        ),
+                        child: const Text(
+                          'Salvar alterações',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmarExclusaoEvento(SummaryEventItem item) async {
+    if (widget.partidaId == null) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Excluir evento'),
+          content: const Text('Tem certeza que deseja excluir este evento?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (ok != true) return;
+
+    await _partidaService.excluirEvento(
+      partidaId: widget.partidaId!,
+      eventoId: item.id,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _eventosExibidos.removeWhere((e) => e.id == item.id);
+    });
   }
 
   Future<void> _fecharSumula() async {
@@ -80,9 +403,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     try {
       // 1) Gera o PDF final da súmula em memória
       final List<EventoPartida> eventosTyped =
-          _eventosExibidos is List<EventoPartida>
-              ? _eventosExibidos as List<EventoPartida>
-              : _eventosExibidos.cast<EventoPartida>();
+          _eventosExibidos.map((e) => e.evento).toList();
 
       final bytes = await PdfService.gerarSumulaBytes(
         context: context,
@@ -127,15 +448,32 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     try {
       final raw = await _partidaService.buscarEventosDaPartida(widget.partidaId!);
 
-      // Converte os Maps do banco em EventoPartida para manter compatibilidade
       final eventos = raw.map((ev) {
         final tipoNome = (ev['tipo_evento']?['nome']?.toString() ?? 'Evento');
-        return EventoPartida(
-          tipo: tipoNome,
-          jogadorNome: null,    // ajuste se seu modelo suportar
-          jogadorNumero: null,
-          corTime: null,
-          horario: ev['tempo_cronometro']?.toString() ?? '00:00',
+        final id = ev['id']?.toString() ?? '';
+        final equipeId = ev['equipe_id']?.toString();
+        final atletaId = ev['atleta_id']?.toString();
+        final atletaSaiId = ev['atleta_sai_id']?.toString();
+        final isSub = ev['is_substitution'] == true;
+        final tipoEventoId = ev['tipo_evento_id']?.toString() ?? '';
+        final tempo = ev['tempo_cronometro']?.toString() ?? '00:00';
+
+        return SummaryEventItem(
+          id: id,
+          tipoEventoId: tipoEventoId,
+          tempoCronometro: tempo,
+          equipeId: equipeId,
+          atletaId: atletaId,
+          atletaSaiId: atletaSaiId,
+          isSubstitution: isSub,
+          evento: EventoPartida(
+            tipo: tipoNome,
+            jogadorNome: null,
+            jogadorNumero: null,
+            corTime: null,
+            horario: tempo,
+            observacao: ev['descricao_detalhada']?.toString() ?? '',
+          ),
         );
       }).toList();
 
@@ -202,7 +540,14 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                                   style: TextStyle(color: Colors.grey),
                                 ),
                               )
-                            : SummaryEventList(eventos: _eventosExibidos),
+                            : SummaryEventList(
+                                eventos: _eventosExibidos,
+                                podeEditar:
+                                    _partidaApi?.status.trim().toLowerCase() ==
+                                        'finalizada',
+                                onEdit: _abrirEdicaoEvento,
+                                onDelete: _confirmarExclusaoEvento,
+                              ),
                   ),
                   SummaryActionButtons(
                     onPdfPressed: () async {
@@ -217,9 +562,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                       }
 
                       final List<EventoPartida> eventosTyped =
-                          _eventosExibidos is List<EventoPartida>
-                              ? _eventosExibidos as List<EventoPartida>
-                              : _eventosExibidos.cast<EventoPartida>();
+                          _eventosExibidos.map((e) => e.evento).toList();
                       await PdfService.gerarSumulaPartida(
                         context: context,
                         timeA: widget.timeA,
