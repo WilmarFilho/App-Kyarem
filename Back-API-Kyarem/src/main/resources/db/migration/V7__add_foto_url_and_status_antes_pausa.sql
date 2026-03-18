@@ -7,6 +7,9 @@ ALTER TABLE public.partidas
 ADD COLUMN IF NOT EXISTS status_antes_pausa TEXT NULL;
 
 -- Add constraint for status_antes_pausa
+ALTER TABLE public.partidas
+DROP CONSTRAINT IF EXISTS check_status_antes_pausa_partida;
+
 ALTER TABLE public.partidas 
 ADD CONSTRAINT check_status_antes_pausa_partida 
 CHECK (status_antes_pausa IN (
