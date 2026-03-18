@@ -4,6 +4,8 @@ class Partida {
   final String id;
   final String modalidadeId;
   final String status;
+  final String? statusAntesPausa;
+  final String? sumulaPdfUrl;
   final int placarA;
   final int placarB;
   final String equipeAId;
@@ -19,6 +21,8 @@ class Partida {
     required this.id,
     required this.modalidadeId,
     required this.status,
+    this.statusAntesPausa,
+    this.sumulaPdfUrl,
     required this.equipeAId,
     required this.equipeBId,
     this.placarA = 0,
@@ -39,6 +43,10 @@ class Partida {
       id: map['id'] ?? '',
       modalidadeId: map['modalidadeId'] ?? '',
       status: map['status'],
+      statusAntesPausa:
+          (map['statusAntesPausa'] ?? map['status_antes_pausa'])?.toString(),
+      sumulaPdfUrl:
+          (map['sumulaPdfUrl'] ?? map['sumula_pdf_url'])?.toString(),
       equipeAId: map['equipeAId'],
       equipeBId: map['equipeBId'],
       placarA: map['placarA'] ?? 0,
@@ -70,6 +78,8 @@ class Partida {
     String? id,
     String? modalidadeId,
     String? status,
+    String? statusAntesPausa,
+    String? sumulaPdfUrl,
     int? placarA,
     int? placarB,
     String? equipeAId,
@@ -85,6 +95,8 @@ class Partida {
       id: id ?? this.id,
       modalidadeId: modalidadeId ?? this.modalidadeId,
       status: status ?? this.status,
+      statusAntesPausa: statusAntesPausa ?? this.statusAntesPausa,
+      sumulaPdfUrl: sumulaPdfUrl ?? this.sumulaPdfUrl,
       placarA: placarA ?? this.placarA,
       placarB: placarB ?? this.placarB,
       equipeAId: equipeAId ?? this.equipeAId,

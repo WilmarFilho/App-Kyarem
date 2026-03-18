@@ -9,9 +9,7 @@ import 'package:printing/printing.dart';
 class PdfService {
   PdfService._();
 
-  /// Gera o PDF da súmula (detalhes da partida + todos os eventos)
-  /// e abre a pré-visualização para impressão/compartilhamento.
-  static Future<void> gerarSumulaPartida({
+  static Future<pw.Document> _buildDocumentoSumula({
     required BuildContext context,
     required String timeA,
     required String timeB,
@@ -45,9 +43,49 @@ class PdfService {
         ],
       ),
     );
+    return pdf;
+  }
+
+  /// Gera os bytes do PDF da súmula (para upload ou salvamento).
+  static Future<List<int>> gerarSumulaBytes({
+    required BuildContext context,
+    required String timeA,
+    required String timeB,
+    required int golsA,
+    required int golsB,
+    required List<EventoPartida> eventos,
+  }) async {
+    final doc = await _buildDocumentoSumula(
+      context: context,
+      timeA: timeA,
+      timeB: timeB,
+      golsA: golsA,
+      golsB: golsB,
+      eventos: eventos,
+    );
+    return doc.save();
+  }
+
+  /// Gera o PDF da súmula e abre a pré-visualização (fluxo atual).
+  static Future<void> gerarSumulaPartida({
+    required BuildContext context,
+    required String timeA,
+    required String timeB,
+    required int golsA,
+    required int golsB,
+    required List<EventoPartida> eventos,
+  }) async {
+    final doc = await _buildDocumentoSumula(
+      context: context,
+      timeA: timeA,
+      timeB: timeB,
+      golsA: golsA,
+      golsB: golsB,
+      eventos: eventos,
+    );
 
     await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
+      onLayout: (PdfPageFormat format) async => doc.save(),
       name: 'Sumula_Partida_${timeA}_x_$timeB.pdf',
     );
   }

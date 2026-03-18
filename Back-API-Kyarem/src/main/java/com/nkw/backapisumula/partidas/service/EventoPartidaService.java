@@ -601,18 +601,16 @@ public class EventoPartidaService {
 
     private void handleSubstitutionAtivoStatus(UUID equipeId, UUID entraId, UUID saiId) {
         if (entraId != null) {
-            inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, entraId)
-                    .ifPresent(i -> {
-                        i.setAtivo(true);
-                        inscritoRepo.save(i);
-                    });
+            EquipeAtletaInscrito entra = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, entraId)
+                    .orElseThrow(() -> new IllegalStateException("Atleta (entra) não está inscrito nesta equipe."));
+            entra.setAtivo(true);
+            inscritoRepo.save(entra);
         }
         if (saiId != null) {
-            inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, saiId)
-                    .ifPresent(i -> {
-                        i.setAtivo(false);
-                        inscritoRepo.save(i);
-                    });
+            EquipeAtletaInscrito sai = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, saiId)
+                    .orElseThrow(() -> new IllegalStateException("Atleta (sai) não está inscrito nesta equipe."));
+            sai.setAtivo(false);
+            inscritoRepo.save(sai);
         }
     }
 }

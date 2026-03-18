@@ -34,6 +34,7 @@ public class PartidaService {
     public static final String STATUS_ACRESCIMO = "acréscimo";
     public static final String STATUS_PAUSADA = "pausada";
     public static final String STATUS_FINALIZADA = "finalizada";
+    public static final String STATUS_FECHADA = "fechada";
 
     private static final Set<String> VALID_STATUS = Set.of(
             STATUS_AGENDADA,
@@ -43,7 +44,8 @@ public class PartidaService {
             STATUS_PRORROGACAO,
             STATUS_ACRESCIMO,
             STATUS_PAUSADA,
-            STATUS_FINALIZADA
+            STATUS_FINALIZADA,
+            STATUS_FECHADA
     );
 
     private final PartidaRepository repo;
@@ -199,7 +201,7 @@ public class PartidaService {
     public Partida start(UUID partidaId, UUID userId, boolean isArbitroOnly) {
         Partida p = getOrThrow(partidaId);
 
-        if (isStatusFinalizada(p.getStatus())) {
+        if (isStatusFinalizada(p.getStatus()) || isStatusFechada(p.getStatus())) {
             throw new IllegalStateException("Partida já encerrada.");
         }
         if (isStatusEmAndamento(p.getStatus())) {
@@ -215,29 +217,40 @@ public class PartidaService {
         return repo.save(p);
     }
 
-    public Partida end(UUID partidaId, UUID userId, boolean isArbitroOnly) {
+    public Partida end(UUID partidaId, UUID userId, boolean isArbitroOnly, String sumulaPdfUrl) {
         Partida p = getOrThrow(partidaId);
 
-        if (!isStatusEmAndamento(p.getStatus())) {
-            throw new IllegalStateException("Só é possível encerrar uma partida em andamento.");
+        if (isStatusFechada(p.getStatus())) {
+            throw new IllegalStateException("Partida já está fechada.");
+        }
+
+        if (!isStatusFinalizada(p.getStatus())) {
+            throw new IllegalStateException("Só é possível fechar a súmula de uma partida finalizada.");
         }
 
         if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
             throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
         }
 
-        p.setStatus(STATUS_FINALIZADA);
-        p.setEncerradaEm(OffsetDateTime.now());
+        p.setStatus(STATUS_FECHADA);
 
-        // Ao encerrar, geramos automaticamente um snapshot da súmula.
-        // (Isso evita o front precisar mandar snapshotSumula no PUT).
+        if (p.getEncerradaEm() == null) {
+            p.setEncerradaEm(OffsetDateTime.now());
+        }
+
+        // Ao fechar, garantimos um snapshot da súmula (fonte de verdade).
         JsonNode snapshot = buildSnapshotSumula(p);
         p.setSnapshotSumula(snapshot);
 
-        // Espaço reservado para gerar o PDF e fazer upload no bucket.
-        // Por enquanto deixamos nulo (ou mantém o que já existir).
-        if (p.getSumulaPdfUrl() == null || p.getSumulaPdfUrl().isBlank()) {
-            p.setSumulaPdfUrl(generateSumulaPdfUrlPlaceholder(p, snapshot));
+        // Se o app enviar uma URL final da súmula, priorizamos ela.
+        if (sumulaPdfUrl != null && !sumulaPdfUrl.isBlank()) {
+            p.setSumulaPdfUrl(sumulaPdfUrl.trim());
+        } else {
+            // Espaço reservado para gerar o PDF e fazer upload no bucket.
+            // Por enquanto deixamos nulo (ou mantém o que já existir).
+            if (p.getSumulaPdfUrl() == null || p.getSumulaPdfUrl().isBlank()) {
+                p.setSumulaPdfUrl(generateSumulaPdfUrlPlaceholder(p, snapshot));
+            }
         }
 
         // Atualiza hash com o snapshot e a url do pdf (se existir)
@@ -254,18 +267,29 @@ public class PartidaService {
             throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
         }
 
-        // Evita reabrir partidas finalizadas via este endpoint
-        if (isStatusFinalizada(p.getStatus())) {
-            throw new IllegalStateException("Partida já finalizada.");
+        // Evita reabrir partidas finalizadas/fechadas via este endpoint
+        if (isStatusFinalizada(p.getStatus()) || isStatusFechada(p.getStatus())) {
+            throw new IllegalStateException("Partida já encerrada.");
         }
 
         String normalized = normalizeStatusForDb(status);
         validateStatus(normalized);
 
+        // "fechada" é reservado para o endpoint /end
+        if (STATUS_FECHADA.equalsIgnoreCase(normalized)) {
+            throw new IllegalStateException("Use o endpoint /end para fechar a súmula.");
+        }
+
         p.setStatus(normalized);
 
         if (statusAntesPausa != null) {
-            p.setStatusAntesPausa(statusAntesPausa);
+            if (statusAntesPausa.isBlank()) {
+                p.setStatusAntesPausa(null);
+            } else {
+                String normalizedAntesPausa = normalizeStatusForDb(statusAntesPausa);
+                validateStatus(normalizedAntesPausa);
+                p.setStatusAntesPausa(normalizedAntesPausa);
+            }
         }
 
         // Se saiu de agendada, marca iniciadaEm caso ainda não exista
@@ -402,6 +426,11 @@ public class PartidaService {
         return STATUS_FINALIZADA.equalsIgnoreCase(status.trim());
     }
 
+    public static boolean isStatusFechada(String status) {
+        if (status == null) return false;
+        return STATUS_FECHADA.equalsIgnoreCase(status.trim());
+    }
+
     /**
      * Consideramos "em andamento" qualquer status válido que não seja agendada/finalizada.
      * Isso cobre: 1° tempo, intervalo, 2° tempo, prorrogação.
@@ -409,14 +438,14 @@ public class PartidaService {
     public static boolean isStatusEmAndamento(String status) {
         if (status == null) return false;
         String s = status.trim().toLowerCase(Locale.ROOT);
-        return !STATUS_AGENDADA.equals(s) && !STATUS_FINALIZADA.equals(s);
+        return !STATUS_AGENDADA.equals(s) && !STATUS_FINALIZADA.equals(s) && !STATUS_FECHADA.equals(s);
     }
 
     public void validateStatus(String status) {
         if (status == null) return;
         String s = status.trim().toLowerCase(Locale.ROOT);
         if (!VALID_STATUS.contains(s)) {
-            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, finalizada.");
+            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, finalizada, fechada.");
         }
     }
 

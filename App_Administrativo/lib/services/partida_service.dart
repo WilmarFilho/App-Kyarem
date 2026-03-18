@@ -438,15 +438,58 @@ class PartidaService {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<void> atualizarPartida(String partidaId, {String? novoStatus}) async {
+  Future<void> atualizarPartida(
+    String partidaId, {
+    String? novoStatus,
+    String? statusAntesPausa,
+  }) async {
     final status = novoStatus?.trim();
     if (status == null || status.isEmpty) return;
 
     try {
-      await _dio.patch('/partidas/$partidaId/status', data: {"status": status});
+      final data = <String, dynamic>{"status": status};
+      final sap = statusAntesPausa?.trim();
+      if (sap != null && sap.isNotEmpty) {
+        data["status_antes_pausa"] = sap;
+      }
+      await _dio.patch('/partidas/$partidaId/status', data: data);
     } catch (e) {
       debugPrint("Erro atualizar status da partida: $e");
     }
+  }
+
+  Future<void> startPartida(String partidaId) async {
+    try {
+      await _dio.post('/partidas/$partidaId/start');
+    } catch (e) {
+      debugPrint("Erro ao iniciar partida: $e");
+    }
+  }
+
+  Future<void> endPartida(String partidaId, {String? sumulaPdfUrl}) async {
+    try {
+      await _dio.post(
+        '/partidas/$partidaId/end',
+        data: {
+          if (sumulaPdfUrl != null && sumulaPdfUrl.trim().isNotEmpty)
+            'sumulaPdfUrl': sumulaPdfUrl.trim(),
+        },
+      );
+    } catch (e) {
+      debugPrint("Erro ao fechar súmula da partida: $e");
+    }
+  }
+
+  Future<Partida?> buscarPartidaPorId(String partidaId) async {
+    try {
+      final res = await _dio.get('/partidas/$partidaId');
+      if (res.statusCode == 200 && res.data is Map<String, dynamic>) {
+        return Partida.fromMap(res.data as Map<String, dynamic>);
+      }
+    } catch (e) {
+      debugPrint("Erro buscarPartidaPorId: $e");
+    }
+    return null;
   }
 
   void dispose() {

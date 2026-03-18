@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.service.PartidaService;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
@@ -83,10 +84,12 @@ public class PartidasController {
     @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
     public PartidaResponse end(@PathVariable UUID id,
                                Authentication authentication,
-                               @AuthenticationPrincipal Jwt jwt) {
+                               @AuthenticationPrincipal Jwt jwt,
+                               @RequestBody(required = false) EndPartidaRequest req) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
-        return PartidaResponse.from(service.end(id, userId, arbitroOnly));
+        String sumulaPdfUrl = req == null ? null : req.sumulaPdfUrl();
+        return PartidaResponse.from(service.end(id, userId, arbitroOnly, sumulaPdfUrl));
     }
 
 
@@ -128,8 +131,21 @@ public class PartidasController {
     ) {}
 
     public record UpdateStatusRequest(
+            @Schema(
+                    description = "Novo status da partida.",
+                    example = "pausada"
+            )
             @NotBlank String status,
+
+            @Schema(
+                    description = "Status imediatamente anterior à pausa (usado quando status=pausada).",
+                    example = "2° tempo"
+            )
             @JsonProperty("status_antes_pausa") String statusAntesPausa
+    ) {}
+
+    public record EndPartidaRequest(
+            String sumulaPdfUrl
     ) {}
 
     public record PartidaResponse(
@@ -147,7 +163,7 @@ public class PartidasController {
             JsonNode snapshotSumula,
             String sumulaPdfUrl,
             String hashIntegridade,
-            String statusAntesPausa
+            @JsonProperty("status_antes_pausa") String statusAntesPausa
     ) {
         public static PartidaResponse from(Partida p) {
             return new PartidaResponse(

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
+import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/summary_header.dart';
 import '../../widgets/game/summary_score_card.dart';
@@ -39,6 +43,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
 
   List<dynamic> _eventosExibidos = [];
   bool _carregando = false;
+  Partida? _partidaApi;
 
   @override
   void initState() {
@@ -51,6 +56,69 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       // Fluxo retroativo: partida já finalizada, busca do banco
       _carregarEventosDoBanco();
     }
+
+    if (widget.partidaId != null) {
+      _carregarPartidaDaApi();
+    }
+  }
+
+  Future<void> _carregarPartidaDaApi() async {
+    try {
+      final p = await _partidaService.buscarPartidaPorId(widget.partidaId!);
+      if (!mounted) return;
+      setState(() => _partidaApi = p);
+    } catch (e) {
+      debugPrint('Erro ao carregar partida da API: $e');
+    }
+  }
+
+  Future<void> _fecharSumula() async {
+    final id = widget.partidaId;
+    if (id == null) return;
+
+    setState(() => _carregando = true);
+    try {
+      // 1) Gera o PDF final da súmula em memória
+      final List<EventoPartida> eventosTyped =
+          _eventosExibidos is List<EventoPartida>
+              ? _eventosExibidos as List<EventoPartida>
+              : _eventosExibidos.cast<EventoPartida>();
+
+      final bytes = await PdfService.gerarSumulaBytes(
+        context: context,
+        timeA: widget.timeA,
+        timeB: widget.timeB,
+        golsA: widget.golsA,
+        golsB: widget.golsB,
+        eventos: eventosTyped,
+      );
+
+      // 2) Faz upload no bucket do Supabase
+      final client = Supabase.instance.client;
+      const bucket = 'sumulas'; // ajuste o nome do bucket se for diferente
+      final path =
+          'partidas/$id/sumula_${DateTime.now().toUtc().toIso8601String()}.pdf';
+
+      await client.storage
+          .from(bucket)
+          .uploadBinary(path, Uint8List.fromList(bytes));
+
+      final publicUrl = client.storage.from(bucket).getPublicUrl(path);
+
+      // 3) Chama o endpoint /end enviando a URL para persistir em sumulaPdfUrl
+      await _partidaService.endPartida(id, sumulaPdfUrl: publicUrl);
+      await _carregarPartidaDaApi(); // atualiza status/URL
+    } catch (e) {
+      debugPrint('Erro ao fechar súmula: $e');
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  Future<void> _abrirPdfFechado(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _carregarEventosDoBanco() async {
@@ -138,6 +206,16 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                   ),
                   SummaryActionButtons(
                     onPdfPressed: () async {
+                      final st = _partidaApi?.status.trim().toLowerCase();
+                      final pdfUrl = _partidaApi?.sumulaPdfUrl?.trim();
+
+                      if (st == 'fechada' &&
+                          pdfUrl != null &&
+                          pdfUrl.isNotEmpty) {
+                        await _abrirPdfFechado(pdfUrl);
+                        return;
+                      }
+
                       final List<EventoPartida> eventosTyped =
                           _eventosExibidos is List<EventoPartida>
                               ? _eventosExibidos as List<EventoPartida>
@@ -151,6 +229,10 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                         eventos: eventosTyped,
                       );
                     },
+                    onClosePressed:
+                        (_partidaApi?.status.trim().toLowerCase() == 'finalizada')
+                            ? _fecharSumula
+                            : null,
                     onHomePressed: () {
                       Navigator.of(context).pushNamedAndRemoveUntil(
                         '/home',

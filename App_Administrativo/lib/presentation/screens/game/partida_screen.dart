@@ -241,6 +241,18 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     _periodoAtual = _converterStatusParaPeriodo(widget.partida.status);
     if (_periodoAtual != PeriodoPartida.naoIniciada) _partidaJaIniciou = true;
 
+    // Se a partida já entrar pausada, recupera qual era o status antes da pausa
+    if (_periodoAtual == PeriodoPartida.pausada) {
+      final rawAntes = widget.partida.statusAntesPausa?.trim();
+      if (rawAntes != null && rawAntes.isNotEmpty) {
+        _periodoAntesDoPausa = _converterStatusParaPeriodo(rawAntes);
+        if (_periodoAntesDoPausa != PeriodoPartida.naoIniciada &&
+            _periodoAntesDoPausa != PeriodoPartida.finalizada) {
+          _partidaJaIniciou = true;
+        }
+      }
+    }
+
     _carregarDadosIniciais().then((_) => _sincronizarCronometro());
   }
 
@@ -416,6 +428,27 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
       default:
         return PeriodoPartida.naoIniciada;
+    }
+  }
+
+  String? _converterPeriodoParaStatus(PeriodoPartida periodo) {
+    switch (periodo) {
+      case PeriodoPartida.naoIniciada:
+        return 'agendada';
+      case PeriodoPartida.pausada:
+        return 'pausada';
+      case PeriodoPartida.primeiroTempo:
+        return '1° tempo';
+      case PeriodoPartida.intervalo:
+        return 'intervalo';
+      case PeriodoPartida.segundoTempo:
+        return '2° tempo';
+      case PeriodoPartida.prorrogacao:
+        return 'prorrogação';
+      case PeriodoPartida.acrescimo:
+        return 'acréscimo';
+      case PeriodoPartida.finalizada:
+        return 'finalizada';
     }
   }
 
@@ -977,7 +1010,13 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     _periodoAntesDoPausa = _periodoAtual;
 
-    _partidaService.atualizarPartida(widget.partida.id, novoStatus: 'pausada');
+    _partidaService.atualizarPartida(
+      widget.partida.id,
+      novoStatus: 'pausada',
+      statusAntesPausa: _periodoAntesDoPausa == null
+          ? null
+          : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
+    );
 
     // Iniciar pausa técnica
     setState(() {
@@ -1037,7 +1076,13 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     debugPrint("PAUSA TECNICA FINALIZADA");
 
-    _partidaService.atualizarPartida(widget.partida.id, novoStatus: 'pausada');
+    _partidaService.atualizarPartida(
+      widget.partida.id,
+      novoStatus: 'pausada',
+      statusAntesPausa: _periodoAntesDoPausa == null
+          ? null
+          : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
+    );
 
     _registrarEventoSistemico('FIM_PAUSA_TECNICA');
   }
@@ -1057,10 +1102,20 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       switch (_periodoAtual) {
         case PeriodoPartida.naoIniciada:
           eventoParaRegistrar = 'INICIO_1_TEMPO';
-          atualizarServico = () => _partidaService.atualizarPartida(
-            widget.partida.id,
-            novoStatus: '1° tempo',
-          );
+          atualizarServico = () => _partidaService.startPartida(widget.partida.id);
+          break;
+        case PeriodoPartida.pausada:
+          // Retoma para o período anterior à pausa (ex.: 2° tempo)
+          final statusRetomar = _periodoAntesDoPausa == null
+              ? null
+              : _converterPeriodoParaStatus(_periodoAntesDoPausa!);
+          if (statusRetomar != null) {
+            atualizarServico = () => _partidaService.atualizarPartida(
+              widget.partida.id,
+              novoStatus: statusRetomar,
+            );
+          }
+          eventoParaRegistrar = 'PARTIDA_RETOMADA';
           break;
         case PeriodoPartida.intervalo:
           debugPrint('AA intervalo');
@@ -1080,22 +1135,6 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           }
           break;
         default:
-          if (_periodoAntesDoPausa == PeriodoPartida.primeiroTempo) {
-            _partidaService.atualizarPartida(
-              widget.partida.id,
-              novoStatus: '1° tempo',
-            );
-          } else if (_periodoAntesDoPausa == PeriodoPartida.segundoTempo) {
-            _partidaService.atualizarPartida(
-              widget.partida.id,
-              novoStatus: '2° tempo',
-            );
-          } else if (_periodoAntesDoPausa == PeriodoPartida.prorrogacao) {
-            _partidaService.atualizarPartida(
-              widget.partida.id,
-              novoStatus: 'prorrogação',
-            );
-          }
           eventoParaRegistrar = 'PARTIDA_RETOMADA';
           break;
       }
@@ -1107,6 +1146,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         _partidaService.atualizarPartida(
           widget.partida.id,
           novoStatus: 'pausada',
+          statusAntesPausa: _periodoAntesDoPausa == null
+              ? null
+              : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
         );
 
         eventoParaRegistrar = 'PARTIDA_PAUSADA';
@@ -1123,6 +1165,11 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
             _periodoAtual = PeriodoPartida.primeiroTempo;
             _segundos = 0;
 
+            break;
+          case PeriodoPartida.pausada:
+            if (_periodoAntesDoPausa != null) {
+              _periodoAtual = _periodoAntesDoPausa!;
+            }
             break;
 
           case PeriodoPartida.intervalo:

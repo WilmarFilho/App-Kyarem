@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 /// Widget de botões de ação para o resumo da partida
 class SummaryActionButtons extends StatelessWidget {
   final VoidCallback onPdfPressed;
+  final VoidCallback? onClosePressed;
   final VoidCallback onHomePressed;
 
   const SummaryActionButtons({
     super.key,
     required this.onPdfPressed,
+    this.onClosePressed,
     required this.onHomePressed,
   });
 
@@ -43,6 +45,30 @@ class SummaryActionButtons extends StatelessWidget {
               ),
             ),
           ),
+          if (onClosePressed != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onClosePressed,
+                icon: const Icon(Icons.lock_outline, color: Colors.white),
+                label: const Text(
+                  "FECHAR SÚMULA",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00BFA6),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
