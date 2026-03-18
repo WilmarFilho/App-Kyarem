@@ -506,17 +506,32 @@ class PartidaService {
     }
   }
 
-  Future<void> endPartida(String partidaId, {String? sumulaPdfUrl}) async {
+  Future<(int?, String?)> endPartida(String partidaId, {String? sumulaPdfUrl}) async {
     try {
-      await _dio.post(
+      final res = await _dio.post(
         '/partidas/$partidaId/end',
         data: {
           if (sumulaPdfUrl != null && sumulaPdfUrl.trim().isNotEmpty)
             'sumulaPdfUrl': sumulaPdfUrl.trim(),
         },
       );
+      return (res.statusCode, null);
     } catch (e) {
+      if (e is DioException) {
+        final code = e.response?.statusCode;
+        final data = e.response?.data;
+        String? detail;
+        if (data is Map) {
+          final d = data['detail'];
+          if (d != null) detail = d.toString();
+        }
+        if (code != 409) {
+          debugPrint("Erro ao fechar súmula da partida: $e");
+        }
+        return (code, detail);
+      }
       debugPrint("Erro ao fechar súmula da partida: $e");
+      return (null, null);
     }
   }
 

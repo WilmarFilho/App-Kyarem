@@ -17,10 +17,11 @@ CHECK (status_antes_pausa IN (
     'pausada', 
     '2° tempo', 
     'prorrogação', 
-    'finalizada'
+    'finalizada',
+    'fechada'
 ));
 
--- Update existing check_status_partida to include 'acréscimo' and 'pausada'
+-- Update existing check_status_partida to include 'acréscimo' and 'pausada' and 'fechada'
 ALTER TABLE public.partidas
 DROP CONSTRAINT IF EXISTS check_status_partida;
 
@@ -32,7 +33,8 @@ ALTER TABLE public.partidas
             'acréscimo', 
             'intervalo', 
             'pausada',
-            '2° tempo', 
+            '2° tempo',
+            'fechada',
             'prorrogação', 
             'finalizada'
         ));

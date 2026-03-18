@@ -115,9 +115,29 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   Future<void> _abrirEdicaoEvento(SummaryEventItem item) async {
     if (_partidaApi == null || widget.partidaId == null) return;
 
+    // Loading rápido antes de buscar tipos/atletas
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF00FFC2)),
+        ),
+      );
+    }
+
     final tipos = await _partidaService.buscarTiposDeEventoDaPartida(
       _partidaApi!.modalidadeId,
     );
+
+    // garante atletas carregados para os dropdowns
+    if (_jogadoresA.isEmpty && _jogadoresB.isEmpty) {
+      await _carregarAtletasEquipes();
+    }
+
+    if (mounted) {
+      Navigator.of(context).pop(); // fecha loading
+    }
 
     final isFinalizada =
         _partidaApi!.status.trim().toLowerCase() == 'finalizada';
@@ -399,7 +419,40 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     final id = widget.partidaId;
     if (id == null) return;
 
+    debugPrint('id: $id');
+    debugPrint('widget.timeA: ${widget.timeA}');
+    debugPrint('widget.timeB: ${widget.timeB}');
+    debugPrint('widget.golsA: ${widget.golsA}');
+    debugPrint('widget.golsB: ${widget.golsB}');
+    debugPrint('widget.escudoA: ${widget.escudoA}');
+    debugPrint('widget.escudoB: ${widget.escudoB}');
+    debugPrint('widget.partidaId: ${widget.partidaId}');
+    debugPrint('eventosExibidos: ${_eventosExibidos}');
+
     setState(() => _carregando = true);
+
+    // Mostra spinner modal para o usuário entender que o fechamento está em andamento.
+    bool loadingDialogOpen = false;
+    if (mounted) {
+      loadingDialogOpen = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black54,
+        builder: (_) {
+          return const Center(
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: CircularProgressIndicator(
+                color: Color(0xFF00FFC2),
+                strokeWidth: 6,
+              ),
+            ),
+          );
+        },
+      );
+    }
     try {
       // 1) Gera o PDF final da súmula em memória
       final List<EventoPartida> eventosTyped =
@@ -420,18 +473,72 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       final path =
           'partidas/$id/sumula_${DateTime.now().toUtc().toIso8601String()}.pdf';
 
-      await client.storage
-          .from(bucket)
-          .uploadBinary(path, Uint8List.fromList(bytes));
+      try {
+        await client.storage
+            .from(bucket)
+            .uploadBinary(path, Uint8List.fromList(bytes));
+      } catch (e) {
+        // Se o Storage estiver com RLS/policies bloqueando, ainda assim permitimos
+        // fechar a partida (sem URL), e mostramos instrução ao usuário.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Upload do PDF bloqueado (403). Ajuste as policies do Storage no Supabase para permitir upload autenticado no bucket "sumulas". Fechando sem URL por enquanto.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 6),
+            ),
+          );
+        }
+
+        final (code, detail) = await _partidaService.endPartida(id);
+        if (code == 409) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  detail?.isNotEmpty == true
+                      ? 'Falha ao fechar súmula: $detail'
+                      : 'Falha ao fechar súmula (conflito 409).',
+                ),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+        await _carregarPartidaDaApi();
+        return;
+      }
 
       final publicUrl = client.storage.from(bucket).getPublicUrl(path);
 
       // 3) Chama o endpoint /end enviando a URL para persistir em sumulaPdfUrl
-      await _partidaService.endPartida(id, sumulaPdfUrl: publicUrl);
+      final (code, detail) = await _partidaService.endPartida(
+        id,
+        sumulaPdfUrl: publicUrl,
+      );
+      if (code == 409) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                detail?.isNotEmpty == true
+                    ? 'Falha ao fechar súmula: $detail'
+                    : 'Falha ao fechar súmula (conflito 409).',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
       await _carregarPartidaDaApi(); // atualiza status/URL
     } catch (e) {
       debugPrint('Erro ao fechar súmula: $e');
     } finally {
+      if (loadingDialogOpen && mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
       if (mounted) setState(() => _carregando = false);
     }
   }
@@ -496,58 +603,71 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       child: Scaffold(
         body: Stack(
           children: [
-            const GradientBackground(heightFactor: 0.9),
+            const GradientBackground(heightFactor: 1.0),
             SafeArea(
+              bottom: false,
               child: Column(
                 children: [
-                  const SummaryHeader(),
-                  SummaryScoreCard(
-                    timeA: widget.timeA,
-                    timeB: widget.timeB,
-                    escudoA: widget.escudoA,
-                    escudoB: widget.escudoB,
-                    golsA: widget.golsA,
-                    golsB: widget.golsB,
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.history, size: 20, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Text(
-                          "RESUMO DOS EVENTOS",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   Expanded(
-                    child: _carregando
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF00FFC2),
-                            ),
-                          )
-                        : _eventosExibidos.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  "Nenhum evento registrado.",
-                                  style: TextStyle(color: Colors.grey),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        children: [
+                          const SummaryHeader(),
+                          SummaryScoreCard(
+                            timeA: widget.timeA,
+                            timeB: widget.timeB,
+                            escudoA: widget.escudoA,
+                            escudoB: widget.escudoB,
+                            golsA: widget.golsA,
+                            golsB: widget.golsB,
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            child: Row(
+                              children: [
+                                Icon(Icons.history,
+                                    size: 20, color: Colors.grey),
+                                SizedBox(width: 8),
+                                Text(
+                                  "RESUMO DOS EVENTOS",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey,
+                                    letterSpacing: 1.1,
+                                  ),
                                 ),
-                              )
-                            : SummaryEventList(
-                                eventos: _eventosExibidos,
-                                podeEditar:
-                                    _partidaApi?.status.trim().toLowerCase() ==
-                                        'finalizada',
-                                onEdit: _abrirEdicaoEvento,
-                                onDelete: _confirmarExclusaoEvento,
+                              ],
+                            ),
+                          ),
+                          if (_eventosExibidos.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                "Nenhum evento registrado.",
+                                style: TextStyle(color: Colors.grey),
                               ),
+                            )
+                          else
+                            Opacity(
+                              opacity: _carregando ? 0.35 : 1.0,
+                              child: IgnorePointer(
+                                ignoring: _carregando,
+                                child: SummaryEventList(
+                                  eventos: _eventosExibidos,
+                                  podeEditar: _partidaApi?.status
+                                          .trim()
+                                          .toLowerCase() ==
+                                      'finalizada',
+                                  onEdit: _abrirEdicaoEvento,
+                                  onDelete: _confirmarExclusaoEvento,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                   SummaryActionButtons(
                     onPdfPressed: () async {
@@ -572,10 +692,11 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                         eventos: eventosTyped,
                       );
                     },
-                    onClosePressed:
-                        (_partidaApi?.status.trim().toLowerCase() == 'finalizada')
-                            ? _fecharSumula
-                            : null,
+                    onClosePressed: (_partidaApi?.status.trim().toLowerCase() ==
+                                'finalizada' &&
+                            !_carregando)
+                        ? _fecharSumula
+                        : null,
                     onHomePressed: () {
                       Navigator.of(context).pushNamedAndRemoveUntil(
                         '/home',

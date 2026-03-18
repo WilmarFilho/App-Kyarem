@@ -21,39 +21,61 @@ class EventoPartida {
   String get descricao {
     switch (tipo) {
       case 'INICIO_1_TEMPO':
-        return '🟢 Início do 1º Tempo';
+        return 'Início do 1º Tempo';
       case 'FIM_1_TEMPO':
-        return '🏁 Fim do 1º Tempo';
-      case 'INTERVALO':
-        return '☕ Partida no Intervalo';
+        return 'Fim do 1º Tempo';
+      case 'FIM_2_TEMPO':
+        return 'Fim do 2º Tempo';
       case 'INICIO_2_TEMPO':
-        return '🟢 Início do 2º Tempo';
+        return 'Início do 2º Tempo';
+      case 'INTERVALO':
+        return 'Partida no Intervalo';
       case 'PARTIDA_PAUSADA':
-        return '⏸️ Partida Pausada';
+        return 'Partida Pausada';
       case 'PARTIDA_RETOMADA':
-        return '▶️ Partida Retomada';
+        return 'Partida Retomada';
       case 'PAUSA_TECNICA':
-        return '⏱️ Pausa Técnica';
+        return 'Pausa Técnica';
       case 'FIM_PAUSA_TECNICA':
-        return '⌛ Fim da Pausa Técnica';
+        return 'Fim da Pausa Técnica';
       case 'ACRESCIMO':
-        return '➕ Partida em Acréscimo';
+        return 'Partida em Acréscimo';
       case 'ACRESCIMO_DADO':
-        return '⏱️ Acréscimo concedido';
+        return 'Acréscimo concedido';
       case 'PRORROGACAO':
-        return '🏟️ Partida em Prorrogação';
+        return 'Partida em Prorrogação';
       case 'PRORROGACAO_DADA':
-        return '⏱️ Prorrogação concedida';
+        return 'Prorrogação concedida';
       case 'FIM_PARTIDA':
-        return '🏁 Fim de Jogo';
+        return 'Fim de Jogo';
       case 'SUBSTITUICAO':
-        return '🔄 Substituição';
+        return 'Substituição';
       case 'GOL':
-        return '⚽ GOL!';
+        return 'GOL';
       case 'CARTAO_AMARELO':
-        return '🟨 Cartão Amarelo';
+        return 'Cartão Amarelo';
       case 'CARTAO_VERMELHO':
-        return '🟥 Cartão Vermelho';
+        return 'Cartão Vermelho';
+        case 'ARREMESO_DE_META':
+        return 'Arremesso de Meta';
+      case 'TIRO_DE_CANTO':
+        return 'Tiro de Canto';
+      case 'TIRO_DE_SAIDA':
+        return 'Tiro de Saída';
+      case 'TIRO_LATERAL':
+        return 'Tiro Lateral';
+      case 'PENALTI_PERDIDO':
+        return 'Pênalti Perdido';
+      case 'TIRO_LIVRE_DIRETO':
+        return 'Tiro Livre Direto';
+      case 'TIRO_LIVRE_INDIRETO':
+        return 'Tiro Livre Indireto';
+      case 'PENALTI_MARCADO':
+        return 'Pênalti Marcado';
+      case 'PENALTI':
+        return 'Pênalti';
+      case 'FALTA':
+        return 'Falta';
       default:
         // Caso seja um evento de jogador não mapeado explicitamente acima
         if (jogadorNumero != null) {

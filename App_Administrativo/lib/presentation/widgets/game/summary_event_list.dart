@@ -45,47 +45,53 @@ class SummaryEventList extends StatelessWidget {
       return const Center(child: Text("Nenhum evento registrado."));
     }
 
-    return ListView.builder(
+    // Importante: não usar ListView aqui. Este widget é exibido dentro de telas
+    // que já usam scroll (SingleChildScrollView). Usar ListView aninhado causa
+    // problemas de layout (height/hasSize).
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: eventos.length,
-      itemBuilder: (context, index) {
-        final item = eventos[index];
-        final ev = item.evento;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: ListTile(
-            leading: _getIconForEvent(ev.tipo),
-            title: Text(
-              ev.descricao,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      child: Column(
+        children: eventos.map((item) {
+          final ev = item.evento;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
             ),
-            subtitle: Text("Tempo: ${ev.horario}"),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (ev.corTime != null)
-                  CircleAvatar(radius: 4, backgroundColor: ev.corTime),
-                if (podeEditar) ...[
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 18),
-                    tooltip: 'Editar evento',
-                    onPressed: () => onEdit(item),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    tooltip: 'Excluir evento',
-                    onPressed: () => onDelete(item),
-                  ),
+            child: ListTile(
+              leading: _getIconForEvent(ev.tipo),
+              title: Text(
+                ev.descricao,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: Text("Tempo: ${ev.horario}"),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (ev.corTime != null)
+                    CircleAvatar(radius: 4, backgroundColor: ev.corTime),
+                  if (podeEditar) ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 18),
+                      tooltip: 'Editar evento',
+                      onPressed: () => onEdit(item),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: 'Excluir evento',
+                      onPressed: () => onDelete(item),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        }).toList(),
+      ),
     );
   }
 
