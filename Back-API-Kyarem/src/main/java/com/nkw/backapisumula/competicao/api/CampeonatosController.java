@@ -41,6 +41,7 @@ public class CampeonatosController {
         c.setNivelCampeonato(r.nivelCampeonato());
         c.setDataInicio(r.dataInicio());
         c.setDataFim(r.dataFim());
+        c.setEscudoUrl(r.escudoUrl());
         return CampeonatoResponse.from(service.create(c));
     }
 
@@ -52,6 +53,7 @@ public class CampeonatosController {
         patch.setNivelCampeonato(r.nivelCampeonato());
         patch.setDataInicio(r.dataInicio());
         patch.setDataFim(r.dataFim());
+        patch.setEscudoUrl(r.escudoUrl());
         return CampeonatoResponse.from(service.update(id, patch));
     }
 
@@ -59,14 +61,16 @@ public class CampeonatosController {
             @NotBlank String nome,
             String nivelCampeonato,
             LocalDate dataInicio,
-            LocalDate dataFim
+            LocalDate dataFim,
+            String escudoUrl
     ) {}
 
     public record UpdateCampeonatoRequest(
             String nome,
             String nivelCampeonato,
             LocalDate dataInicio,
-            LocalDate dataFim
+            LocalDate dataFim,
+            String escudoUrl
     ) {}
 
     public record CampeonatoResponse(
@@ -74,7 +78,8 @@ public class CampeonatosController {
             String nome,
             String nivelCampeonato,
             LocalDate dataInicio,
-            LocalDate dataFim
+            LocalDate dataFim,
+            String escudoUrl
     ) {
         public static CampeonatoResponse from(Campeonato c) {
             return new CampeonatoResponse(
@@ -82,7 +87,8 @@ public class CampeonatosController {
                     c.getNome(),
                     c.getNivelCampeonato(),
                     c.getDataInicio(),
-                    c.getDataFim()
+                    c.getDataFim(),
+                    c.getEscudoUrl()
             );
         }
     }

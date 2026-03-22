@@ -110,10 +110,15 @@ public class SumulaOficialPdfService {
                 List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -")
         );
 
-        String competicao = safeText(Optional.ofNullable(partida.getEquipeA())
-                .map(eq -> eq.getCampeonato()).map(c -> c.getNome())
+        // Resolve campeonato from equipe or modalidade
+        var campeonatoOpt = Optional.ofNullable(partida.getEquipeA())
+                .map(eq -> eq.getCampeonato())
+                .or(() -> Optional.ofNullable(partida.getEquipeB()).map(eq -> eq.getCampeonato()));
+        String competicao = safeText(campeonatoOpt.map(c -> c.getNome())
                 .orElse(Optional.ofNullable(partida.getModalidade())
                         .map(m -> m.getCampeonatoNome()).orElse(null)));
+        String escudoCompeticao = campeonatoOpt.map(c -> c.getEscudoUrl()).orElse(null);
+
         String categoria = safeText(Optional.ofNullable(partida.getModalidade())
                 .map(m -> m.getNome()).orElse(null));
         String dataStr = Optional.ofNullable(partida.getAgendadoPara())
@@ -136,7 +141,7 @@ public class SumulaOficialPdfService {
         return new SumulaData(teamA, teamB, competicao, categoria, numeroJogo, "", fase, dataStr,
                 localParts[0], localParts[1], buildArbitrationLines(arbitros), ps,
                 headerSchedule, safeText(teamA.nome() + " x " + teamB.nome()),
-                escudoA, escudoB);
+                escudoA, escudoB, escudoCompeticao);
     }
 
     private void putIfPresent(Map<UUID, Integer> map, EquipeAtletaInscrito i) {
@@ -277,8 +282,8 @@ public class SumulaOficialPdfService {
                 + "<div class=\"page\">"
                 + headerHtml(data)
                 + gameInfoHtml(data)
-                + teamBlockHtml(data.teamA(), "A", data.periodSummary())
-                + teamBlockHtml(data.teamB(), "B", data.periodSummary())
+                + teamBlockHtml(data.teamA(), "A", data.periodSummary(), true)
+                + teamBlockHtml(data.teamB(), "B", data.periodSummary(), false)
                 + footerHtml(data)
                 + "</div>\n</body>\n</html>";
     }
@@ -288,6 +293,7 @@ public class SumulaOficialPdfService {
     private String headerHtml(SumulaData data) {
         return "<table class=\"hdr\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n"
                 + "<td class=\"hdr-left\">"
+                + imgTag(data.escudoCompeticao())
                 + "<div class=\"hdr-name\">" + e(data.competicao()) + "</div>"
                 + "</td>\n"
                 + "<td class=\"hdr-center\">"
@@ -318,14 +324,15 @@ public class SumulaOficialPdfService {
 
     // ── Team block ───────────────────────────────────────────────────────────────
 
-    private String teamBlockHtml(TeamPdfData team, String letter, PeriodSummary ps) {
+    private String teamBlockHtml(TeamPdfData team, String letter, PeriodSummary ps, boolean showGeral) {
+        int colspan = showGeral ? 4 : 3;
         return "<table class=\"team-tbl\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n"
                 + colPlayersHtml(team, letter)
                 + colCardsHtml(team)
                 + colMetasHtml(team)
-                + colGeralHtml(ps)
+                + (showGeral ? colGeralHtml(ps) : "")
                 + "</tr>\n"
-                + "<tr><td colspan=\"4\" class=\"obs-row\"></td></tr>\n"
+                + "<tr><td colspan=\"" + colspan + "\" class=\"obs-row\"></td></tr>\n"
                 + "</table>\n";
     }
 
@@ -687,7 +694,7 @@ public class SumulaOficialPdfService {
             String fase, String data, String ginasio, String cidade,
             List<String> arbitrationLines, PeriodSummary periodSummary,
             String headerSchedule, String headerMatchup,
-            String escudoA, String escudoB
+            String escudoA, String escudoB, String escudoCompeticao
     ) {}
 
     private record TeamPdfData(

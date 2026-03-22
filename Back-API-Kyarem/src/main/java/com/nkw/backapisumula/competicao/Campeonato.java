@@ -30,6 +30,9 @@ public class Campeonato {
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
 
+    @Column(name = "escudo_url")
+    private String escudoUrl;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -47,4 +50,7 @@ public class Campeonato {
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
+
+    public String getEscudoUrl() { return escudoUrl; }
+    public void setEscudoUrl(String escudoUrl) { this.escudoUrl = escudoUrl; }
 }
