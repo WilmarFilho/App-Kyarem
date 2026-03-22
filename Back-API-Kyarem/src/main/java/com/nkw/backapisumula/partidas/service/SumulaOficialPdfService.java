@@ -141,14 +141,14 @@ public class SumulaOficialPdfService {
                         .map(m -> m.getCampeonatoNome()).orElse(null)));
         String escudoCompeticao = campeonatoOpt.map(c -> c.getEscudoUrl()).orElse(null);
 
-        String categoria = safeText(Optional.ofNullable(partida.getModalidade())
-                .map(m -> m.getNome()).orElse(null));
+        String categoria = safeText(Optional.ofNullable(partida.getCategoria())
+                .orElse(null));
         String dataStr = Optional.ofNullable(partida.getAgendadoPara())
                 .map(DATE_FMT::format).orElse("");
         String numeroJogo = textOrBlank(partida.getId() != null
                 ? partida.getId().toString().substring(0, 8).toUpperCase(Locale.ROOT) : null);
-        String fase = safeText(Optional.ofNullable(partida.getStatus())
-                .map(Object::toString).orElse(null));
+        String fase = safeText(Optional.ofNullable(partida.getFase())
+                .orElse(null));
         String[] localParts = splitLocal(partida.getLocal());
 
         String escudoA = partida.getEquipeA() != null && partida.getEquipeA().getAtletica() != null
@@ -174,10 +174,19 @@ public class SumulaOficialPdfService {
     private RosterRow rosterRow(EquipeAtletaInscrito inscrito, List<EventoPartida> ev) {
         String inscricaoId = inscrito.getId() != null
                 ? inscrito.getId().toString().substring(0, 8).toUpperCase(Locale.ROOT) : "";
+        
+        String nomeAtleta = Optional.ofNullable(inscrito.getAtleta()).map(a -> a.getNome()).orElse("");
+        if (Boolean.TRUE.equals(inscrito.getIsGoleiro())) {
+            nomeAtleta += " (G)";
+        }
+        if (Boolean.TRUE.equals(inscrito.getIsCapitao())) {
+            nomeAtleta += " (C)";
+        }
+
         return new RosterRow(
                 inscricaoId,
                 textOrBlank(Optional.ofNullable(inscrito.getNumeroCamisa()).map(String::valueOf).orElse(null)),
-                safeText(Optional.ofNullable(inscrito.getAtleta()).map(a -> a.getNome()).orElse(null)),
+                safeText(nomeAtleta.isBlank() ? null : nomeAtleta),
                 firstTempoOfTipo(ev, "CARTAO_AMARELO"),
                 firstTempoOfTipo(ev, "CARTAO_VERMELHO")
         );
@@ -323,15 +332,15 @@ public class SumulaOficialPdfService {
                 + imgTag(data.escudoCompeticao())
                 + "<div class=\"hdr-name\">" + e(data.competicao()) + "</div>"
                 + "</td>\n"
-                + "<td class=\"hdr-center\">"
-                + "<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\">\n<tr>\n"
-                + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
+                + "<td class=\"hdr-center\" align=\"center\">"
+                + "<table cellpadding=\"0\" cellspacing=\"0\" style=\"margin: 0 auto;\">\n<tr>\n"
+                + "<td style=\"text-align:right; vertical-align:middle; padding:0 10px;\">"
                 + imgTag(data.escudoA()) + "</td>\n"
                 + "<td style=\"text-align:center; vertical-align:middle; font-weight:bold; font-size:13px;\">"
                 + e(data.headerMatchup())
                 + "<div style=\"font-size:14px; font-weight:bold; margin-top:2px;\">" + e(placarStr) + "</div>"
                 + "</td>\n"
-                + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
+                + "<td style=\"text-align:left; vertical-align:middle; padding:0 10px;\">"
                 + imgTag(data.escudoB()) + "</td>\n"
                 + "</tr>\n</table>"
                 + "</td>\n"

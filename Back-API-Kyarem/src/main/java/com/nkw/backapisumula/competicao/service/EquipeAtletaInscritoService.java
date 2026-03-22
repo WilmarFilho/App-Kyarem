@@ -31,7 +31,9 @@ public class EquipeAtletaInscritoService {
     public record AddInscritoCommand(
             @NotNull UUID atletaId,
             Integer numeroCamisa,
-            Boolean ativo
+            Boolean ativo,
+            Boolean isGoleiro,
+            Boolean isCapitao
     ) {}
 
     /**
@@ -69,11 +71,13 @@ public class EquipeAtletaInscritoService {
             i.setAtleta(atleta);
             i.setNumeroCamisa(cmd.numeroCamisa());
             i.setAtivo(cmd.ativo() != null ? cmd.ativo() : Boolean.TRUE);
+            i.setIsGoleiro(cmd.isGoleiro() != null ? cmd.isGoleiro() : Boolean.FALSE);
+            i.setIsCapitao(cmd.isCapitao() != null ? cmd.isCapitao() : Boolean.FALSE);
             return repo.save(i);
         }).toList();
     }
 
-    public EquipeAtletaInscrito add(UUID equipeId, UUID atletaId, Integer numeroCamisa, Boolean ativo) {
+    public EquipeAtletaInscrito add(UUID equipeId, UUID atletaId, Integer numeroCamisa, Boolean ativo, Boolean isGoleiro, Boolean isCapitao) {
         var equipe = equipeRepo.findById(equipeId)
                 .orElseThrow(() -> new IllegalArgumentException("Equipe não encontrada."));
         var atleta = atletaRepo.findById(atletaId)
@@ -88,6 +92,8 @@ public class EquipeAtletaInscritoService {
         i.setAtleta(atleta);
         i.setNumeroCamisa(numeroCamisa);
         i.setAtivo(ativo != null ? ativo : Boolean.TRUE);
+        i.setIsGoleiro(isGoleiro != null ? isGoleiro : Boolean.FALSE);
+        i.setIsCapitao(isCapitao != null ? isCapitao : Boolean.FALSE);
         return repo.save(i);
     }
 

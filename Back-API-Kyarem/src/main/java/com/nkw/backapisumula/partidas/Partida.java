@@ -33,6 +33,10 @@ public class Partida {
 
     private String status;
 
+    private String categoria;
+
+    private String fase;
+
     @Column(name = "iniciada_em")
     private OffsetDateTime iniciadaEm;
 
@@ -80,6 +84,12 @@ public class Partida {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getCategoria() { return categoria; }
+    public void setCategoria(String categoria) { this.categoria = categoria; }
+
+    public String getFase() { return fase; }
+    public void setFase(String fase) { this.fase = fase; }
 
     public OffsetDateTime getIniciadaEm() { return iniciadaEm; }
     public void setIniciadaEm(OffsetDateTime iniciadaEm) { this.iniciadaEm = iniciadaEm; }

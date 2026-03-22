@@ -107,7 +107,7 @@ public class PartidaService {
         return repo.findById(id).orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
     }
 
-    public Partida create(UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local) {
+    public Partida create(UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, String categoria, String fase) {
         if (equipeAId.equals(equipeBId)) {
             throw new IllegalStateException("Equipe A e Equipe B não podem ser a mesma.");
         }
@@ -128,6 +128,8 @@ public class PartidaService {
         p.setEquipeA(equipeA);
         p.setEquipeB(equipeB);
         p.setLocal(local);
+        p.setCategoria(categoria);
+        p.setFase(fase);
         p.setAgendadoPara(agendadoPara);
         p.setStatus(STATUS_AGENDADA);
         p.setPlacarA(0);
@@ -136,7 +138,7 @@ public class PartidaService {
         return repo.save(p);
     }
 
-    public Partida update(UUID partidaId, UUID userId, boolean isArbitroOnly, UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, JsonNode snapshotSumula, String sumulaPdfUrl) {
+    public Partida update(UUID partidaId, UUID userId, boolean isArbitroOnly, UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, JsonNode snapshotSumula, String sumulaPdfUrl, String categoria, String fase) {
         Partida p = getOrThrow(partidaId);
 
         String st = p.getStatus() == null ? "" : p.getStatus().trim().toLowerCase();
@@ -202,6 +204,8 @@ public class PartidaService {
 
         if (agendadoPara != null) p.setAgendadoPara(agendadoPara);
         if (local != null) p.setLocal(local);
+        if (categoria != null) p.setCategoria(categoria);
+        if (fase != null) p.setFase(fase);
 
         return repo.save(p);
     }
@@ -351,6 +355,8 @@ public class PartidaService {
         root.put("iniciadaEm", p.getIniciadaEm() != null ? p.getIniciadaEm().toString() : null);
         root.put("encerradaEm", p.getEncerradaEm() != null ? p.getEncerradaEm().toString() : null);
         root.put("local", p.getLocal());
+        root.put("categoria", p.getCategoria());
+        root.put("fase", p.getFase());
         root.put("agendadoPara", p.getAgendadoPara() != null ? p.getAgendadoPara().toString() : null);
         root.put("placarA", p.getPlacarA() != null ? p.getPlacarA() : 0);
         root.put("placarB", p.getPlacarB() != null ? p.getPlacarB() : 0);

@@ -71,7 +71,7 @@ public class EquipesController {
         List<EquipeAtletaInscrito> created = inscritosService.addBatch(
                 id,
                 r.stream()
-                        .map(x -> new EquipeAtletaInscritoService.AddInscritoCommand(x.atletaId(), x.numeroCamisa(), x.ativo()))
+                        .map(x -> new EquipeAtletaInscritoService.AddInscritoCommand(x.atletaId(), x.numeroCamisa(), x.ativo(), x.isGoleiro(), x.isCapitao()))
                         .toList()
         );
 
@@ -128,7 +128,9 @@ public class EquipesController {
     public record AddInscritoRequest(
             @NotNull UUID atletaId,
             Integer numeroCamisa,
-            Boolean ativo
+            Boolean ativo,
+            Boolean isGoleiro,
+            Boolean isCapitao
     ) {}
 
     public record InscritoResponse(
@@ -138,7 +140,9 @@ public class EquipesController {
             String atletaNome,
             UUID atleticaId,
             Integer numeroCamisa,
-            Boolean ativo
+            Boolean ativo,
+            Boolean isGoleiro,
+            Boolean isCapitao
     ) {
         public static InscritoResponse from(EquipeAtletaInscrito i) {
             return new InscritoResponse(
@@ -148,7 +152,9 @@ public class EquipesController {
                     i.getAtleta() != null ? i.getAtleta().getNome() : null,
                     i.getAtleta() != null && i.getAtleta().getAtletica() != null ? i.getAtleta().getAtletica().getId() : null,
                     i.getNumeroCamisa(),
-                    i.getAtivo()
+                    i.getAtivo(),
+                    i.getIsGoleiro(),
+                    i.getIsCapitao()
             );
         }
     }

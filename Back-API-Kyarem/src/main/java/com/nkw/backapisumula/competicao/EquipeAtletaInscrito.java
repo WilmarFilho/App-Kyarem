@@ -27,6 +27,12 @@ public class EquipeAtletaInscrito {
 
     private Boolean ativo;
 
+    @Column(name = "is_goleiro")
+    private Boolean isGoleiro;
+
+    @Column(name = "is_capitao")
+    private Boolean isCapitao;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -41,4 +47,10 @@ public class EquipeAtletaInscrito {
 
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+
+    public Boolean getIsGoleiro() { return isGoleiro; }
+    public void setIsGoleiro(Boolean isGoleiro) { this.isGoleiro = isGoleiro; }
+
+    public Boolean getIsCapitao() { return isCapitao; }
+    public void setIsCapitao(Boolean isCapitao) { this.isCapitao = isCapitao; }
 }

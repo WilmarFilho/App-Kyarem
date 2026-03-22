@@ -60,7 +60,7 @@ public class PartidasController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
     public PartidaResponse create(@Valid @RequestBody CreatePartidaRequest req) {
-        Partida p = service.create(req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local());
+        Partida p = service.create(req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.categoria(), req.fase());
         return PartidaResponse.from(p);
     }
 
@@ -72,7 +72,7 @@ public class PartidasController {
                                  @Valid @RequestBody UpdatePartidaRequest req) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
-        Partida p = service.update(id, userId, arbitroOnly, req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.snapshotSumula(), req.sumulaPdfUrl());
+        Partida p = service.update(id, userId, arbitroOnly, req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.snapshotSumula(), req.sumulaPdfUrl(), req.categoria(), req.fase());
         return PartidaResponse.from(p);
     }
 
@@ -131,7 +131,9 @@ public class PartidasController {
             @NotNull UUID equipeAId,
             @NotNull UUID equipeBId,
             OffsetDateTime agendadoPara,
-            String local
+            String local,
+            String categoria,
+            String fase
     ) {}
 
     public record UpdatePartidaRequest(
@@ -141,7 +143,9 @@ public class PartidasController {
             OffsetDateTime agendadoPara,
             String local,
             JsonNode snapshotSumula,
-            String sumulaPdfUrl
+            String sumulaPdfUrl,
+            String categoria,
+            String fase
     ) {}
 
     public record UpdateStatusRequest(
@@ -170,6 +174,8 @@ public class PartidasController {
             OffsetDateTime iniciadaEm,
             OffsetDateTime encerradaEm,
             String local,
+            String categoria,
+            String fase,
             Integer placarA,
             Integer placarB,
             JsonNode snapshotSumula,
@@ -188,6 +194,8 @@ public class PartidasController {
                     p.getIniciadaEm(),
                     p.getEncerradaEm(),
                     p.getLocal(),
+                    p.getCategoria(),
+                    p.getFase(),
                     p.getPlacarA(),
                     p.getPlacarB(),
                     p.getSnapshotSumula(),
