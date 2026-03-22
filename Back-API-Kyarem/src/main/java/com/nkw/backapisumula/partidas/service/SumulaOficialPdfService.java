@@ -276,7 +276,7 @@ public class SumulaOficialPdfService {
 
     private String buildHtml(SumulaData data) {
         return "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n"
-                + "<meta charset=\"UTF-8\">\n"
+                + "<meta charset=\"UTF-8\"/>\n"
                 + "<style>\n" + css() + "\n</style>\n"
                 + "</head>\n<body>\n<div class=\"container\">\n"
                 + headerHtml(data)
