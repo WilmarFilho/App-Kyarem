@@ -72,6 +72,7 @@ public class SumulaOficialPdfService {
         }
 
         List<EventoPartida> eventos = eventoRepo.findByPartidaIdWithDetails(partidaId);
+        System.out.println("Eventos: " + eventos);
         List<PartidaArbitro> arbitros = partidaArbitroRepo.findByPartidaIdWithArbitro(partidaId);
         List<EquipeAtletaInscrito> inscritosA = partida.getEquipeA() == null ? List.of()
                 : inscritosRepo.findByEquipe_Id(partida.getEquipeA().getId());
@@ -304,6 +305,9 @@ public class SumulaOficialPdfService {
     private int countPausas(List<EventoPartida> eventos, UUID equipeId, int targetPeriod) {
         if (equipeId == null) return 0;
         OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
+
+        System.out.println("Inicio 2 tempo: " + tInicio2);
+        System.out.println("Target period: " + targetPeriod);
         
         return (int) eventos.stream()
                 .filter(e -> isTipo(e, "PAUSA_TECNICA"))
@@ -539,36 +543,28 @@ public class SumulaOficialPdfService {
 
     private String colFaltasHtml(TeamPdfData team) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<td class=\"col-geral\" style=\"width:94px;\">\n");
-        sb.append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%; height:100%; border-collapse:collapse;\">\n<tr>\n");
+        sb.append("<td class=\"col-geral\" style=\"width:94px; padding:0;\">\n");
+        sb.append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%; height:100%; border-collapse:collapse;\">\n");
 
-        // Faltas Acumuladas bar
-        sb.append("<td class=\"v-bar\" style=\"width:16px;\">");
-        sb.append(vBarLabel("Faltas Acumuladas"));
-        sb.append("</td>\n");
-
-        // Faltas markings
-        sb.append("<td style=\"width:32px; border-right:1px solid #000; vertical-align:top; text-align:center; padding-top:4px;\">\n");
+        // Faltas Acumuladas Section
+        sb.append("<tr><td style=\"height:50%; border-bottom:1px solid #000; vertical-align:top; text-align:center; padding:4px 0;\">\n");
+        sb.append("<div style=\"background:#000; color:#fff; font-size:7px; font-weight:bold; padding:2px; margin:0 2px 4px 2px;\">FALTAS ACUMULADAS</div>\n");
         sb.append("<div style=\"font-size:7px; font-weight:bold; margin-bottom:2px;\">1º Período</div>\n");
         sb.append(faltasBoxesHtml(team.faltas1()));
-        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-top:6px; margin-bottom:2px;\">2º Período</div>\n");
+        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-top:4px; margin-bottom:2px;\">2º Período</div>\n");
         sb.append(faltasBoxesHtml(team.faltas2()));
-        sb.append("</td>\n");
+        sb.append("</td></tr>\n");
 
-        // Pedidos de Tempo bar
-        sb.append("<td class=\"v-bar\" style=\"width:18px;\">");
-        sb.append(vBarLabel("Pedidos de Tempo"));
-        sb.append("</td>\n");
-
-        // Pedidos markings
-        sb.append("<td style=\"width:28px; vertical-align:top; text-align:center; padding-top:4px;\">\n");
+        // Pedidos de Tempo Section
+        sb.append("<tr><td style=\"height:50%; vertical-align:top; text-align:center; padding:4px 0;\">\n");
+        sb.append("<div style=\"background:#000; color:#fff; font-size:7px; font-weight:bold; padding:2px; margin:0 2px 4px 2px;\">PEDIDOS DE TEMPO</div>\n");
         sb.append("<div style=\"font-size:7px; font-weight:bold; margin-bottom:2px;\">1º Período</div>\n");
         sb.append(pausasBoxesHtml(team.pausas1()));
-        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-top:20px; margin-bottom:2px;\">2º Período</div>\n");
+        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-top:4px; margin-bottom:2px;\">2º Período</div>\n");
         sb.append(pausasBoxesHtml(team.pausas2()));
-        sb.append("</td>\n");
+        sb.append("</td></tr>\n");
 
-        sb.append("</tr>\n</table>\n</td>\n");
+        sb.append("</table>\n</td>\n");
         return sb.toString();
     }
 
@@ -579,7 +575,6 @@ public class SumulaOficialPdfService {
             String bg = (i <= faltas) ? "background:#000; color:#fff;" : "color:#000;";
             sb.append("<td style=\"width:10px; height:10px; border:1px solid #000; text-align:center; font-size:7px; ")
               .append(bg).append("\">").append(i).append("</td>");
-            if (i == 3) sb.append("</tr><tr>");
         }
         sb.append("</tr></table>");
         return sb.toString();
