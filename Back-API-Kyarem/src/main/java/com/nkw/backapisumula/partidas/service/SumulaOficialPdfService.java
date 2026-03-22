@@ -305,9 +305,6 @@ public class SumulaOficialPdfService {
     private int countPausas(List<EventoPartida> eventos, UUID equipeId, int targetPeriod) {
         if (equipeId == null) return 0;
         OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
-
-        System.out.println("Inicio 2 tempo: " + tInicio2);
-        System.out.println("Target period: " + targetPeriod);
         
         return (int) eventos.stream()
                 .filter(e -> isTipo(e, "PAUSA_TECNICA"))
