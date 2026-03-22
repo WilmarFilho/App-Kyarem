@@ -582,7 +582,9 @@ public class SumulaOficialPdfService {
 
     private String pausasBoxesHtml(int pausas) {
         String bg = (pausas >= 1) ? "background:#000;" : "";
-        return "<div style=\"width:12px; height:12px; border:1px solid #000; margin:0 auto; " + bg + "\"></div>";
+        return "<table style=\"margin:0 auto;\" cellspacing=\"0\"><tr>\n"
+             + "<td style=\"width:12px; height:12px; border:1px solid #000; " + bg + "\">&nbsp;</td>\n"
+             + "</tr></table>";
     }
 
     private String colGeralContagensHtml(PeriodSummary ps) {
