@@ -4,11 +4,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.service.PartidaService;
+import com.nkw.backapisumula.partidas.service.SumulaOficialPdfService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -24,9 +28,11 @@ import java.util.UUID;
 public class PartidasController {
 
     private final PartidaService service;
+    private final SumulaOficialPdfService sumulaOficialPdfService;
 
-    public PartidasController(PartidaService service) {
+    public PartidasController(PartidaService service, SumulaOficialPdfService sumulaOficialPdfService) {
         this.service = service;
+        this.sumulaOficialPdfService = sumulaOficialPdfService;
     }
 
     @GetMapping("/minhas")
@@ -68,6 +74,16 @@ public class PartidasController {
         boolean arbitroOnly = isArbitroOnly(authentication);
         Partida p = service.update(id, userId, arbitroOnly, req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.snapshotSumula(), req.sumulaPdfUrl());
         return PartidaResponse.from(p);
+    }
+
+    @GetMapping(value = "/{id}/sumula-oficial.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    public ResponseEntity<byte[]> getOfficialPdf(@PathVariable UUID id) {
+        byte[] pdf = sumulaOficialPdfService.gerarPdf(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=sumula-oficial-" + id + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     @PostMapping("/{id}/start")

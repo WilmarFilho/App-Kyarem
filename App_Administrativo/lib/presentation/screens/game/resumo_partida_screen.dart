@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
 import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:printing/printing.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/summary_header.dart';
 import '../../widgets/game/summary_score_card.dart';
@@ -419,19 +417,8 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     final id = widget.partidaId;
     if (id == null) return;
 
-    debugPrint('id: $id');
-    debugPrint('widget.timeA: ${widget.timeA}');
-    debugPrint('widget.timeB: ${widget.timeB}');
-    debugPrint('widget.golsA: ${widget.golsA}');
-    debugPrint('widget.golsB: ${widget.golsB}');
-    debugPrint('widget.escudoA: ${widget.escudoA}');
-    debugPrint('widget.escudoB: ${widget.escudoB}');
-    debugPrint('widget.partidaId: ${widget.partidaId}');
-    debugPrint('eventosExibidos: ${_eventosExibidos}');
-
     setState(() => _carregando = true);
 
-    // Mostra spinner modal para o usuário entender que o fechamento está em andamento.
     bool loadingDialogOpen = false;
     if (mounted) {
       loadingDialogOpen = true;
@@ -453,88 +440,42 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
         },
       );
     }
+
     try {
-      // 1) Gera o PDF final da súmula em memória
-      final List<EventoPartida> eventosTyped =
-          _eventosExibidos.map((e) => e.evento).toList();
+      final (code, detail) = await _partidaService.endPartida(id);
+      if (!mounted) return;
 
-      final bytes = await PdfService.gerarSumulaBytes(
-        context: context,
-        timeA: widget.timeA,
-        timeB: widget.timeB,
-        golsA: widget.golsA,
-        golsB: widget.golsB,
-        eventos: eventosTyped,
-      );
-
-      // 2) Faz upload no bucket do Supabase
-      final client = Supabase.instance.client;
-      const bucket = 'sumulas'; // ajuste o nome do bucket se for diferente
-      final path =
-          'partidas/$id/sumula_${DateTime.now().toUtc().toIso8601String()}.pdf';
-
-      try {
-        await client.storage
-            .from(bucket)
-            .uploadBinary(path, Uint8List.fromList(bytes));
-      } catch (e) {
-        // Se o Storage estiver com RLS/policies bloqueando, ainda assim permitimos
-        // fechar a partida (sem URL), e mostramos instrução ao usuário.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Upload do PDF bloqueado (403). Ajuste as policies do Storage no Supabase para permitir upload autenticado no bucket "sumulas". Fechando sem URL por enquanto.',
-              ),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 6),
-            ),
-          );
-        }
-
-        final (code, detail) = await _partidaService.endPartida(id);
-        if (code == 409) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  detail?.isNotEmpty == true
-                      ? 'Falha ao fechar súmula: $detail'
-                      : 'Falha ao fechar súmula (conflito 409).',
-                ),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        }
-        await _carregarPartidaDaApi();
-        return;
-      }
-
-      final publicUrl = client.storage.from(bucket).getPublicUrl(path);
-
-      // 3) Chama o endpoint /end enviando a URL para persistir em sumulaPdfUrl
-      final (code, detail) = await _partidaService.endPartida(
-        id,
-        sumulaPdfUrl: publicUrl,
-      );
       if (code == 409) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                detail?.isNotEmpty == true
-                    ? 'Falha ao fechar súmula: $detail'
-                    : 'Falha ao fechar súmula (conflito 409).',
-              ),
-              backgroundColor: Colors.orange,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              detail?.isNotEmpty == true
+                  ? 'Falha ao fechar súmula: $detail'
+                  : 'Falha ao fechar súmula (conflito 409).',
             ),
-          );
-        }
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Súmula fechada com sucesso.'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-      await _carregarPartidaDaApi(); // atualiza status/URL
+
+      await _carregarPartidaDaApi();
     } catch (e) {
       debugPrint('Erro ao fechar súmula: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Não foi possível fechar a súmula: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (loadingDialogOpen && mounted) {
         Navigator.of(context, rootNavigator: true).pop();
@@ -543,10 +484,60 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     }
   }
 
-  Future<void> _abrirPdfFechado(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _gerarPdfOficial() async {
+    final id = widget.partidaId;
+    if (id == null) {
+      final List<EventoPartida> eventosTyped =
+          _eventosExibidos.map((e) => e.evento).toList();
+      await PdfService.gerarSumulaPartida(
+        context: context,
+        timeA: widget.timeA,
+        timeB: widget.timeB,
+        golsA: widget.golsA,
+        golsB: widget.golsB,
+        eventos: eventosTyped,
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            SizedBox(width: 16),
+            Expanded(child: Text('Gerando súmula oficial...')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final bytes = await _partidaService.baixarSumulaOficialPdf(id);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      await Printing.layoutPdf(
+        onLayout: (_) async => bytes,
+        name: 'Sumula_Oficial_${widget.timeA}_x_${widget.timeB}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Não foi possível gerar a súmula oficial: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _carregarEventosDoBanco() async {
@@ -670,28 +661,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     ),
                   ),
                   SummaryActionButtons(
-                    onPdfPressed: () async {
-                      final st = _partidaApi?.status.trim().toLowerCase();
-                      final pdfUrl = _partidaApi?.sumulaPdfUrl?.trim();
-
-                      if (st == 'fechada' &&
-                          pdfUrl != null &&
-                          pdfUrl.isNotEmpty) {
-                        await _abrirPdfFechado(pdfUrl);
-                        return;
-                      }
-
-                      final List<EventoPartida> eventosTyped =
-                          _eventosExibidos.map((e) => e.evento).toList();
-                      await PdfService.gerarSumulaPartida(
-                        context: context,
-                        timeA: widget.timeA,
-                        timeB: widget.timeB,
-                        golsA: widget.golsA,
-                        golsB: widget.golsB,
-                        eventos: eventosTyped,
-                      );
-                    },
+                    onPdfPressed: _gerarPdfOficial,
                     onClosePressed: (_partidaApi?.status.trim().toLowerCase() ==
                                 'finalizada' &&
                             !_carregando)

@@ -7,6 +7,7 @@ import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
 import 'package:kyarem_eventos/presentation/screens/game/resumo_partida_screen.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
+import 'package:printing/printing.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/game_scoreboard.dart';
 import '../../widgets/game/game_events_feed.dart';
@@ -44,6 +45,7 @@ class _ObservacaoEventoModalState extends State<_ObservacaoEventoModal> {
     controller.dispose();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1565,6 +1567,58 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     );
   }
 
+
+  Future<void> _visualizarSumulaOficialAtual() async {
+    if (widget.partida.id.isEmpty) {
+      await PdfService.gerarSumulaPartida(
+        context: context,
+        timeA: _nomeTimeA,
+        timeB: _nomeTimeB,
+        golsA: _golsA,
+        golsB: _golsB,
+        eventos: _eventosPartida,
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            SizedBox(width: 16),
+            Expanded(child: Text('Gerando súmula oficial...')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final bytes = await _partidaService.baixarSumulaOficialPdf(widget.partida.id);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      await Printing.layoutPdf(
+        onLayout: (_) async => bytes,
+        name: 'Sumula_Oficial_${_nomeTimeA}_x_${_nomeTimeB}.pdf',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível gerar a súmula oficial: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -1761,16 +1815,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                     width: double
                                         .infinity, // Garante que o botão ocupe a largura total
                                     child: ElevatedButton.icon(
-                                      onPressed: () async {
-                                        await PdfService.gerarSumulaPartida(
-                                          context: context,
-                                          timeA: _nomeTimeA,
-                                          timeB: _nomeTimeB,
-                                          golsA: _golsA,
-                                          golsB: _golsB,
-                                          eventos: _eventosPartida,
-                                        );
-                                      },
+                                      onPressed: _visualizarSumulaOficialAtual,
                                       icon: const Icon(
                                         Icons.picture_as_pdf,
                                         color: Colors.white,

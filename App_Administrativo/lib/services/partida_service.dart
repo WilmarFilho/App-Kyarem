@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,7 +17,7 @@ import '../models/tipo_evento_model.dart';
 class PartidaService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
+      baseUrl: 'http://api.kyarem.nkwflow.com/api/v1',
       connectTimeout: const Duration(seconds: 5),
     ),
   );
@@ -499,6 +500,24 @@ class PartidaService {
       await _dio.patch('/partidas/$partidaId/status', data: data);
     } catch (e) {
       debugPrint("Erro atualizar status da partida: $e");
+    }
+  }
+
+
+  Future<Uint8List> baixarSumulaOficialPdf(String partidaId) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/partidas/$partidaId/sumula-oficial.pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final data = response.data;
+      if (data == null) {
+        throw Exception('Resposta vazia ao gerar a súmula oficial.');
+      }
+      return Uint8List.fromList(data);
+    } catch (e) {
+      debugPrint('Erro baixarSumulaOficialPdf: $e');
+      rethrow;
     }
   }
 
