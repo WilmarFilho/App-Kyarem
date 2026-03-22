@@ -121,15 +121,37 @@ public class SumulaOficialPdfService {
         List<GoalEntry> goalsA = buildGoals(eventos, equipeAId, numeroPorAtleta, tempoPeriodo);
         List<GoalEntry> goalsB = buildGoals(eventos, equipeBId, numeroPorAtleta, tempoPeriodo);
 
+        String capitaoA = inscritosA.stream()
+                .filter(i -> Boolean.TRUE.equals(i.getIsCapitao()))
+                .map(i -> Optional.ofNullable(i.getAtleta()).map(a -> a.getNome()).orElse(""))
+                .findFirst().orElse("");
+
+        String capitaoB = inscritosB.stream()
+                .filter(i -> Boolean.TRUE.equals(i.getIsCapitao()))
+                .map(i -> Optional.ofNullable(i.getAtleta()).map(a -> a.getNome()).orElse(""))
+                .findFirst().orElse("");
+
+        int faltasA1 = countFaltas(eventos, equipeAId, 1, tempoPeriodo);
+        int faltasA2 = countFaltas(eventos, equipeAId, 2, tempoPeriodo);
+        int pausasA1 = countPausas(eventos, equipeAId, 1);
+        int pausasA2 = countPausas(eventos, equipeAId, 2);
+
+        int faltasB1 = countFaltas(eventos, equipeBId, 1, tempoPeriodo);
+        int faltasB2 = countFaltas(eventos, equipeBId, 2, tempoPeriodo);
+        int pausasB1 = countPausas(eventos, equipeBId, 1);
+        int pausasB2 = countPausas(eventos, equipeBId, 2);
+
         TeamPdfData teamA = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeA()).map(e -> e.getNomeEquipe()).orElse(null)),
-                rowsA, goalsA, "",
-                List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -")
+                rowsA, goalsA, capitaoA,
+                List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"),
+                faltasA1, faltasA2, pausasA1, pausasA2
         );
         TeamPdfData teamB = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeB()).map(e -> e.getNomeEquipe()).orElse(null)),
-                rowsB, goalsB, "",
-                List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -")
+                rowsB, goalsB, capitaoB,
+                List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"),
+                faltasB1, faltasB2, pausasB1, pausasB2
         );
 
         // Resolve campeonato from equipe or modalidade
@@ -267,6 +289,31 @@ public class SumulaOficialPdfService {
                 .filter(e -> isTipo(e, "GOL"))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
                 .filter(e -> resolvePeriod(e.getTempoCronometro(), tempoPeriodo) == period)
+                .count();
+    }
+
+    private int countFaltas(List<EventoPartida> eventos, UUID equipeId, int period, int tempoPeriodo) {
+        if (equipeId == null) return 0;
+        return (int) eventos.stream()
+                .filter(e -> isTipo(e, "FALTA"))
+                .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
+                .filter(e -> resolvePeriod(e.getTempoCronometro(), tempoPeriodo) == period)
+                .count();
+    }
+
+    private int countPausas(List<EventoPartida> eventos, UUID equipeId, int targetPeriod) {
+        if (equipeId == null) return 0;
+        OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
+        
+        return (int) eventos.stream()
+                .filter(e -> isTipo(e, "PAUSA_TECNICA"))
+                .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
+                .filter(e -> {
+                    OffsetDateTime tPausa = e.getCriadoEm();
+                    if (tPausa == null) return targetPeriod == 1;
+                    int period = (tInicio2 != null && tPausa.isAfter(tInicio2)) ? 2 : 1;
+                    return period == targetPeriod;
+                })
                 .count();
     }
 
@@ -490,26 +537,57 @@ public class SumulaOficialPdfService {
         return sb.toString();
     }
 
-    private String colFaltasHtml() {
+    private String colFaltasHtml(TeamPdfData team) {
         StringBuilder sb = new StringBuilder();
         sb.append("<td class=\"col-geral\" style=\"width:94px;\">\n");
         sb.append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%; height:100%; border-collapse:collapse;\">\n<tr>\n");
 
         // Faltas Acumuladas bar
-        sb.append("<td class=\"v-bar\" style=\"width:28px;\">");
+        sb.append("<td class=\"v-bar\" style=\"width:16px;\">");
         sb.append(vBarLabel("Faltas Acumuladas"));
         sb.append("</td>\n");
 
-        // Faults marking strip
-        sb.append("<td style=\"width:18px; border-right:1px solid #000; vertical-align:top;\"></td>\n");
+        // Faltas markings
+        sb.append("<td style=\"width:32px; border-right:1px solid #000; vertical-align:top; text-align:center; padding-top:4px;\">\n");
+        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-bottom:2px;\">1º Período</div>\n");
+        sb.append(faltasBoxesHtml(team.faltas1()));
+        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-top:6px; margin-bottom:2px;\">2º Período</div>\n");
+        sb.append(faltasBoxesHtml(team.faltas2()));
+        sb.append("</td>\n");
 
         // Pedidos de Tempo bar
-        sb.append("<td class=\"v-bar\" style=\"width:28px;\">");
+        sb.append("<td class=\"v-bar\" style=\"width:18px;\">");
         sb.append(vBarLabel("Pedidos de Tempo"));
+        sb.append("</td>\n");
+
+        // Pedidos markings
+        sb.append("<td style=\"width:28px; vertical-align:top; text-align:center; padding-top:4px;\">\n");
+        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-bottom:2px;\">1º Período</div>\n");
+        sb.append(pausasBoxesHtml(team.pausas1()));
+        sb.append("<div style=\"font-size:7px; font-weight:bold; margin-top:20px; margin-bottom:2px;\">2º Período</div>\n");
+        sb.append(pausasBoxesHtml(team.pausas2()));
         sb.append("</td>\n");
 
         sb.append("</tr>\n</table>\n</td>\n");
         return sb.toString();
+    }
+
+    private String faltasBoxesHtml(int faltas) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table style=\"margin:0 auto;\" cellspacing=\"2\"><tr>");
+        for (int i = 1; i <= 5; i++) {
+            String bg = (i <= faltas) ? "background:#000; color:#fff;" : "color:#000;";
+            sb.append("<td style=\"width:10px; height:10px; border:1px solid #000; text-align:center; font-size:7px; ")
+              .append(bg).append("\">").append(i).append("</td>");
+            if (i == 3) sb.append("</tr><tr>");
+        }
+        sb.append("</tr></table>");
+        return sb.toString();
+    }
+
+    private String pausasBoxesHtml(int pausas) {
+        String bg = (pausas >= 1) ? "background:#000;" : "";
+        return "<div style=\"width:12px; height:12px; border:1px solid #000; margin:0 auto; " + bg + "\"></div>";
     }
 
     private String colGeralContagensHtml(PeriodSummary ps) {
@@ -767,8 +845,15 @@ public class SumulaOficialPdfService {
     ) {}
 
     private record TeamPdfData(
-            String nome, List<RosterRow> rows, List<GoalEntry> goals,
-            String capitao, List<String> staffLines
+            String nome,
+            List<RosterRow> rows,
+            List<GoalEntry> goals,
+            String capitao,
+            List<String> staffLines,
+            int faltas1,
+            int faltas2,
+            int pausas1,
+            int pausas2
     ) {}
 
     private record RosterRow(String inscricao, String numero, String nome, String amarelo, String vermelho) {}
