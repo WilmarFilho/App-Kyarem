@@ -47,26 +47,26 @@ public class SumulaOficialPdfService {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private static final float[] TEAM_A_ROW_YS = {
-            682f, 660f, 647f, 635f, 623f, 602f, 580f, 568f, 555f, 543f, 530f, 509f, 488f
+            733.1f, 718.4f, 703.7f, 689.0f, 674.4f, 659.7f, 645.0f, 630.3f, 615.6f, 601.0f, 586.3f, 571.6f, 556.9f, 542.3f
     };
     private static final float[] TEAM_B_ROW_YS = {
-            392f, 378f, 363f, 349f, 335f, 321f, 306f, 292f, 278f, 264f, 250f, 235f, 221f, 207f
+            421.4f, 406.7f, 392.1f, 377.4f, 362.7f, 348.0f, 333.3f, 318.7f, 304.0f, 289.3f, 274.6f, 260.0f, 245.3f, 230.6f
     };
-    private static final float[] TEAM_A_STAFF_YS = {475f, 454f, 441f, 430f};
-    private static final float[] TEAM_B_STAFF_YS = {193f, 178f, 164f};
+    private static final float[] TEAM_A_STAFF_YS = {527.6f, 512.9f, 498.2f, 483.6f};
+    private static final float[] TEAM_B_STAFF_YS = {215.9f, 201.3f, 186.6f};
 
-    private static final float X_REG = 10f;
-    private static final float X_NAME = 45f;
-    private static final float X_NUM = 155f;
+    private static final float X_REG = 10.6f;
+    private static final float X_NAME = 48.0f;
+    private static final float X_NUM = 154.4f;
     private static final float X_YELLOW = 178f;
     private static final float X_RED = 213f;
 
-    private static final float[] GOAL_COL_X = {282f, 318f, 353f};
-    private static final float[] GOAL_TIME_X = {294f, 330f, 365f};
-    private static final float GOAL_A_START_Y = 689f;
-    private static final float GOAL_B_START_Y = 399f;
+    private static final float[] GOAL_COL_X = {265f, 290f, 316f};
+    private static final float[] GOAL_TIME_X = {278f, 303f, 329f};
+    private static final float GOAL_A_START_Y = 733f;
+    private static final float GOAL_B_START_Y = 421f;
     private static final float GOAL_TIME_OFFSET = -12f;
-    private static final float GOAL_ROW_STEP = -28.2f;
+    private static final float GOAL_ROW_STEP = -14.6f;
 
     private final PartidaRepository partidaRepo;
     private final EventoPartidaRepository eventoRepo;
@@ -106,7 +106,7 @@ public class SumulaOficialPdfService {
 
             PDPage page = document.getPage(0);
             try (PDPageContentStream cs = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
-                drawHeader(cs, page.getMediaBox(), data);
+                drawHeader(cs, page.getMediaBox(), data, document);
                 drawTeam(cs, data.teamA(), TEAM_A_ROW_YS, TEAM_A_STAFF_YS, GOAL_A_START_Y);
                 drawTeam(cs, data.teamB(), TEAM_B_ROW_YS, TEAM_B_STAFF_YS, GOAL_B_START_Y);
                 drawIdentification(cs, data);
@@ -198,6 +198,11 @@ public class SumulaOficialPdfService {
         List<String> arbitrationLines = buildArbitrationLines(arbitros);
         PeriodSummary periodSummary = buildPeriodSummary(partida, eventos, equipeAId, equipeBId, tempoPeriodo);
 
+        String escudoA = partida.getEquipeA() != null && partida.getEquipeA().getAtletica() != null 
+                ? partida.getEquipeA().getAtletica().getEscudoUrl() : null;
+        String escudoB = partida.getEquipeB() != null && partida.getEquipeB().getAtletica() != null 
+                ? partida.getEquipeB().getAtletica().getEscudoUrl() : null;
+
         return new SumulaData(
                 teamA,
                 teamB,
@@ -212,7 +217,9 @@ public class SumulaOficialPdfService {
                 arbitrationLines,
                 periodSummary,
                 safeText(Optional.ofNullable(partida.getAgendadoPara()).map(ts -> DATE_FMT.format(ts) + " - " + TIME_FMT.format(ts)).orElse(null)),
-                safeText(teamA.nome() + " x " + teamB.nome())
+                safeText(teamA.nome() + " x " + teamB.nome()),
+                escudoA,
+                escudoB
         );
     }
 
@@ -340,9 +347,26 @@ public class SumulaOficialPdfService {
         return e.getTipoEvento() != null && tipo.equalsIgnoreCase(e.getTipoEvento().getNome());
     }
 
-    private void drawHeader(PDPageContentStream cs, PDRectangle box, SumulaData data) throws IOException {
+    private void drawHeader(PDPageContentStream cs, PDRectangle box, SumulaData data, PDDocument document) throws IOException {
         fittedText(cs, FONT_BOLD, 8.2f, 255f, 736f, 180f, data.headerMatchup());
         fittedText(cs, FONT, 7.2f, 381f, 717f, 190f, data.headerSchedule());
+
+        float logoWidth = 34.0f;
+        float logoHeight = 42.6f;
+        float logoY = 776.0f;
+        
+        drawImageFromUrl(document, cs, data.escudoA(), 213.0f, logoY, logoWidth, logoHeight);
+        drawImageFromUrl(document, cs, data.escudoB(), 401.6f, logoY, logoWidth, logoHeight);
+    }
+
+    private void drawImageFromUrl(PDDocument document, PDPageContentStream cs, String urlStr, float x, float y, float w, float h) {
+        if (urlStr == null || urlStr.isBlank()) return;
+        try (InputStream in = java.net.URI.create(urlStr).toURL().openStream()) {
+            org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject image = org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject.createFromByteArray(document, in.readAllBytes(), "logo");
+            cs.drawImage(image, x, y, w, h);
+        } catch (Exception e) {
+            // Log or ignore image download failure
+        }
     }
 
     private void drawTeam(PDPageContentStream cs, TeamPdfData team, float[] rowYs, float[] staffYs, float goalStartY) throws IOException {
@@ -506,7 +530,9 @@ public class SumulaOficialPdfService {
             List<String> arbitrationLines,
             PeriodSummary periodSummary,
             String headerSchedule,
-            String headerMatchup
+            String headerMatchup,
+            String escudoA,
+            String escudoB
     ) {}
 
     private record TeamPdfData(

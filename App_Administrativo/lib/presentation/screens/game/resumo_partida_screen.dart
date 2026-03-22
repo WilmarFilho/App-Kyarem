@@ -5,6 +5,8 @@ import 'package:kyarem_eventos/services/partida_service.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
 import 'package:printing/printing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/summary_header.dart';
 import '../../widgets/game/summary_score_card.dart';
@@ -95,6 +97,12 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     } catch (e) {
       debugPrint('Erro ao carregar atletas para edição: $e');
     }
+  }
+
+  Future<void> _abrirPdfFechado(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   List<DropdownMenuItem<String>> _buildAtletasItems(String equipeId) {
@@ -685,17 +693,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                         return;
                       }
 
-                      final List<EventoPartida> eventosTyped = _eventosExibidos
-                          .map((e) => e.evento)
-                          .toList();
-                      await PdfService.gerarSumulaPartida(
-                        context: context,
-                        timeA: widget.timeA,
-                        timeB: widget.timeB,
-                        golsA: widget.golsA,
-                        golsB: widget.golsB,
-                        eventos: eventosTyped,
-                      );
+                      await _gerarPdfOficial();
                     },
                     onClosePressed:
                         (_partidaApi?.status.trim().toLowerCase() ==

@@ -816,10 +816,12 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       novoStatus: 'intervalo',
     );
     _registrarEventoSistemico('FIM_1_TEMPO');
-    _registrarEventoSistemico('INTERVALO');
 
-    // 🔥 DISPARA O CRONÔMETRO DE INTERVALO AQUI
-    _iniciarTimerIntervalo();
+    if (_temProrrogacao) {
+      _registrarEventoSistemico('INTERVALO');
+      // 🔥 DISPARA O CRONÔMETRO DE INTERVALO AQUI
+      _iniciarTimerIntervalo();
+    }
   }
 
   // Finaliza o segundo tempo e a partida
