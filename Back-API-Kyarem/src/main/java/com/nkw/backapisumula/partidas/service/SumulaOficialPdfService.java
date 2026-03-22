@@ -13,11 +13,15 @@ import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
 
 @Service
 public class SumulaOficialPdfService {
@@ -149,11 +153,8 @@ public class SumulaOficialPdfService {
 
         String escudoA = partida.getEquipeA() != null && partida.getEquipeA().getAtletica() != null
                 ? partida.getEquipeA().getAtletica().getEscudoUrl() : null;
-
-        System.out.println("Escudo A: " + escudoA);
         String escudoB = partida.getEquipeB() != null && partida.getEquipeB().getAtletica() != null
                 ? partida.getEquipeB().getAtletica().getEscudoUrl() : null;
-        System.out.println("Escudo B: " + escudoB);
 
         PeriodSummary ps = buildPeriodSummary(partida, eventos, equipeAId, equipeBId, tempoPeriodo);
         String headerSchedule = safeText(Optional.ofNullable(partida.getAgendadoPara())
@@ -171,7 +172,10 @@ public class SumulaOficialPdfService {
     }
 
     private RosterRow rosterRow(EquipeAtletaInscrito inscrito, List<EventoPartida> ev) {
+        String inscricaoId = inscrito.getId() != null
+                ? inscrito.getId().toString().substring(0, 8).toUpperCase(Locale.ROOT) : "";
         return new RosterRow(
+                inscricaoId,
                 textOrBlank(Optional.ofNullable(inscrito.getNumeroCamisa()).map(String::valueOf).orElse(null)),
                 safeText(Optional.ofNullable(inscrito.getAtleta()).map(a -> a.getNome()).orElse(null)),
                 firstTempoOfTipo(ev, "CARTAO_AMARELO"),
@@ -336,7 +340,29 @@ public class SumulaOficialPdfService {
 
     private String imgTag(String url) {
         if (url == null || url.isBlank()) return "";
-        return "<img src=\"" + e(url) + "\" style=\"width:45px; height:auto;\"/>";
+        String dataUri = toBase64DataUri(url);
+        if (dataUri == null) return "";
+        return "<img src=\"" + dataUri + "\" style=\"width:45px; height:auto;\"/>";
+    }
+
+    /**
+     * Downloads an image from a URL, converts it to PNG, and returns a base64 data URI.
+     * This is necessary because openhtmltopdf doesn't support WebP and may have issues
+     * fetching remote URLs.
+     */
+    private String toBase64DataUri(String url) {
+        try {
+            byte[] imageBytes = URI.create(url).toURL().openStream().readAllBytes();
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (img == null) return null;
+            ByteArrayOutputStream pngOut = new ByteArrayOutputStream();
+            ImageIO.write(img, "png", pngOut);
+            String b64 = Base64.getEncoder().encodeToString(pngOut.toByteArray());
+            return "data:image/png;base64," + b64;
+        } catch (Exception ex) {
+            System.err.println("Failed to load image: " + url + " => " + ex.getMessage());
+            return null;
+        }
     }
 
     // ── Game info ────────────────────────────────────────────────────────────────
@@ -369,15 +395,17 @@ public class SumulaOficialPdfService {
         // Players table
         sb.append("<table class=\"itbl\" cellpadding=\"0\" cellspacing=\"0\">\n");
         sb.append("<tr>");
-        sb.append("<th style=\"width:45px; border-top:none; border-left:none;\">Inscrição</th>");
+        sb.append("<th style=\"width:40px; border-top:none; border-left:none;\">Inscrição</th>");
+        sb.append("<th style=\"width:25px; border-top:none;\">Nº</th>");
         sb.append("<th style=\"border-top:none; border-right:none;\">Jogadores</th>");
         sb.append("</tr>\n");
         List<RosterRow> rows = team.rows();
         for (int i = 0; i < MAX_PLAYERS; i++) {
-            RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "");
+            RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "", "");
             sb.append("<tr>");
-            sb.append("<td style=\"border-left:none; text-align:center;\">").append(e(row.numero())).append("</td>");
-            sb.append("<td style=\"border-right:none; text-align:left; padding-left:4px; font-size:9px;\">")
+            sb.append("<td style=\"border-left:none; text-align:center; font-size:6px;\">").append(e(row.inscricao())).append("</td>");
+            sb.append("<td style=\"text-align:center;\">").append(e(row.numero())).append("</td>");
+            sb.append("<td style=\"border-right:none; text-align:left; padding-left:4px; font-size:7px;\">")
                     .append(e(row.nome())).append("</td>");
             sb.append("</tr>\n");
         }
@@ -407,7 +435,7 @@ public class SumulaOficialPdfService {
         sb.append("</tr>\n");
         List<RosterRow> rows = team.rows();
         for (int i = 0; i < MAX_PLAYERS; i++) {
-            RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "");
+            RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "", "");
             sb.append("<tr>");
             sb.append("<td style=\"border-left:none;\">").append(e(row.numero())).append("</td>");
             sb.append("<td>").append(e(row.amarelo())).append("</td>");
@@ -734,7 +762,7 @@ public class SumulaOficialPdfService {
             String capitao, List<String> staffLines
     ) {}
 
-    private record RosterRow(String numero, String nome, String amarelo, String vermelho) {}
+    private record RosterRow(String inscricao, String numero, String nome, String amarelo, String vermelho) {}
 
     private record GoalEntry(String numeroJogador, String tempo, int period) {}
 
