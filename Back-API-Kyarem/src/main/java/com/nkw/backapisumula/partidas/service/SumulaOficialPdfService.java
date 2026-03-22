@@ -436,7 +436,7 @@ public class SumulaOficialPdfService {
                 + colPlayersHtml(team, letter)
                 + colCardsHtml(team)
                 + colMetasHtml(team)
-                + colFaltasHtml()
+                + colFaltasHtml(team)
                 + (showGeral ? colGeralContagensHtml(ps) : "")
                 + "</tr>\n"
                 + "<tr><td colspan=\"" + (showGeral ? 5 : 4) + "\" class=\"obs-row\"></td></tr>\n"
