@@ -145,13 +145,13 @@ public class SumulaOficialPdfService {
         TeamPdfData teamA = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeA()).map(e -> e.getNomeEquipe()).orElse(null)),
                 rowsA, goalsA, capitaoA,
-                List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"),
+                List.of("Técnico -", "Treinador -", "Preparador -", "Assistente -", "Fisioterapeuta -"),
                 faltasA1, faltasA2, pausasA1, pausasA2
         );
         TeamPdfData teamB = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeB()).map(e -> e.getNomeEquipe()).orElse(null)),
                 rowsB, goalsB, capitaoB,
-                List.of("Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"),
+                List.of("Técnico -", "Treinador -", "Preparador -", "Assistente -", "Fisioterapeuta -"),
                 faltasB1, faltasB2, pausasB1, pausasB2
         );
 
@@ -469,10 +469,10 @@ public class SumulaOficialPdfService {
         sb.append("</table>\n");
         // Staff
         List<String> staff = team.staffLines();
-        String[] lbl = {"Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"};
-        for (int i = 0; i < 4; i++) {
+        String[] lbl = {"Técnico -", "Treinador -", "Preparador -", "Assistente -", "Fisioterapeuta -"};
+        for (int i = 0; i < 5; i++) {
             String line = i < staff.size() ? staff.get(i) : lbl[i];
-            String style = i == 3 ? " style=\"border-bottom:none;\"" : "";
+            String style = i == 4 ? " style=\"border-bottom:none;\"" : "";
             sb.append("<div class=\"staff-row\"" + style + ">").append(e(line)).append("</div>\n");
         }
         sb.append("</td>\n");
@@ -580,7 +580,7 @@ public class SumulaOficialPdfService {
     private String pausasBoxesHtml(int pausas) {
         String bg = (pausas >= 1) ? "background:#000;" : "";
         return "<table style=\"margin:0 auto;\" cellspacing=\"0\"><tr>\n"
-             + "<td style=\"width:12px; height:12px; border:1px solid #000; " + bg + "\">&nbsp;</td>\n"
+             + "<td style=\"width:12px; height:12px; border:1px solid #000; " + bg + "\">&#160;</td>\n"
              + "</tr></table>";
     }
 
