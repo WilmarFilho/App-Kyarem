@@ -40,7 +40,9 @@ import java.util.stream.Collectors;
 @Service
 public class SumulaOficialPdfService {
 
-    private static final String TEMPLATE_PATH = "templates/sumula-futsal-limpa.pdf";
+    private static final String TEMPLATE_PATH = "templates/sumula_svg.pdf";
+    private static final float SCALE_X = 6.0139f; // 3580 / 595.28
+    private static final float SCALE_Y = 5.7917f; // 4876 / 841.89
     private static final PDFont FONT = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
     private static final PDFont FONT_BOLD = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -351,12 +353,12 @@ public class SumulaOficialPdfService {
         fittedText(cs, FONT_BOLD, 8.2f, 255f, 736f, 180f, data.headerMatchup());
         fittedText(cs, FONT, 7.2f, 381f, 717f, 190f, data.headerSchedule());
 
-        float logoWidth = 34.0f;
-        float logoHeight = 42.6f;
-        float logoY = 776.0f;
+        float logoWidth = 34.0f * SCALE_X;
+        float logoHeight = 42.6f * SCALE_Y;
+        float logoY = 776.0f * SCALE_Y;
         
-        drawImageFromUrl(document, cs, data.escudoA(), 213.0f, logoY, logoWidth, logoHeight);
-        drawImageFromUrl(document, cs, data.escudoB(), 401.6f, logoY, logoWidth, logoHeight);
+        drawImageFromUrl(document, cs, data.escudoA(), 213.0f * SCALE_X, logoY, logoWidth, logoHeight);
+        drawImageFromUrl(document, cs, data.escudoB(), 401.6f * SCALE_X, logoY, logoWidth, logoHeight);
     }
 
     private void drawImageFromUrl(PDDocument document, PDPageContentStream cs, String urlStr, float x, float y, float w, float h) {
@@ -445,8 +447,8 @@ public class SumulaOficialPdfService {
     private void text(PDPageContentStream cs, PDFont font, float fontSize, float x, float y, String value) throws IOException {
         if (value == null || value.isBlank()) return;
         cs.beginText();
-        cs.setFont(font, fontSize);
-        cs.newLineAtOffset(x, y);
+        cs.setFont(font, fontSize * SCALE_Y);
+        cs.newLineAtOffset(x * SCALE_X, y * SCALE_Y);
         cs.showText(sanitize(value));
         cs.endText();
     }
@@ -455,7 +457,7 @@ public class SumulaOficialPdfService {
         if (value == null || value.isBlank()) return;
         String sanitized = sanitize(value);
         float size = fontSize;
-        while (size > 5f && textWidth(font, size, sanitized) > maxWidth) {
+        while (size > 5f && textWidth(font, size * SCALE_X, sanitized) > (maxWidth * SCALE_X)) {
             size -= 0.2f;
         }
         text(cs, font, size, x, y, sanitized);
@@ -464,9 +466,15 @@ public class SumulaOficialPdfService {
     private void centeredText(PDPageContentStream cs, PDFont font, float fontSize, float x, float y, float width, String value) throws IOException {
         if (value == null || value.isBlank()) return;
         String sanitized = sanitize(value);
-        float textWidth = textWidth(font, fontSize, sanitized);
-        float offsetX = x + Math.max(0f, (width - textWidth) / 2f);
-        text(cs, font, fontSize, offsetX, y, sanitized);
+        float scaledTextWidth = textWidth(font, fontSize * SCALE_X, sanitized);
+        float scaledBoxWidth = width * SCALE_X;
+        float offsetX = (x * SCALE_X) + Math.max(0f, (scaledBoxWidth - scaledTextWidth) / 2f);
+        
+        cs.beginText();
+        cs.setFont(font, fontSize * SCALE_Y);
+        cs.newLineAtOffset(offsetX, y * SCALE_Y);
+        cs.showText(sanitized);
+        cs.endText();
     }
 
     private float textWidth(PDFont font, float size, String value) throws IOException {
