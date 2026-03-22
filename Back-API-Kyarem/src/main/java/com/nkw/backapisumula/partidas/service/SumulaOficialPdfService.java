@@ -149,8 +149,11 @@ public class SumulaOficialPdfService {
 
         String escudoA = partida.getEquipeA() != null && partida.getEquipeA().getAtletica() != null
                 ? partida.getEquipeA().getAtletica().getEscudoUrl() : null;
+
+        System.out.println("Escudo A: " + escudoA);
         String escudoB = partida.getEquipeB() != null && partida.getEquipeB().getAtletica() != null
                 ? partida.getEquipeB().getAtletica().getEscudoUrl() : null;
+        System.out.println("Escudo B: " + escudoB);
 
         PeriodSummary ps = buildPeriodSummary(partida, eventos, equipeAId, equipeBId, tempoPeriodo);
         String headerSchedule = safeText(Optional.ofNullable(partida.getAgendadoPara())
@@ -322,7 +325,7 @@ public class SumulaOficialPdfService {
                 + imgTag(data.escudoA()) + "</td>\n"
                 + "<td style=\"text-align:center; vertical-align:middle; font-weight:bold; font-size:13px;\">"
                 + e(data.headerMatchup())
-                + "<div style=\"font-size:18px; font-weight:bold; margin-top:4px;\">" + e(placarStr) + "</div>"
+                + "<div style=\"font-size:14px; font-weight:bold; margin-top:2px;\">" + e(placarStr) + "</div>"
                 + "</td>\n"
                 + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
                 + imgTag(data.escudoB()) + "</td>\n"
@@ -333,7 +336,7 @@ public class SumulaOficialPdfService {
 
     private String imgTag(String url) {
         if (url == null || url.isBlank()) return "";
-        return "<img src=\"" + e(url) + "\" style=\"width:60px; height:auto;\"/>";
+        return "<img src=\"" + e(url) + "\" style=\"width:45px; height:auto;\"/>";
     }
 
     // ── Game info ────────────────────────────────────────────────────────────────
@@ -525,7 +528,7 @@ public class SumulaOficialPdfService {
     }
 
     private String scoreRow(String label, int a, int b) {
-        return "<tr style=\"height:28px;\">"
+        return "<tr style=\"height:20px;\">"
                 + "<td style=\"border:none; font-size:9px; width:50px; vertical-align:middle;\">" + e(label) + "</td>"
                 + "<td style=\"border:none; width:32px; vertical-align:middle;\">"
                 + "<div class=\"placar-box\">" + a + "</div></td>"
@@ -536,7 +539,7 @@ public class SumulaOficialPdfService {
     }
 
     private String scoreFinalRow(String label, int a, int b) {
-        return "<tr style=\"height:28px;\">"
+        return "<tr style=\"height:20px;\">"
                 + "<td style=\"border:none; font-size:9px; font-weight:bold; width:50px; vertical-align:middle;\">" + e(label) + "</td>"
                 + "<td style=\"border:none; width:32px; vertical-align:middle;\">"
                 + "<div class=\"placar-box placar-final\">" + a + "</div></td>"
@@ -590,87 +593,87 @@ public class SumulaOficialPdfService {
 
     private static String css() {
         return """
-                @page { size: A4; margin: 4mm; }
+                @page { size: A4; margin: 2mm; }
                 * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: Arial, sans-serif; font-size: 11px; }
-                .page { border: 3px solid black; }
+                body { font-family: Arial, sans-serif; font-size: 9px; }
+                .page { border: 2px solid black; }
 
                 /* HEADER */
-                .hdr { width: 100%; border-collapse: collapse; border-bottom: 3px solid black; }
-                .hdr-left { width: 120px; border-right: 3px solid black; padding: 10px;
+                .hdr { width: 100%; border-collapse: collapse; border-bottom: 2px solid black; }
+                .hdr-left { width: 100px; border-right: 2px solid black; padding: 4px;
                     vertical-align: middle; text-align: center; }
-                .hdr-center { padding: 8px; vertical-align: middle; }
-                .hdr-name { font-size: 10px; font-weight: bold; text-align: center; line-height: 1.2; }
+                .hdr-center { padding: 4px; vertical-align: middle; }
+                .hdr-name { font-size: 8px; font-weight: bold; text-align: center; line-height: 1.1; }
 
                 /* GAME INFO */
-                .game-info { border-bottom: 3px solid black; padding: 8px 10px; text-align: right;
-                    font-size: 10px; font-weight: bold; }
+                .game-info { border-bottom: 2px solid black; padding: 3px 6px; text-align: right;
+                    font-size: 8px; font-weight: bold; }
 
                 /* TEAM BLOCK */
-                .team-tbl { width: 100%; border-collapse: collapse; border-bottom: 3px solid black; }
+                .team-tbl { width: 100%; border-collapse: collapse; border-bottom: 2px solid black; }
                 .col-players { width: 28%; border-right: 1px solid black; vertical-align: top; }
                 .col-cards   { width: 20%; border-right: 1px solid black; vertical-align: top; }
-                .col-metas   { width: 28%; border-right: 1px solid black; vertical-align: top; }
+                .col-metas   { width: 26%; border-right: 1px solid black; vertical-align: top; }
                 .col-geral   { vertical-align: top; }
-                .obs-row { height: 55px; border-top: 1px solid black; padding: 5px;
-                    vertical-align: top; font-size: 9px; color: #bbb; }
+                .obs-row { height: 30px; border-top: 1px solid black; padding: 2px;
+                    vertical-align: top; font-size: 7px; color: #bbb; }
 
                 /* COLUMN TITLE */
-                .col-title { border-bottom: 1px solid black; padding: 5px 6px; font-weight: bold;
-                    font-size: 10px; min-height: 28px; }
+                .col-title { border-bottom: 1px solid black; padding: 2px 4px; font-weight: bold;
+                    font-size: 8px; min-height: 18px; }
 
                 /* INNER TABLE (players / cards / schedule) */
                 .itbl { width: 100%; border-collapse: collapse; }
-                .itbl th { border: 1px solid black; padding: 2px 2px; font-size: 9px;
+                .itbl th { border: 1px solid black; padding: 1px 1px; font-size: 7px;
                     font-weight: bold; text-align: center; background: #f5f5f5; }
-                .itbl td { border: 1px solid black; padding: 1px 2px; font-size: 9px;
-                    text-align: center; height: 19px; vertical-align: middle; }
+                .itbl td { border: 1px solid black; padding: 0 1px; font-size: 7px;
+                    text-align: center; height: 14px; vertical-align: middle; }
 
                 /* STAFF */
                 .staff-row { border-top: 1px solid black; border-bottom: 1px solid black;
-                    padding: 3px 5px; font-size: 9px; min-height: 19px; }
+                    padding: 1px 3px; font-size: 7px; min-height: 14px; }
 
                 /* METAS */
-                .metas-label { padding: 3px 6px; font-size: 9px; border-bottom: 1px solid black;
+                .metas-label { padding: 1px 4px; font-size: 7px; border-bottom: 1px solid black;
                     background: #fff; }
                 .metas-tbl { width: 100%; border-collapse: collapse; }
-                .metas-tbl td { border: 1px solid black; height: 44px; width: 33.33%; }
-                .meta-idx { width: 20px; border-right: 1px solid black; text-align: center;
-                    font-size: 8px; background: #f9f9f9; padding: 2px 1px; vertical-align: middle; }
-                .meta-content { text-align: center; font-size: 9px; vertical-align: middle;
-                    padding: 2px; }
+                .metas-tbl td { border: 1px solid black; height: 30px; width: 33.33%; }
+                .meta-idx { width: 16px; border-right: 1px solid black; text-align: center;
+                    font-size: 6px; background: #f9f9f9; padding: 1px; vertical-align: middle; }
+                .meta-content { text-align: center; font-size: 7px; vertical-align: middle;
+                    padding: 1px; }
 
                 /* V-BAR */
                 .v-bar { background: #000; vertical-align: top; text-align: center;
-                    border-right: 1px solid #555; padding-top: 4px; }
-                .v-bar-text { color: #fff; font-size: 7px; font-weight: bold;
-                    line-height: 1.15; text-align: center; letter-spacing: 0; }
+                    border-right: 1px solid #555; padding-top: 2px; }
+                .v-bar-text { color: #fff; font-size: 6px; font-weight: bold;
+                    line-height: 1.1; text-align: center; letter-spacing: 0; }
 
                 /* GERAL */
                 .geral-title { background: #f5f5f5; border-bottom: 1px solid black;
-                    padding: 4px; font-weight: bold; font-size: 9px; text-align: center; }
-                .contagens-title { padding: 4px 6px; font-size: 9px; font-weight: bold;
+                    padding: 2px; font-weight: bold; font-size: 7px; text-align: center; }
+                .contagens-title { padding: 2px 4px; font-size: 7px; font-weight: bold;
                     border-top: 1px solid black; }
-                .placar-box { border: 1px solid black; width: 28px; height: 24px;
+                .placar-box { border: 1px solid black; width: 22px; height: 18px;
                     display: inline-block; text-align: center; font-weight: bold;
-                    font-size: 12px; line-height: 24px; vertical-align: middle; }
+                    font-size: 10px; line-height: 18px; vertical-align: middle; }
                 .placar-final { background: #fffacd; }
 
                 /* FOOTER */
-                .footer { padding: 6px 8px; }
-                .fw-row { border: 1px solid black; margin-bottom: 2px; padding: 4px 8px;
-                    text-align: center; background: #f5f5f5; font-weight: bold; font-size: 10px;
-                    min-height: 22px; }
-                .ft-row { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
-                .ft-label { border: 1px solid black; padding: 4px 5px; font-weight: bold;
-                    font-size: 9px; width: 55%; vertical-align: middle; }
-                .ft-value { border: 1px solid black; padding: 4px 5px; font-size: 9px;
+                .footer { padding: 3px 4px; }
+                .fw-row { border: 1px solid black; margin-bottom: 1px; padding: 2px 4px;
+                    text-align: center; background: #f5f5f5; font-weight: bold; font-size: 8px;
+                    min-height: 16px; }
+                .ft-row { width: 100%; border-collapse: collapse; margin-bottom: 1px; }
+                .ft-label { border: 1px solid black; padding: 2px 3px; font-weight: bold;
+                    font-size: 7px; width: 55%; vertical-align: middle; }
+                .ft-value { border: 1px solid black; padding: 2px 3px; font-size: 7px;
                     vertical-align: middle; }
-                .ft-quarter { border: 1px solid black; padding: 4px 5px; font-size: 9px;
+                .ft-quarter { border: 1px solid black; padding: 2px 3px; font-size: 7px;
                     width: 25%; vertical-align: middle; }
-                .ft-arb { border: 1px solid black; padding: 4px 5px; font-weight: bold;
-                    font-size: 9px; width: 65%; vertical-align: middle; min-height: 22px; }
-                .ft-sig { border: 1px solid black; font-size: 9px; vertical-align: middle; }
+                .ft-arb { border: 1px solid black; padding: 2px 3px; font-weight: bold;
+                    font-size: 7px; width: 65%; vertical-align: middle; min-height: 16px; }
+                .ft-sig { border: 1px solid black; font-size: 7px; vertical-align: middle; }
                 """;
     }
 
