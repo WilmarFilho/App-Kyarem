@@ -17,10 +17,7 @@ class PdfService {
     required int golsB,
     required List<EventoPartida> eventos,
   }) async {
-    final pdf = pw.Document(
-      title: 'Súmula da Partida',
-      author: 'App Árbitro',
-    );
+    final pdf = pw.Document(title: 'Súmula da Partida', author: 'App Árbitro');
 
     pdf.addPage(
       pw.MultiPage(
@@ -30,14 +27,16 @@ class PdfService {
           padding: const pw.EdgeInsets.only(bottom: 12),
           child: pw.Text(
             'SÚMULA DA PARTIDA',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
           ),
         ),
         build: (context) => [
-          _buildSecaoDetalhes(timeA: timeA, timeB: timeB, golsA: golsA, golsB: golsB),
+          _buildSecaoDetalhes(
+            timeA: timeA,
+            timeB: timeB,
+            golsA: golsA,
+            golsB: golsB,
+          ),
           pw.SizedBox(height: 24),
           _buildSecaoEventos(eventos),
         ],
@@ -101,10 +100,7 @@ class PdfService {
       children: [
         pw.Text(
           'DETALHES DA PARTIDA',
-          style: pw.TextStyle(
-            fontSize: 12,
-            fontWeight: pw.FontWeight.bold,
-          ),
+          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 8),
         pw.Container(
@@ -150,10 +146,7 @@ class PdfService {
       children: [
         pw.Text(
           'RESUMO DOS EVENTOS',
-          style: pw.TextStyle(
-            fontSize: 12,
-            fontWeight: pw.FontWeight.bold,
-          ),
+          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 8),
         if (eventos.isEmpty)
@@ -181,13 +174,17 @@ class PdfService {
                   _cell('Jogador', isHeader: true),
                 ],
               ),
-              ...eventos.map((ev) => pw.TableRow(
-                    children: [
-                      _cell(ev.horario),
-                      _cell(ev.descricao),
-                      _cell(ev.jogadorNome ?? ev.jogadorNumero?.toString() ?? '—'),
-                    ],
-                  )),
+              ...eventos.map(
+                (ev) => pw.TableRow(
+                  children: [
+                    _cell(ev.horario),
+                    _cell(ev.descricao),
+                    _cell(
+                      ev.jogadorNome ?? ev.jogadorNumero?.toString() ?? '—',
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
       ],

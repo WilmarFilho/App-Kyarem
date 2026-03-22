@@ -17,7 +17,7 @@ import '../models/tipo_evento_model.dart';
 class PartidaService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://api.kyarem.nkwflow.com/api/v1',
+      baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
       connectTimeout: const Duration(seconds: 5),
     ),
   );
@@ -503,7 +503,6 @@ class PartidaService {
     }
   }
 
-
   Future<Uint8List> baixarSumulaOficialPdf(String partidaId) async {
     try {
       final response = await _dio.get<List<int>>(
@@ -529,18 +528,9 @@ class PartidaService {
     }
   }
 
-  Future<(int?, String?)> endPartida(
-    String partidaId, {
-    String? sumulaPdfUrl,
-  }) async {
+  Future<(int?, String?)> endPartida(String partidaId) async {
     try {
-      final res = await _dio.post(
-        '/partidas/$partidaId/end',
-        data: {
-          if (sumulaPdfUrl != null && sumulaPdfUrl.trim().isNotEmpty)
-            'sumulaPdfUrl': sumulaPdfUrl.trim(),
-        },
-      );
+      final res = await _dio.post('/partidas/$partidaId/end');
       return (res.statusCode, null);
     } catch (e) {
       if (e is DioException) {

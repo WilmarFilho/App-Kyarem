@@ -79,13 +79,15 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
 
       if (aId.isNotEmpty) {
         final inscritosA = await _partidaService.buscarInscritos(aId);
-        _jogadoresA =
-            inscritosA.map((m) => Atleta.fromMap(m as Map<String, dynamic>)).toList();
+        _jogadoresA = inscritosA
+            .map((m) => Atleta.fromMap(m as Map<String, dynamic>))
+            .toList();
       }
       if (bId.isNotEmpty) {
         final inscritosB = await _partidaService.buscarInscritos(bId);
-        _jogadoresB =
-            inscritosB.map((m) => Atleta.fromMap(m as Map<String, dynamic>)).toList();
+        _jogadoresB = inscritosB
+            .map((m) => Atleta.fromMap(m as Map<String, dynamic>))
+            .toList();
       }
       if (mounted) {
         setState(() {});
@@ -96,7 +98,9 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   }
 
   List<DropdownMenuItem<String>> _buildAtletasItems(String equipeId) {
-    final lista = equipeId == _partidaApi?.equipeAId ? _jogadoresA : _jogadoresB;
+    final lista = equipeId == _partidaApi?.equipeAId
+        ? _jogadoresA
+        : _jogadoresB;
     return lista
         .map(
           (a) => DropdownMenuItem(
@@ -273,8 +277,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                           labelStyle: TextStyle(color: Colors.white70),
                         ),
                         items: _buildAtletasItems(equipeSelecionadaId!),
-                        onChanged: (v) =>
-                            setModalState(() => atletaSaiId = v),
+                        onChanged: (v) => setModalState(() => atletaSaiId = v),
                       ),
                     const SizedBox(height: 12),
                     TextField(
@@ -327,8 +330,9 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
 
                           if (!mounted) return;
                           setState(() {
-                            final idx = _eventosExibidos
-                                .indexWhere((e) => e.id == item.id);
+                            final idx = _eventosExibidos.indexWhere(
+                              (e) => e.id == item.id,
+                            );
                             if (idx >= 0) {
                               _eventosExibidos[idx] = SummaryEventItem(
                                 id: item.id,
@@ -487,8 +491,9 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   Future<void> _gerarPdfOficial() async {
     final id = widget.partidaId;
     if (id == null) {
-      final List<EventoPartida> eventosTyped =
-          _eventosExibidos.map((e) => e.evento).toList();
+      final List<EventoPartida> eventosTyped = _eventosExibidos
+          .map((e) => e.evento)
+          .toList();
       await PdfService.gerarSumulaPartida(
         context: context,
         timeA: widget.timeA,
@@ -544,7 +549,9 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     setState(() => _carregando = true);
 
     try {
-      final raw = await _partidaService.buscarEventosDaPartida(widget.partidaId!);
+      final raw = await _partidaService.buscarEventosDaPartida(
+        widget.partidaId!,
+      );
 
       final eventos = raw.map((ev) {
         final tipoNome = (ev['tipo_evento']?['nome']?.toString() ?? 'Evento');
@@ -615,11 +622,16 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
                             child: Row(
                               children: [
-                                Icon(Icons.history,
-                                    size: 20, color: Colors.grey),
+                                Icon(
+                                  Icons.history,
+                                  size: 20,
+                                  color: Colors.grey,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   "RESUMO DOS EVENTOS",
@@ -647,7 +659,8 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                                 ignoring: _carregando,
                                 child: SummaryEventList(
                                   eventos: _eventosExibidos,
-                                  podeEditar: _partidaApi?.status
+                                  podeEditar:
+                                      _partidaApi?.status
                                           .trim()
                                           .toLowerCase() ==
                                       'finalizada',
@@ -661,17 +674,39 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     ),
                   ),
                   SummaryActionButtons(
-                    onPdfPressed: _gerarPdfOficial,
-                    onClosePressed: (_partidaApi?.status.trim().toLowerCase() ==
+                    onPdfPressed: () async {
+                      final st = _partidaApi?.status.trim().toLowerCase();
+                      final pdfUrl = _partidaApi?.sumulaPdfUrl?.trim();
+
+                      if (st == 'fechada' &&
+                          pdfUrl != null &&
+                          pdfUrl.isNotEmpty) {
+                        await _abrirPdfFechado(pdfUrl);
+                        return;
+                      }
+
+                      final List<EventoPartida> eventosTyped = _eventosExibidos
+                          .map((e) => e.evento)
+                          .toList();
+                      await PdfService.gerarSumulaPartida(
+                        context: context,
+                        timeA: widget.timeA,
+                        timeB: widget.timeB,
+                        golsA: widget.golsA,
+                        golsB: widget.golsB,
+                        eventos: eventosTyped,
+                      );
+                    },
+                    onClosePressed:
+                        (_partidaApi?.status.trim().toLowerCase() ==
                                 'finalizada' &&
                             !_carregando)
                         ? _fecharSumula
                         : null,
                     onHomePressed: () {
-                      Navigator.of(context).pushNamedAndRemoveUntil(
-                        '/home',
-                        (route) => false,
-                      );
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/home', (route) => false);
                     },
                   ),
                 ],

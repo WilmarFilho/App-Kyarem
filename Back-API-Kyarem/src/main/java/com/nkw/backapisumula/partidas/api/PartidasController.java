@@ -100,12 +100,10 @@ public class PartidasController {
     @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
     public PartidaResponse end(@PathVariable UUID id,
                                Authentication authentication,
-                               @AuthenticationPrincipal Jwt jwt,
-                               @RequestBody(required = false) EndPartidaRequest req) {
+                               @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
-        String sumulaPdfUrl = req == null ? null : req.sumulaPdfUrl();
-        return PartidaResponse.from(service.end(id, userId, arbitroOnly, sumulaPdfUrl));
+        return PartidaResponse.from(service.end(id, userId, arbitroOnly));
     }
 
 
@@ -160,9 +158,7 @@ public class PartidasController {
             @JsonProperty("status_antes_pausa") String statusAntesPausa
     ) {}
 
-    public record EndPartidaRequest(
-            String sumulaPdfUrl
-    ) {}
+
 
     public record PartidaResponse(
             UUID id,

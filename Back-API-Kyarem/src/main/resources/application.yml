@@ -45,3 +45,9 @@ springdoc:
 security:
   jwt:
     issuer: ${SUPABASE_JWT_ISSUER}
+
+supabase:
+  url: ${SUPABASE_URL}
+  key: ${SUPABASE_SERVICE_ROLE_KEY}
+  bucket:
+    sumulas: ${SUPABASE_BUCKET_SUMULAS:sumulas}

@@ -14,6 +14,8 @@ import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
 import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
+import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
+import com.nkw.backapisumula.storage.SupabaseStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,17 +56,23 @@ public class PartidaService {
     private final PartidaArbitroRepository partidaArbitroRepo;
     private final EventoPartidaRepository eventoRepo;
     private final ObjectMapper objectMapper;
+    private final SupabaseStorageService supabaseStorageService;
+    private final SumulaOficialPdfService sumulaOficialPdfService;
 
     public PartidaService(PartidaRepository repo,
                           ModalidadeRepository modalidadeRepo,
                           EquipeRepository equipeRepo,
                           PartidaArbitroRepository partidaArbitroRepo,
-                          EventoPartidaRepository eventoRepo) {
+                          EventoPartidaRepository eventoRepo,
+                          SupabaseStorageService supabaseStorageService,
+                          SumulaOficialPdfService sumulaOficialPdfService) {
         this.repo = repo;
         this.modalidadeRepo = modalidadeRepo;
         this.equipeRepo = equipeRepo;
         this.partidaArbitroRepo = partidaArbitroRepo;
         this.eventoRepo = eventoRepo;
+        this.supabaseStorageService = supabaseStorageService;
+        this.sumulaOficialPdfService = sumulaOficialPdfService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     }
 
@@ -217,7 +225,7 @@ public class PartidaService {
         return repo.save(p);
     }
 
-    public Partida end(UUID partidaId, UUID userId, boolean isArbitroOnly, String sumulaPdfUrl) {
+    public Partida end(UUID partidaId, UUID userId, boolean isArbitroOnly) {
         Partida p = getOrThrow(partidaId);
 
         if (isStatusFechada(p.getStatus())) {
@@ -242,15 +250,17 @@ public class PartidaService {
         JsonNode snapshot = buildSnapshotSumula(p);
         p.setSnapshotSumula(snapshot);
 
-        // Se o app enviar uma URL final da súmula, priorizamos ela.
-        if (sumulaPdfUrl != null && !sumulaPdfUrl.isBlank()) {
-            p.setSumulaPdfUrl(sumulaPdfUrl.trim());
-        } else {
-            // Espaço reservado para gerar o PDF e fazer upload no bucket.
-            // Por enquanto deixamos nulo (ou mantém o que já existir).
-            if (p.getSumulaPdfUrl() == null || p.getSumulaPdfUrl().isBlank()) {
-                p.setSumulaPdfUrl(generateSumulaPdfUrlPlaceholder(p, snapshot));
-            }
+        // Gera e faz o upload da súmula em PDF
+        try {
+            byte[] pdfBytes = sumulaOficialPdfService.gerarPdf(partidaId);
+            String fileName = "sumula_" + partidaId + "_" + System.currentTimeMillis() + ".pdf";
+            supabaseStorageService.uploadPdf(fileName, pdfBytes);
+            String publicUrl = supabaseStorageService.getPublicUrl(fileName);
+            p.setSumulaPdfUrl(publicUrl);
+        } catch (Exception e) {
+            // Em caso de erro no upload/geração, logar. A url continuará vazia, ou a excecão vai interromper?
+            // A exceção pode propagar para o controller para que o admin saiba do erro
+            throw new RuntimeException("Erro ao gerar/salvar a súmula oficial em PDF", e);
         }
 
         // Atualiza hash com o snapshot e a url do pdf (se existir)

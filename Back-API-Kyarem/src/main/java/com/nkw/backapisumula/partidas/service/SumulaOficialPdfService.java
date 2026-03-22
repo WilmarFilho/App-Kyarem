@@ -7,6 +7,7 @@ import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.PartidaArbitro;
 import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
+import com.nkw.backapisumula.partidas.repo.PartidaRepository;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -67,18 +68,18 @@ public class SumulaOficialPdfService {
     private static final float GOAL_TIME_OFFSET = -12f;
     private static final float GOAL_ROW_STEP = -28.2f;
 
-    private final PartidaService partidaService;
+    private final PartidaRepository partidaRepo;
     private final EventoPartidaRepository eventoRepo;
     private final PartidaArbitroRepository partidaArbitroRepo;
     private final EquipeAtletaInscritoRepository inscritosRepo;
 
     public SumulaOficialPdfService(
-            PartidaService partidaService,
+            PartidaRepository partidaRepo,
             EventoPartidaRepository eventoRepo,
             PartidaArbitroRepository partidaArbitroRepo,
             EquipeAtletaInscritoRepository inscritosRepo
     ) {
-        this.partidaService = partidaService;
+        this.partidaRepo = partidaRepo;
         this.eventoRepo = eventoRepo;
         this.partidaArbitroRepo = partidaArbitroRepo;
         this.inscritosRepo = inscritosRepo;
@@ -86,7 +87,8 @@ public class SumulaOficialPdfService {
 
     @Transactional(readOnly = true)
     public byte[] gerarPdf(UUID partidaId) {
-        Partida partida = partidaService.getOrThrow(partidaId);
+        Partida partida = partidaRepo.findById(partidaId)
+                .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
         List<EventoPartida> eventos = eventoRepo.findByPartidaIdWithDetails(partidaId);
         List<PartidaArbitro> arbitros = partidaArbitroRepo.findByPartidaIdWithArbitro(partidaId);
         List<EquipeAtletaInscrito> inscritosA = partida.getEquipeA() == null
