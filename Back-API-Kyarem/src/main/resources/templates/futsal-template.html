@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sumulação Kyarem</title>
+    <style>
+        /* ===== EQUIPE (FRAME 4) ===== */
+        .f4-body {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid #000;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .f4-team {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.1fr 1.2fr;
+            background-color: #fff;
+        }
+                .f4-section-title { 
+                    border-bottom: 1px solid #000; 
+                    padding: 8px; 
+                    font-weight: bold; 
+                    font-size: 11px; 
+                    height: 35px;
+                    display: flex;
+                    align-items: center;
+                }
+                .f4-table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                }
+                .f4-table th, .f4-table td { 
+                    border: 1px solid #000; 
+                    padding: 4px; 
+                    font-size: 10px; 
+                    height: 24px;
+                    text-align: center;
+                }
+                .f4-table th { background-color: #fff; }
+                .f4-player-name { text-align: left; padding-left: 6px; font-size: 9px; }
+                .f4-col { border-right: 1px solid #000; display: flex; flex-direction: column; }
+                .f4-col:last-child { border-right: none; }
+                .f4-staff-row { 
+                    border-bottom: 1px solid #000; 
+                    padding: 5px 8px; 
+                    font-size: 9px; 
+                    height: 25px;
+                    display: flex;
+                    align-items: center;
+                }
+                .metas-container { display: flex; flex-direction: column; flex: 1; }
+                .metas-label { padding: 4px 8px; font-size: 10px; border-bottom: 1px solid #000; }
+                .f4-meta-grid { 
+                    display: grid; 
+                    grid-template-columns: repeat(3, 1fr); 
+                    flex: 1;
+                    background-color: #000;
+                    gap: 1px;
+                }
+                .meta-cell { 
+                    display: flex; 
+                    background-color: #fff; 
+                    height: 48px; 
+                }
+                .meta-num { 
+                    width: 25px; 
+                    font-size: 9px; 
+                    border-right: 1px solid #000; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    background-color: #f9f9f9;
+                }
+                .meta-data { 
+                    flex: 1; 
+                    display: flex; 
+                    flex-direction: column; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-size: 10px; 
+                    line-height: 1.2;
+                }
+                .v-bar { 
+                    background-color: #000; 
+                    color: #fff; 
+                    width: 30px; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    border-right: 1px solid #fff;
+                }
+                .v-text { 
+                    transform: rotate(-90deg); 
+                    white-space: nowrap; 
+                    font-size: 9px; 
+                    font-weight: bold; 
+                    text-transform: uppercase; 
+                }
+                .geral-content { flex: 1; display: flex; flex-direction: column; }
+                .horarios-table td { height: 30px; }
+                .contagens-area { padding: 10px; border-top: 1px solid #000; }
+                .placar-box { 
+                    border: 1px solid #000; 
+                    width: 35px; 
+                    height: 30px; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-weight: bold; 
+                    font-size: 13px;
+                }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            padding: 0;
+            font-size: 12px;
+        }
+
+        .container {
+            border: 3px solid black;
+            margin: 0;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            border-bottom: 3px solid black;
+        }
+
+        .header-left {
+            width: 120px;
+            border-right: 3px solid black;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header-left img {
+            width: 60px;
+            height: auto;
+        }
+
+        .header-left-text {
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .header-center {
+            flex: 1;
+            display: flex;
+            gap: 100px;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .header-score-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .header-logo {
+            width: 80px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-logo img {
+            width: 100%;
+            height: auto;
+        }
+
+        .header-score-text {
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* ===== GAME INFO ===== */
+        .game-info {
+            border-bottom: 3px solid black;
+            padding: 10px;
+            text-align: right;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* ===== TEAM SECTION ===== */
+        .team-section {
+            border-bottom: 3px solid black;
+        }
+
+        .team-title {
+            border-bottom: 3px solid black;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 11px;
+            background-color: white;
+        }
+
+        .team-content {
+            display: flex;
+            gap: 0;
+        }
+
+        .team-main {
+            flex: 1;
+            border-right: 3px solid black;
+        }
+
+        .team-side {
+            width: 120px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== TABLES ===== */
+        .table-group {
+            margin-bottom: 10px;
+        }
+
+        .table-header {
+            background-color: #f5f5f5;
+            border-bottom: 2px solid black;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            border: 2px solid black;
+            margin-bottom: 10px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: center;
+            font-size: 10px;
+            height: 20px;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            padding: 5px 4px;
+        }
+
+        td {
+            vertical-align: middle;
+        }
+
+        .col-left {
+            text-align: left;
+            padding-left: 8px;
+        }
+
+        /* ===== PLAYERS TABLE ===== */
+        .players-header {
+            display: flex;
+            border: 2px solid black;
+            background-color: #f5f5f5;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .ph-left {
+            flex: 0 0 80px;
+            border-right: 1px solid black;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .ph-right {
+            flex: 1;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .players-row {
+            display: flex;
+            border: 1px solid black;
+            border-top: none;
+            font-size: 10px;
+        }
+
+        .pr-left {
+            flex: 0 0 80px;
+            border-right: 1px solid black;
+            padding: 4px;
+            text-align: center;
+        }
+
+        .pr-right {
+            flex: 1;
+            padding: 4px;
+            text-align: left;
+        }
+
+        /* ===== STAFF SECTION ===== */
+        .staff-title {
+            background-color: #f5f5f5;
+            border: 2px solid black;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .staff-row {
+            border: 1px solid black;
+            border-top: none;
+            padding: 4px;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .staff-row:first-of-type {
+            border-top: 2px solid black;
+        }
+
+        /* ===== SIDE SECTION ===== */
+        .side-box {
+            border: 2px solid black;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .side-title {
+            background-color: #f5f5f5;
+            border-bottom: 1px solid black;
+            padding: 4px;
+            font-weight: bold;
+            font-size: 9px;
+            text-align: center;
+        }
+
+        .side-content {
+            flex: 1;
+            padding: 4px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .side-content-row {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 2px;
+        }
+
+        .side-cell {
+            flex: 1;
+            border: 1px solid black;
+            padding: 3px;
+            min-height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== CAPTAIN SECTION ===== */
+        .captain-title {
+            background-color: #f5f5f5;
+            border: 2px solid black;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .captain-table {
+            border: 2px solid black;
+            margin-bottom: 10px;
+        }
+
+        .captain-table th {
+            background-color: #FFFACD;
+            font-weight: bold;
+        }
+
+        .captain-table td {
+            background-color: #FFFACD;
+        }
+
+        /* ===== FRAME 4 - CORPO DA SÚMULA ===== */
+        .f4-body { border-bottom: 3px solid #191919; overflow-x: auto; }
+        .f4-team { display: flex; border-bottom: 3px solid #191919; }
+        .f4-team:last-child { border-bottom: none; }
+        .f4-players-col { width: 25%; flex-shrink: 0; border-right: 3px solid #191919; display: flex; flex-direction: column; }
+        .f4-tecnico-col { width: 25%; flex-shrink: 0; border-right: 3px solid #191919; display: flex; flex-direction: column; }
+        .f4-capitao-col { width: 30%; flex-shrink: 0; border-right: 3px solid #191919; display: flex; flex-direction: column; }
+        .f4-geral-col { flex: 1; display: flex; flex-direction: column; }
+        .f4-section-title { border-bottom: 3px solid #191919; padding: 5px 6px; font-weight: bold; font-size: 11px; text-align: center; }
+        .f4-table { width: 100%; border-collapse: collapse; }
+        .f4-table th { border: 1px solid #191919; padding: 3px 2px; font-size: 10px; font-weight: bold; text-align: center; }
+        .f4-table td { border: 1px solid #191919; padding: 2px 3px; font-size: 10px; text-align: center; height: 22px; vertical-align: middle; }
+        .f4-player-name { text-align: left; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
+        .f4-staff-row { border-top: 1px solid #191919; padding: 3px 5px; font-size: 9px; }
+        .f4-metas-header { display: flex; border-bottom: 1px solid #191919; font-size: 9px; font-weight: bold; }
+        .f4-metas-header > div { flex: 1; text-align: center; padding: 2px; border-right: 1px solid #191919; }
+        .f4-metas-header > div:last-child { flex: 2; border-right: none; }
+        .f4-meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; flex: 1; }
+        .f4-meta-cell { border-right: 1px solid #191919; border-bottom: 1px solid #191919; padding: 2px; font-size: 9px; min-height: 42px; display: flex; flex-direction: column; align-items: center; }
+        .f4-meta-cell:nth-child(3n) { border-right: none; }
+        .f4-meta-num { font-size: 8px; font-weight: bold; background: #FFF0F0; display: block; width: 100%; text-align: center; padding: 1px 0; }
+        .f4-meta-gol { font-size: 10px; font-weight: bold; }
+        .f4-meta-time { font-size: 8px; }
+        .f4-fouls-row { display: flex; border-bottom: 1px solid #191919; }
+        .f4-foul-cell { flex: 1; border-right: 1px solid #191919; padding: 4px 2px; font-size: 11px; font-weight: bold; text-align: center; min-height: 26px; display: flex; align-items: center; justify-content: center; }
+        .f4-foul-cell:last-child { border-right: none; }
+        .f4-geral-table { width: 100%; border-collapse: collapse; }
+        .f4-geral-table th, .f4-geral-table td { border: 1px solid #191919; padding: 2px 3px; text-align: center; font-size: 9px; }
+        .f4-score-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #191919; }
+        .f4-score-cell { border-right: 1px solid #191919; border-bottom: 1px solid #191919; padding: 4px; font-size: 18px; font-weight: bold; text-align: center; min-height: 34px; display: flex; align-items: center; justify-content: center; }
+        .f4-score-cell:nth-child(2n) { border-right: none; }
+        .f4-score-cell:nth-child(n+3) { border-bottom: none; }
+        .f4-bar-title { font-size: 8px; font-weight: bold; border-bottom: 1px solid #191919; padding: 2px 4px; text-align: center; }
+        .f4-contagens-title { font-size: 9px; font-weight: bold; border-bottom: 1px solid #191919; padding: 3px; text-align: center; }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: 10px;
+        }
+
+        .footer-row {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2px;
+            border: 1px solid black;
+            min-height: 25px;
+        }
+
+        .footer-label {
+            width: 350px;
+            border-right: 1px solid black;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .footer-content {
+            flex: 1;
+            padding: 5px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .footer-row.header {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .footer-row.full-width {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #f5f5f5;
+            font-weight: bold;
+            border: 1px solid black;
+            min-height: 25px;
+        }
+
+        .footer-full-width-content {
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-triple-row {
+            display: flex;
+            gap: 1px;
+            margin-bottom: 2px;
+            border: 1px solid black;
+            min-height: 25px;
+        }
+
+        .footer-triple-cell {
+            flex: 1;
+            border-right: 1px solid black;
+            padding: 5px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            text-align: center;
+        }
+
+        .footer-triple-cell:last-child {
+            border-right: none;
+        }
+
+        .footer-half-row {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2px;
+            border: 1px solid black;
+            min-height: 25px;
+        }
+
+        .footer-half-left {
+            flex: 1;
+            border-right: 1px solid black;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            text-align: center;
+        }
+
+        .footer-half-right {
+            flex: 1;
+            display: flex;
+            gap: 0;
+        }
+
+        .footer-third-cell {
+            flex: 1;
+            border-right: 1px solid black;
+            padding: 5px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            text-align: center;
+        }
+
+        .footer-third-cell:last-child {
+            border-right: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <!-- Imagem do campeonato -->
+                <!-- <img src="CAMINHO_DA_IMAGEM" alt="Logo"> -->
+                <div class="header-left-text">
+                    <!-- Nome do campeonato -->
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="header-score-group">
+                    <div class="header-logo">
+                        <!-- Logo equipe 1 -->
+                        <!-- <img src="CAMINHO_LOGO_EQUIPE_1" alt="Logo"> -->
+                    </div>
+                </div>
+                <div class="header-score-text">
+                    <!-- Nome Equipe 1 X Nome Equipe 2 e placar -->
+                </div>
+                <div class="header-score-group">
+                    <div class="header-logo">
+                        <!-- Logo equipe 2 -->
+                        <!-- <img src="CAMINHO_LOGO_EQUIPE_2" alt="Logo"> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         <!-- GAME INFO -->
+        <div class="game-info">
+            <!-- Horário estimado do jogo: DATA - HORA -->
+        </div>
+
+
+
+        <!-- SEÇÃO EQUIPE 1 -->
+        <div class="f4-body">
+            <div class="f4-team">
+                <div class="f4-col">
+                    <div class="f4-section-title">
+                        <!-- Nome da equipe A, ex: Saída da Equipe "A" ( X ) Equipe 1 -->
+                        <!-- Exemplo: Saída da Equipe "A" ( X ) Equipe 1 -->
+                    </div>
+                    <table class="f4-table" style="border:none;">
+                        <thead>
+                            <tr>
+                                <th style="width:70px; border-left:none; border-top:none;">Inscrição</th>
+                                <th style="border-right:none; border-top:none;">Jogadores</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Repita 13x: -->
+                            <!-- <tr><td style="border-left:none;">NÚMERO DE INSCRIÇÃO</td><td class="f4-player-name" style="border-right:none;">NOME COMPLETO DO JOGADOR(A)</td></tr> -->
+                        </tbody>
+                    </table>
+                    <div class="f4-staff-row">
+                        <!-- Treinadora - NOME DA TREINADORA -->
+                    </div>
+                    <div class="f4-staff-row">
+                        <!-- Prep. Físico - NOME DO PREPARADOR FÍSICO -->
+                    </div>
+                    <div class="f4-staff-row">
+                        <!-- Asst. Técnico - NOME DO ASSISTENTE TÉCNICO -->
+                    </div>
+                    <div class="f4-staff-row" style="border-bottom:none;">
+                        <!-- Fisio - NOME DO FISIOTERAPEUTA -->
+                    </div>
+                </div>
+                <div class="f4-col">
+                    <div class="f4-section-title" style="justify-content:center;">
+                        <!-- Título da coluna, ex: Técnico -->
+                    </div>
+                    <table class="f4-table" style="border:none;">
+                        <thead>
+                            <tr>
+                                <th style="width:30px; border-left:none; border-top:none;">N</th>
+                                <th style="border-top:none;">Amarelo</th>
+                                <th style="border-top:none;">Vermelho</th>
+                                <th colspan="5" style="border-right:none; border-top:none;">Iniciantes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Repita 13x: -->
+                            <!-- <tr><td style="border-left:none;">NÚMERO</td><td></td><td></td><td>INICIANTE 1</td><td>INICIANTE 2</td><td>INICIANTE 3</td><td>INICIANTE 4</td><td style="border-right:none;">INICIANTE 5</td></tr> -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="f4-col">
+                    <div class="f4-section-title" style="justify-content:center;">
+                        <!-- Capitão (NÚMERO) -->
+                    </div>
+                    <div class="metas-container">
+                        <div class="metas-label">Metas</div>
+                        <div class="f4-meta-grid">
+                            <!-- Repita 27x: -->
+                            <!-- <div class="meta-cell"><div class="meta-num">NÚMERO</div><div class="meta-data"><strong>GOLS</strong><span>MINUTAGEM</span></div></div> -->
+                        </div>
+                    </div>
+                </div>
+                <div class="f4-col" style="flex-direction:row; border-right:none;">
+                    <div class="v-bar"><div class="v-text">Faltas Acumuladas</div></div>
+                    <div class="v-bar" style="width:20px; background:#fff; color:#000; border-right:1px solid #000; flex-direction:column; justify-content:space-around; font-weight:bold; font-size:11px;">
+                        <!-- Repita para cada falta acumulada: <span>F</span> -->
+                    </div>
+                    <div class="v-bar"><div class="v-text">Pedidos de Tempo</div></div>
+                    <div class="geral-content">
+                        <div class="f4-section-title" style="background:#f5f5f5; border-bottom:1px solid #000;">
+                            <!-- Título: Em Geral -->
+                        </div>
+                        <table class="f4-table horarios-table" style="border:none;">
+                            <tr style="background:#f5f5f5;">
+                                <th style="border-left:none;">Agendar</th>
+                                <th>Lar</th>
+                                <th style="border-right:none;">Termino</th>
+                            </tr>
+                            <!-- Repita para cada período: -->
+                            <!-- <tr><td style="border-left:none;">NOME DO PERÍODO</td><td>HORÁRIO INÍCIO</td><td style="border-right:none;">HORÁRIO FIM</td></tr> -->
+                        </table>
+                        <div class="contagens-area">
+                            <div style="font-size:10px; font-weight:bold; margin-bottom:5px;">
+                                <!-- Título: Contagens -->
+                            </div>
+                            <table style="width:100%; border-collapse:collapse;">
+                                <!-- Repita para cada período: -->
+                                <!-- <tr style="height:35px;">
+                                    <td style="text-align:left; border:none; font-size:10px;">NOME DO PERÍODO</td>
+                                    <td style="border:none;"><div class="placar-box">PLACAR EQUIPE A</div></td>
+                                    <td style="border:none; padding:0 5px;">X</td>
+                                    <td style="border:none;"><div class="placar-box">PLACAR EQUIPE B</div></td>
+                                </tr> -->
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="background:#fff; border-top:1px solid #000; height:80px; padding:10px; font-size:10px; color:#ccc;">
+                <!-- Observações gerais sobre a equipe/jogo -->
+            </div>
+        </div>
+        <!-- SEÇÃO EQUIPE 2 (EXEMPLO DUPLICADO) -->
+        <div class="f4-body">
+            <div class="f4-team">
+                <div class="f4-col">
+                    <div class="f4-section-title">
+                        <!-- Nome da equipe B, ex: Saída da Equipe "B" ( X ) Equipe 2 -->
+                    </div>
+                    <table class="f4-table" style="border:none;">
+                        <thead>
+                            <tr>
+                                <th style="width:70px; border-left:none; border-top:none;">Inscrição</th>
+                                <th style="border-right:none; border-top:none;">Jogadores</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Repita 13x: -->
+                            <!-- <tr><td style="border-left:none;">NÚMERO DE INSCRIÇÃO</td><td class="f4-player-name" style="border-right:none;">NOME COMPLETO DO JOGADOR(A)</td></tr> -->
+                        </tbody>
+                    </table>
+                    <div class="f4-staff-row">
+                        <!-- Treinadora - NOME DA TREINADORA -->
+                    </div>
+                    <div class="f4-staff-row">
+                        <!-- Prep. Físico - NOME DO PREPARADOR FÍSICO -->
+                    </div>
+                    <div class="f4-staff-row">
+                        <!-- Asst. Técnico - NOME DO ASSISTENTE TÉCNICO -->
+                    </div>
+                    <div class="f4-staff-row" style="border-bottom:none;">
+                        <!-- Fisio - NOME DO FISIOTERAPEUTA -->
+                    </div>
+                </div>
+                <div class="f4-col">
+                    <div class="f4-section-title" style="justify-content:center;">
+                        <!-- Título da coluna, ex: Técnico -->
+                    </div>
+                    <table class="f4-table" style="border:none;">
+                        <thead>
+                            <tr>
+                                <th style="width:30px; border-left:none; border-top:none;">N</th>
+                                <th style="border-top:none;">Amarelo</th>
+                                <th style="border-top:none;">Vermelho</th>
+                                <th colspan="5" style="border-right:none; border-top:none;">Iniciantes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Repita 13x: -->
+                            <!-- <tr><td style="border-left:none;">NÚMERO</td><td></td><td></td><td>INICIANTE 1</td><td>INICIANTE 2</td><td>INICIANTE 3</td><td>INICIANTE 4</td><td style="border-right:none;">INICIANTE 5</td></tr> -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="f4-col">
+                    <div class="f4-section-title" style="justify-content:center;">
+                        <!-- Capitão (NÚMERO) -->
+                    </div>
+                    <div class="metas-container">
+                        <div class="metas-label">Metas</div>
+                        <div class="f4-meta-grid">
+                            <!-- Repita 27x: -->
+                            <!-- <div class="meta-cell"><div class="meta-num">NÚMERO</div><div class="meta-data"><strong>GOLS</strong><span>MINUTAGEM</span></div></div> -->
+                        </div>
+                    </div>
+                </div>
+                <div class="f4-col" style="flex-direction:row; border-right:none;">
+                    <div class="v-bar"><div class="v-text">Faltas Acumuladas</div></div>
+                    <div class="v-bar" style="width:20px; background:#fff; color:#000; border-right:1px solid #000; flex-direction:column; justify-content:space-around; font-weight:bold; font-size:11px;">
+                        <!-- Repita para cada falta acumulada: <span>F</span> -->
+                    </div>
+                    <div class="v-bar"><div class="v-text">Pedidos de Tempo</div></div>
+                    <div class="geral-content">
+                        <div class="f4-section-title" style="background:#f5f5f5; border-bottom:1px solid #000;">
+                            <!-- Título: Em Geral -->
+                        </div>
+                        <table class="f4-table horarios-table" style="border:none;">
+                            <tr style="background:#f5f5f5;">
+                                <th style="border-left:none;">Agendar</th>
+                                <th>Lar</th>
+                                <th style="border-right:none;">Termino</th>
+                            </tr>
+                            <!-- Repita para cada período: -->
+                            <!-- <tr><td style="border-left:none;">NOME DO PERÍODO</td><td>HORÁRIO INÍCIO</td><td style="border-right:none;">HORÁRIO FIM</td></tr> -->
+                        </table>
+                        <div class="contagens-area">
+                            <div style="font-size:10px; font-weight:bold; margin-bottom:5px;">
+                                <!-- Título: Contagens -->
+                            </div>
+                            <table style="width:100%; border-collapse:collapse;">
+                                <!-- Repita para cada período: -->
+                                <!-- <tr style="height:35px;">
+                                    <td style="text-align:left; border:none; font-size:10px;">NOME DO PERÍODO</td>
+                                    <td style="border:none;"><div class="placar-box">PLACAR EQUIPE A</div></td>
+                                    <td style="border:none; padding:0 5px;">X</td>
+                                    <td style="border:none;"><div class="placar-box">PLACAR EQUIPE B</div></td>
+                                </tr> -->
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="background:#fff; border-top:1px solid #000; height:80px; padding:10px; font-size:10px; color:#ccc;">
+                <!-- Observações gerais sobre a equipe/jogo -->
+            </div>
+        </div>
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="footer-row full-width">
+                <div class="footer-full-width-content">
+                    <!-- Identificação do Jogo -->
+                </div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Composição: Liga/Campeonato -->
+                </div>
+                <div class="footer-content">
+                    <!-- Categoria: Adulto / Feminino -->
+                </div>
+            </div>
+            <div class="footer-half-row">
+                <div class="footer-half-left">
+                    <!-- Nº Jogo: -->
+                </div>
+                <div class="footer-half-right">
+                    <div class="footer-third-cell">
+                        <!-- Grupo: -->
+                    </div>
+                    <div class="footer-third-cell">
+                        <!-- Fase: -->
+                    </div>
+                    <div class="footer-third-cell">
+                        <!-- Data: -->
+                    </div>
+                </div>
+            </div>
+            <div class="footer-row full-width">
+                <div class="footer-full-width-content">
+                    <!-- Equipe de Arbitragem -->
+                </div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Árbitro - NOME / UF - Principal -->
+                </div>
+                <div class="footer-content"></div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Árbitro - NOME / UF - Auxiliar -->
+                </div>
+                <div class="footer-content"></div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Anotador Cronometrista - NOME / UF - Cronometrista -->
+                </div>
+                <div class="footer-content"></div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Anotador Cronometrista - NOME / UF - Anotadora -->
+                </div>
+                <div class="footer-content"></div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Representante - NOME / UF -->
+                </div>
+                <div class="footer-content"></div>
+            </div>
+            <div class="footer-row">
+                <div class="footer-label">
+                    <!-- Representante - NOME / UF -->
+                </div>
+                <div class="footer-content"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
