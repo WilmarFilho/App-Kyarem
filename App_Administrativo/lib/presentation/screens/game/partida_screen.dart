@@ -6,7 +6,6 @@ import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
 import 'package:kyarem_eventos/presentation/screens/game/resumo_partida_screen.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
-import 'package:kyarem_eventos/services/pdf_service.dart';
 import 'package:printing/printing.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/game_scoreboard.dart';
