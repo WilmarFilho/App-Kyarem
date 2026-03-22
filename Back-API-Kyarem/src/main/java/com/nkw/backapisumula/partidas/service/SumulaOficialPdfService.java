@@ -70,9 +70,7 @@ public class SumulaOficialPdfService {
             List<EventoPartida> eventos
     ) {
         int tempoPeriodo = Optional.ofNullable(partida.getModalidade())
-                .map(m -> m.getTempoPartidaMinutos())
-                .filter(v -> v > 0)
-                .orElse(20);
+                .map(m -> m.getTempoPartidaMinutos()).filter(v -> v > 0).orElse(20);
 
         Map<UUID, Integer> numeroPorAtleta = new HashMap<>();
         inscritosA.forEach(i -> putIfPresent(numeroPorAtleta, i));
@@ -80,7 +78,8 @@ public class SumulaOficialPdfService {
 
         Map<UUID, List<EventoPartida>> eventosPorJogador = eventos.stream()
                 .filter(e -> e.getAtleta() != null && e.getAtleta().getId() != null)
-                .collect(Collectors.groupingBy(e -> e.getAtleta().getId(), LinkedHashMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(e -> e.getAtleta().getId(),
+                        LinkedHashMap::new, Collectors.toList()));
 
         List<RosterRow> rowsA = inscritosA.stream()
                 .sorted(Comparator.comparing(i -> Optional.ofNullable(i.getNumeroCamisa()).orElse(999)))
@@ -112,14 +111,17 @@ public class SumulaOficialPdfService {
         );
 
         String competicao = safeText(Optional.ofNullable(partida.getEquipeA())
-                .map(e -> e.getCampeonato())
-                .map(c -> c.getNome())
-                .orElse(Optional.ofNullable(partida.getModalidade()).map(m -> m.getCampeonatoNome()).orElse(null)));
-        String categoria = safeText(Optional.ofNullable(partida.getModalidade()).map(m -> m.getNome()).orElse(null));
-        String dataStr = Optional.ofNullable(partida.getAgendadoPara()).map(DATE_FMT::format).orElse("");
+                .map(eq -> eq.getCampeonato()).map(c -> c.getNome())
+                .orElse(Optional.ofNullable(partida.getModalidade())
+                        .map(m -> m.getCampeonatoNome()).orElse(null)));
+        String categoria = safeText(Optional.ofNullable(partida.getModalidade())
+                .map(m -> m.getNome()).orElse(null));
+        String dataStr = Optional.ofNullable(partida.getAgendadoPara())
+                .map(DATE_FMT::format).orElse("");
         String numeroJogo = textOrBlank(partida.getId() != null
                 ? partida.getId().toString().substring(0, 8).toUpperCase(Locale.ROOT) : null);
-        String fase = safeText(Optional.ofNullable(partida.getStatus()).map(Object::toString).orElse(null));
+        String fase = safeText(Optional.ofNullable(partida.getStatus())
+                .map(Object::toString).orElse(null));
         String[] localParts = splitLocal(partida.getLocal());
 
         String escudoA = partida.getEquipeA() != null && partida.getEquipeA().getAtletica() != null
@@ -127,56 +129,50 @@ public class SumulaOficialPdfService {
         String escudoB = partida.getEquipeB() != null && partida.getEquipeB().getAtletica() != null
                 ? partida.getEquipeB().getAtletica().getEscudoUrl() : null;
 
-        return new SumulaData(
-                teamA, teamB, competicao, categoria, numeroJogo, "", fase, dataStr,
-                localParts[0], localParts[1],
-                buildArbitrationLines(arbitros),
-                buildPeriodSummary(partida, eventos, equipeAId, equipeBId, tempoPeriodo),
-                safeText(Optional.ofNullable(partida.getAgendadoPara())
-                        .map(ts -> DATE_FMT.format(ts) + " - " + TIME_FMT.format(ts)).orElse(null)),
-                safeText(teamA.nome() + " x " + teamB.nome()),
-                escudoA, escudoB
-        );
+        PeriodSummary ps = buildPeriodSummary(partida, eventos, equipeAId, equipeBId, tempoPeriodo);
+        String headerSchedule = safeText(Optional.ofNullable(partida.getAgendadoPara())
+                .map(ts -> DATE_FMT.format(ts) + " - " + TIME_FMT.format(ts)).orElse(null));
+
+        return new SumulaData(teamA, teamB, competicao, categoria, numeroJogo, "", fase, dataStr,
+                localParts[0], localParts[1], buildArbitrationLines(arbitros), ps,
+                headerSchedule, safeText(teamA.nome() + " x " + teamB.nome()),
+                escudoA, escudoB);
     }
 
     private void putIfPresent(Map<UUID, Integer> map, EquipeAtletaInscrito i) {
-        if (i.getAtleta() != null && i.getAtleta().getId() != null && i.getNumeroCamisa() != null) {
+        if (i.getAtleta() != null && i.getAtleta().getId() != null && i.getNumeroCamisa() != null)
             map.put(i.getAtleta().getId(), i.getNumeroCamisa());
-        }
     }
 
-    private RosterRow rosterRow(EquipeAtletaInscrito inscrito, List<EventoPartida> eventosJogador) {
+    private RosterRow rosterRow(EquipeAtletaInscrito inscrito, List<EventoPartida> ev) {
         return new RosterRow(
                 textOrBlank(Optional.ofNullable(inscrito.getNumeroCamisa()).map(String::valueOf).orElse(null)),
                 safeText(Optional.ofNullable(inscrito.getAtleta()).map(a -> a.getNome()).orElse(null)),
-                firstTempoOfTipo(eventosJogador, "CARTAO_AMARELO"),
-                firstTempoOfTipo(eventosJogador, "CARTAO_VERMELHO")
+                firstTempoOfTipo(ev, "CARTAO_AMARELO"),
+                firstTempoOfTipo(ev, "CARTAO_VERMELHO")
         );
     }
 
     private String firstTempoOfTipo(List<EventoPartida> eventos, String tipo) {
         if (eventos == null) return "";
-        return eventos.stream()
-                .filter(e -> isTipo(e, tipo))
+        return eventos.stream().filter(e -> isTipo(e, tipo))
                 .map(e -> textOrBlank(e.getTempoCronometro()))
-                .filter(s -> !s.isBlank())
-                .findFirst().orElse("");
+                .filter(s -> !s.isBlank()).findFirst().orElse("");
     }
 
     private List<GoalEntry> buildGoals(List<EventoPartida> eventos, UUID equipeId,
-                                       Map<UUID, Integer> numeroPorAtleta, int tempoPeriodo) {
+                                       Map<UUID, Integer> numMap, int tempoPeriodo) {
         if (equipeId == null) return List.of();
         return eventos.stream()
                 .filter(e -> isTipo(e, "GOL"))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
                 .map(e -> new GoalEntry(
                         textOrBlank(Optional.ofNullable(e.getAtleta())
-                                .map(a -> numeroPorAtleta.get(a.getId())).map(String::valueOf).orElse("")),
+                                .map(a -> numMap.get(a.getId())).map(String::valueOf).orElse("")),
                         textOrBlank(e.getTempoCronometro()),
                         resolvePeriod(e.getTempoCronometro(), tempoPeriodo)
                 ))
-                .limit(MAX_GOALS)
-                .toList();
+                .limit(MAX_GOALS).toList();
     }
 
     private List<String> buildArbitrationLines(List<PartidaArbitro> arbitros) {
@@ -192,9 +188,9 @@ public class SumulaOficialPdfService {
 
     private String lineForRole(List<PartidaArbitro> arbitros, String fragment, String label) {
         return arbitros.stream()
-                .filter(a -> normalize(a.getFuncao()).contains(fragment))
-                .findFirst()
-                .map(a -> label + " - " + safeText(a.getArbitro() == null ? null : a.getArbitro().getNomeExibicao()))
+                .filter(a -> normalize(a.getFuncao()).contains(fragment)).findFirst()
+                .map(a -> label + " - " + safeText(
+                        a.getArbitro() == null ? null : a.getArbitro().getNomeExibicao()))
                 .orElse(label + " -");
     }
 
@@ -202,12 +198,12 @@ public class SumulaOficialPdfService {
                                              UUID equipeAId, UUID equipeBId, int tempoPeriodo) {
         OffsetDateTime fim1 = firstCreatedAtOfTipo(eventos, "FIM_1_TEMPO");
         OffsetDateTime inicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
-        int golsA1 = countGoalsForPeriod(eventos, equipeAId, 1, tempoPeriodo);
-        int golsB1 = countGoalsForPeriod(eventos, equipeBId, 1, tempoPeriodo);
-        int golsA2 = countGoalsForPeriod(eventos, equipeAId, 2, tempoPeriodo);
-        int golsB2 = countGoalsForPeriod(eventos, equipeBId, 2, tempoPeriodo);
-        int golsAE = countGoalsForPeriod(eventos, equipeAId, 3, tempoPeriodo);
-        int golsBE = countGoalsForPeriod(eventos, equipeBId, 3, tempoPeriodo);
+        int golsA1 = countGoals(eventos, equipeAId, 1, tempoPeriodo);
+        int golsB1 = countGoals(eventos, equipeBId, 1, tempoPeriodo);
+        int golsA2 = countGoals(eventos, equipeAId, 2, tempoPeriodo);
+        int golsB2 = countGoals(eventos, equipeBId, 2, tempoPeriodo);
+        int golsAE = countGoals(eventos, equipeAId, 3, tempoPeriodo);
+        int golsBE = countGoals(eventos, equipeBId, 3, tempoPeriodo);
         return new PeriodSummary(
                 Optional.ofNullable(partida.getAgendadoPara()).map(TIME_FMT::format).orElse(""),
                 Optional.ofNullable(partida.getIniciadaEm()).map(TIME_FMT::format).orElse(""),
@@ -222,14 +218,11 @@ public class SumulaOficialPdfService {
     }
 
     private OffsetDateTime firstCreatedAtOfTipo(List<EventoPartida> eventos, String tipo) {
-        return eventos.stream()
-                .filter(e -> isTipo(e, tipo))
-                .map(EventoPartida::getCriadoEm)
-                .filter(Objects::nonNull)
-                .findFirst().orElse(null);
+        return eventos.stream().filter(e -> isTipo(e, tipo))
+                .map(EventoPartida::getCriadoEm).filter(Objects::nonNull).findFirst().orElse(null);
     }
 
-    private int countGoalsForPeriod(List<EventoPartida> eventos, UUID equipeId, int period, int tempoPeriodo) {
+    private int countGoals(List<EventoPartida> eventos, UUID equipeId, int period, int tempoPeriodo) {
         if (equipeId == null) return 0;
         return (int) eventos.stream()
                 .filter(e -> isTipo(e, "GOL"))
@@ -259,7 +252,7 @@ public class SumulaOficialPdfService {
         return e.getTipoEvento() != null && tipo.equalsIgnoreCase(e.getTipoEvento().getNome());
     }
 
-    // ─── HTML GENERATION ────────────────────────────────────────────────────────
+    // ─── HTML RENDERING ─────────────────────────────────────────────────────────
 
     private byte[] renderHtmlToPdf(String html) {
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
@@ -274,93 +267,116 @@ public class SumulaOficialPdfService {
         }
     }
 
+    // ─── HTML GENERATION ────────────────────────────────────────────────────────
+
     private String buildHtml(SumulaData data) {
         return "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n"
                 + "<meta charset=\"UTF-8\"/>\n"
-                + "<style>\n" + css() + "\n</style>\n"
-                + "</head>\n<body>\n<div class=\"container\">\n"
+                + "<style>" + css() + "</style>\n"
+                + "</head>\n<body>\n"
+                + "<div class=\"page\">"
                 + headerHtml(data)
-                + "<div class=\"game-info\">" + e(data.headerSchedule()) + "</div>\n"
-                + teamHtml(data.teamA(), "A", data)
-                + teamHtml(data.teamB(), "B", data)
+                + gameInfoHtml(data)
+                + teamBlockHtml(data.teamA(), "A", data.periodSummary())
+                + teamBlockHtml(data.teamB(), "B", data.periodSummary())
                 + footerHtml(data)
                 + "</div>\n</body>\n</html>";
     }
 
+    // ── Header ───────────────────────────────────────────────────────────────────
+
     private String headerHtml(SumulaData data) {
-        return "<div class=\"header\">\n"
-                + "  <div class=\"header-left\">\n"
-                + "    <div class=\"header-left-text\">" + e(data.competicao()) + "</div>\n"
-                + "  </div>\n"
-                + "  <div class=\"header-center\">\n"
-                + "    <div class=\"header-score-group\">\n"
-                + "      <div class=\"header-logo\">"
-                + logoImg(data.escudoA(), "Logo A")
-                + "</div>\n"
-                + "    </div>\n"
-                + "    <div class=\"header-score-text\">" + e(data.headerMatchup()) + "</div>\n"
-                + "    <div class=\"header-score-group\">\n"
-                + "      <div class=\"header-logo\">"
-                + logoImg(data.escudoB(), "Logo B")
-                + "</div>\n"
-                + "    </div>\n"
-                + "  </div>\n"
+        return "<table class=\"hdr\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n"
+                + "<td class=\"hdr-left\">"
+                + "<div class=\"hdr-name\">" + e(data.competicao()) + "</div>"
+                + "</td>\n"
+                + "<td class=\"hdr-center\">"
+                + "<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\">\n<tr>\n"
+                + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
+                + imgTag(data.escudoA()) + "</td>\n"
+                + "<td style=\"text-align:center; vertical-align:middle; font-weight:bold; font-size:13px;\">"
+                + e(data.headerMatchup()) + "</td>\n"
+                + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
+                + imgTag(data.escudoB()) + "</td>\n"
+                + "</tr>\n</table>"
+                + "</td>\n"
+                + "</tr>\n</table>\n";
+    }
+
+    private String imgTag(String url) {
+        if (url == null || url.isBlank()) return "";
+        return "<img src=\"" + e(url) + "\" style=\"width:60px; height:auto;\"/>";
+    }
+
+    // ── Game info ────────────────────────────────────────────────────────────────
+
+    private String gameInfoHtml(SumulaData data) {
+        return "<div class=\"game-info\">"
+                + "Horário estimado do jogo: " + e(data.headerSchedule())
                 + "</div>\n";
     }
 
-    private String logoImg(String url, String alt) {
-        if (url == null || url.isBlank()) return "";
-        return "<img src=\"" + e(url) + "\" alt=\"" + alt + "\" />";
+    // ── Team block ───────────────────────────────────────────────────────────────
+
+    private String teamBlockHtml(TeamPdfData team, String letter, PeriodSummary ps) {
+        return "<table class=\"team-tbl\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n"
+                + colPlayersHtml(team, letter)
+                + colCardsHtml(team)
+                + colMetasHtml(team)
+                + colGeralHtml(ps)
+                + "</tr>\n"
+                + "<tr><td colspan=\"4\" class=\"obs-row\"></td></tr>\n"
+                + "</table>\n";
     }
 
-    private String teamHtml(TeamPdfData team, String letter, SumulaData data) {
-        PeriodSummary ps = data.periodSummary();
-        List<RosterRow> rows = team.rows();
-
+    private String colPlayersHtml(TeamPdfData team, String letter) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<div class=\"f4-body\">\n");
-        sb.append("  <div class=\"f4-team\">\n");
-
-        // ── Col 1: Jogadores + Staff ──────────────────────────────────────────
-        sb.append("    <div class=\"f4-col\" style=\"width:28%; flex-shrink:0;\">\n");
-        sb.append("      <div class=\"f4-section-title\">")
-          .append("Saída da Equipe &quot;").append(letter).append("&quot; ( X ) ").append(e(team.nome()))
-          .append("</div>\n");
-        sb.append("      <table class=\"f4-table\" style=\"border:none;\">\n");
-        sb.append("        <thead><tr>");
-        sb.append("<th style=\"width:55px; border-left:none; border-top:none;\">Inscrição</th>");
-        sb.append("<th style=\"border-right:none; border-top:none;\">Jogadores</th>");
-        sb.append("</tr></thead>\n        <tbody>\n");
+        sb.append("<td class=\"col-players\">\n");
+        sb.append("<div class=\"col-title\">Saída da Equipe &quot;").append(letter)
+                .append("&quot; ( X ) ").append(e(team.nome())).append("</div>\n");
+        // Players table
+        sb.append("<table class=\"itbl\" cellpadding=\"0\" cellspacing=\"0\">\n");
+        sb.append("<tr>");
+        sb.append("<th style=\"width:45px; border-top:none; border-left:none;\">Inscrição</th>");
+        sb.append("<th style=\"border-top:none; border-right:none;\">Jogadores</th>");
+        sb.append("</tr>\n");
+        List<RosterRow> rows = team.rows();
         for (int i = 0; i < MAX_PLAYERS; i++) {
             RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "");
-            sb.append("          <tr>");
-            sb.append("<td style=\"border-left:none;\">").append(e(row.numero())).append("</td>");
-            sb.append("<td class=\"f4-player-name\" style=\"border-right:none;\">").append(e(row.nome())).append("</td>");
+            sb.append("<tr>");
+            sb.append("<td style=\"border-left:none; text-align:center;\">").append(e(row.numero())).append("</td>");
+            sb.append("<td style=\"border-right:none; text-align:left; padding-left:4px; font-size:9px;\">")
+                    .append(e(row.nome())).append("</td>");
             sb.append("</tr>\n");
         }
-        sb.append("        </tbody>\n      </table>\n");
+        sb.append("</table>\n");
+        // Staff
         List<String> staff = team.staffLines();
-        String[] staffLabels = {"Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"};
+        String[] lbl = {"Treinador -", "Prep. Físico -", "Asst. Técnico -", "Fisio -"};
         for (int i = 0; i < 4; i++) {
-            String line = i < staff.size() ? staff.get(i) : staffLabels[i];
-            sb.append("      <div class=\"f4-staff-row\"").append(i == 3 ? " style=\"border-bottom:none;\"" : "").append(">");
-            sb.append(e(line)).append("</div>\n");
+            String line = i < staff.size() ? staff.get(i) : lbl[i];
+            String style = i == 3 ? " style=\"border-bottom:none;\"" : "";
+            sb.append("<div class=\"staff-row\"" + style + ">").append(e(line)).append("</div>\n");
         }
-        sb.append("    </div>\n");
+        sb.append("</td>\n");
+        return sb.toString();
+    }
 
-        // ── Col 2: Cartões + Iniciantes ───────────────────────────────────────
-        sb.append("    <div class=\"f4-col\" style=\"width:20%; flex-shrink:0;\">\n");
-        sb.append("      <div class=\"f4-section-title\" style=\"justify-content:center;\">Técnico</div>\n");
-        sb.append("      <table class=\"f4-table\" style=\"border:none;\">\n");
-        sb.append("        <thead><tr>");
-        sb.append("<th style=\"width:28px; border-left:none; border-top:none;\">N</th>");
-        sb.append("<th style=\"border-top:none;\">Amarelo</th>");
-        sb.append("<th style=\"border-top:none;\">Vermelho</th>");
-        sb.append("<th colspan=\"5\" style=\"border-right:none; border-top:none;\">Iniciantes</th>");
-        sb.append("</tr></thead>\n        <tbody>\n");
+    private String colCardsHtml(TeamPdfData team) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<td class=\"col-cards\">\n");
+        sb.append("<div class=\"col-title\" style=\"text-align:center;\">Técnico</div>\n");
+        sb.append("<table class=\"itbl\" cellpadding=\"0\" cellspacing=\"0\">\n");
+        sb.append("<tr>");
+        sb.append("<th style=\"width:22px; border-top:none; border-left:none;\">N</th>");
+        sb.append("<th style=\"border-top:none;\">Amar.</th>");
+        sb.append("<th style=\"border-top:none;\">Verm.</th>");
+        sb.append("<th colspan=\"5\" style=\"border-top:none; border-right:none;\">Iniciantes</th>");
+        sb.append("</tr>\n");
+        List<RosterRow> rows = team.rows();
         for (int i = 0; i < MAX_PLAYERS; i++) {
             RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "");
-            sb.append("          <tr>");
+            sb.append("<tr>");
             sb.append("<td style=\"border-left:none;\">").append(e(row.numero())).append("</td>");
             sb.append("<td>").append(e(row.amarelo())).append("</td>");
             sb.append("<td>").append(e(row.vermelho())).append("</td>");
@@ -368,110 +384,166 @@ public class SumulaOficialPdfService {
             sb.append("<td style=\"border-right:none;\"></td>");
             sb.append("</tr>\n");
         }
-        sb.append("        </tbody>\n      </table>\n");
-        sb.append("    </div>\n");
-
-        // ── Col 3: Capitão + Metas ────────────────────────────────────────────
-        sb.append("    <div class=\"f4-col\" style=\"width:28%; flex-shrink:0;\">\n");
-        sb.append("      <div class=\"f4-section-title\" style=\"justify-content:center;\">Capitão (")
-          .append(e(team.capitao())).append(")</div>\n");
-        sb.append("      <div class=\"metas-container\">\n");
-        sb.append("        <div class=\"metas-label\">Metas</div>\n");
-        sb.append("        <div class=\"f4-meta-grid\">\n");
-        List<GoalEntry> goals = team.goals();
-        for (int i = 0; i < MAX_GOALS; i++) {
-            String num = i < goals.size() ? e(goals.get(i).numeroJogador()) : "";
-            String tempo = i < goals.size() ? e(goals.get(i).tempo()) : "";
-            sb.append("          <div class=\"meta-cell\">");
-            sb.append("<div class=\"meta-num\">").append(i + 1).append("</div>");
-            sb.append("<div class=\"meta-data\"><strong>").append(num).append("</strong>");
-            sb.append("<span>").append(tempo).append("</span></div>");
-            sb.append("</div>\n");
-        }
-        sb.append("        </div>\n      </div>\n");
-        sb.append("    </div>\n");
-
-        // ── Col 4: Faltas + Pedidos + Geral ───────────────────────────────────
-        sb.append("    <div class=\"f4-col\" style=\"flex-direction:row; flex:1; border-right:none;\">\n");
-        sb.append("      <div class=\"v-bar\"><div class=\"v-text\">Faltas Acumuladas</div></div>\n");
-        sb.append("      <div style=\"width:20px; background:#fff; border-right:1px solid #000;\"></div>\n");
-        sb.append("      <div class=\"v-bar\"><div class=\"v-text\">Pedidos de Tempo</div></div>\n");
-        sb.append("      <div class=\"geral-content\">\n");
-        sb.append("        <div class=\"f4-section-title\" style=\"background:#f5f5f5; border-bottom:1px solid #000;\">Em Geral</div>\n");
-        sb.append("        <table class=\"f4-table horarios-table\" style=\"border:none;\">\n");
-        sb.append("          <tr style=\"background:#f5f5f5;\">");
-        sb.append("<th style=\"border-left:none;\">Agendar</th><th>Lar</th><th style=\"border-right:none;\">Termino</th>");
-        sb.append("</tr>\n");
-        sb.append("          <tr>");
-        sb.append("<td style=\"border-left:none;\">1º Tempo</td>");
-        sb.append("<td>").append(e(ps.start1())).append("</td>");
-        sb.append("<td style=\"border-right:none;\">").append(e(ps.end1())).append("</td>");
-        sb.append("</tr>\n");
-        sb.append("          <tr>");
-        sb.append("<td style=\"border-left:none;\">2º Tempo</td>");
-        sb.append("<td>").append(e(ps.start2())).append("</td>");
-        sb.append("<td style=\"border-right:none;\">").append(e(ps.end2())).append("</td>");
-        sb.append("</tr>\n");
-        sb.append("        </table>\n");
-        sb.append("        <div class=\"contagens-area\">\n");
-        sb.append("          <div style=\"font-size:10px; font-weight:bold; margin-bottom:5px;\">Contagens</div>\n");
-        sb.append("          <table style=\"width:100%; border-collapse:collapse;\">\n");
-        sb.append(scoreRow("1º Tempo", ps.goalsA1(), ps.goalsB1()));
-        sb.append(scoreRow("2º Tempo", ps.goalsA2(), ps.goalsB2()));
-        sb.append(scoreRow("Total", ps.goalsAFinal(), ps.goalsBFinal()));
-        if (ps.goalsAExtra() > 0 || ps.goalsBExtra() > 0) {
-            sb.append(scoreRow("Prorrog.", ps.goalsAExtra(), ps.goalsBExtra()));
-        }
-        sb.append("          </table>\n        </div>\n      </div>\n");
-        sb.append("    </div>\n");
-
-        sb.append("  </div>\n"); // f4-team
-        sb.append("  <div style=\"background:#fff; border-top:1px solid #000; height:80px; padding:10px; font-size:10px;\"></div>\n");
-        sb.append("</div>\n"); // f4-body
+        sb.append("</table>\n</td>\n");
         return sb.toString();
     }
 
-    private String scoreRow(String label, int a, int b) {
-        return "            <tr style=\"height:35px;\">"
-                + "<td style=\"text-align:left; border:none; font-size:10px;\">" + label + "</td>"
-                + "<td style=\"border:none;\"><div class=\"placar-box\">" + a + "</div></td>"
-                + "<td style=\"border:none; padding:0 5px;\">X</td>"
-                + "<td style=\"border:none;\"><div class=\"placar-box\">" + b + "</div></td>"
+    private String colMetasHtml(TeamPdfData team) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<td class=\"col-metas\">\n");
+        sb.append("<div class=\"col-title\" style=\"text-align:center;\">Capitão (")
+                .append(e(team.capitao())).append(")</div>\n");
+        sb.append("<div class=\"metas-label\">Metas</div>\n");
+        sb.append("<table class=\"metas-tbl\" cellpadding=\"0\" cellspacing=\"0\">\n");
+        List<GoalEntry> goals = team.goals();
+        for (int r = 0; r < 9; r++) {
+            sb.append("<tr>\n");
+            for (int c = 0; c < 3; c++) {
+                int idx = r * 3 + c;
+                String num = idx < goals.size() ? e(goals.get(idx).numeroJogador()) : "";
+                String tempo = idx < goals.size() ? e(goals.get(idx).tempo()) : "";
+                String rightBorder = c == 2 ? "border-right:none;" : "";
+                sb.append("<td style=\"").append(rightBorder).append(" vertical-align:top; padding:0;\">");
+                sb.append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\">");
+                sb.append("<tr>");
+                sb.append("<td class=\"meta-idx\">").append(idx + 1).append("</td>");
+                sb.append("<td class=\"meta-content\">");
+                if (!num.isEmpty()) sb.append("<strong>").append(num).append("</strong>");
+                if (!tempo.isEmpty()) sb.append("<br/>").append(tempo);
+                sb.append("</td>");
+                sb.append("</tr>");
+                sb.append("</table>");
+                sb.append("</td>\n");
+            }
+            sb.append("</tr>\n");
+        }
+        sb.append("</table>\n</td>\n");
+        return sb.toString();
+    }
+
+    private String colGeralHtml(PeriodSummary ps) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<td class=\"col-geral\">\n");
+        sb.append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%; height:100%; border-collapse:collapse;\">\n<tr>\n");
+
+        // Faltas Acumuladas bar
+        sb.append("<td class=\"v-bar\" style=\"width:28px;\">");
+        sb.append(vBarLabel("Faltas Acumuladas"));
+        sb.append("</td>\n");
+
+        // Faults marking strip
+        sb.append("<td style=\"width:18px; border-right:1px solid #000; vertical-align:top;\"></td>\n");
+
+        // Pedidos de Tempo bar
+        sb.append("<td class=\"v-bar\" style=\"width:28px;\">");
+        sb.append(vBarLabel("Pedidos de Tempo"));
+        sb.append("</td>\n");
+
+        // Em Geral content
+        sb.append("<td style=\"vertical-align:top;\">\n");
+        sb.append("<div class=\"geral-title\">Em Geral</div>\n");
+
+        // Schedule table
+        sb.append("<table class=\"itbl\" cellpadding=\"0\" cellspacing=\"0\">\n");
+        sb.append("<tr style=\"background:#f5f5f5;\">");
+        sb.append("<th style=\"width:55px; border-top:none; border-left:none;\">Agendar</th>");
+        sb.append("<th style=\"border-top:none;\">Lar</th>");
+        sb.append("<th style=\"border-top:none; border-right:none;\">Termino</th>");
+        sb.append("</tr>\n");
+        sb.append(scheduleRow("1º Período", ps.start1(), ps.end1()));
+        sb.append(scheduleRow("2º Período", ps.start2(), ps.end2()));
+        sb.append(scheduleRow("P. Extra", "", ""));
+        sb.append("</table>\n");
+
+        // Contagens
+        sb.append("<div class=\"contagens-title\">Contagens</div>\n");
+        sb.append("<table style=\"width:100%; border-collapse:collapse;\">\n");
+        sb.append(scoreRow("1º Período", ps.goalsA1(), ps.goalsB1()));
+        sb.append(scoreRow("2º Período", ps.goalsA2(), ps.goalsB2()));
+        if (ps.goalsAExtra() > 0 || ps.goalsBExtra() > 0)
+            sb.append(scoreRow("P. Extra", ps.goalsAExtra(), ps.goalsBExtra()));
+        sb.append(scoreFinalRow("FINAL", ps.goalsAFinal(), ps.goalsBFinal()));
+        sb.append("</table>\n");
+
+        sb.append("</td>\n</tr>\n</table>\n</td>\n");
+        return sb.toString();
+    }
+
+    private String vBarLabel(String text) {
+        StringBuilder sb = new StringBuilder("<div class=\"v-bar-text\">");
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == ' ') sb.append("<br/>");
+            else sb.append(Character.toUpperCase(c));
+        }
+        sb.append("</div>");
+        return sb.toString();
+    }
+
+    private String scheduleRow(String label, String start, String end) {
+        return "<tr>"
+                + "<td style=\"border-left:none; font-size:9px;\">" + e(label) + "</td>"
+                + "<td>" + e(start) + "</td>"
+                + "<td style=\"border-right:none;\">" + e(end) + "</td>"
                 + "</tr>\n";
     }
+
+    private String scoreRow(String label, int a, int b) {
+        return "<tr style=\"height:28px;\">"
+                + "<td style=\"border:none; font-size:9px; width:50px; vertical-align:middle;\">" + e(label) + "</td>"
+                + "<td style=\"border:none; width:32px; vertical-align:middle;\">"
+                + "<div class=\"placar-box\">" + a + "</div></td>"
+                + "<td style=\"border:none; padding:0 2px; vertical-align:middle; text-align:center; width:12px;\">X</td>"
+                + "<td style=\"border:none; width:32px; vertical-align:middle;\">"
+                + "<div class=\"placar-box\">" + b + "</div></td>"
+                + "</tr>\n";
+    }
+
+    private String scoreFinalRow(String label, int a, int b) {
+        return "<tr style=\"height:28px;\">"
+                + "<td style=\"border:none; font-size:9px; font-weight:bold; width:50px; vertical-align:middle;\">" + e(label) + "</td>"
+                + "<td style=\"border:none; width:32px; vertical-align:middle;\">"
+                + "<div class=\"placar-box placar-final\">" + a + "</div></td>"
+                + "<td style=\"border:none; padding:0 2px; vertical-align:middle; text-align:center; width:12px;\">X</td>"
+                + "<td style=\"border:none; width:32px; vertical-align:middle;\">"
+                + "<div class=\"placar-box placar-final\">" + b + "</div></td>"
+                + "</tr>\n";
+    }
+
+    // ── Footer ───────────────────────────────────────────────────────────────────
 
     private String footerHtml(SumulaData data) {
         StringBuilder sb = new StringBuilder();
         sb.append("<div class=\"footer\">\n");
 
-        sb.append("  <div class=\"footer-row full-width\">");
-        sb.append("<div class=\"footer-full-width-content\">").append(e(data.headerMatchup())).append("</div>");
-        sb.append("</div>\n");
+        // Identificação (full-width)
+        sb.append("<div class=\"fw-row\">").append(e(data.headerMatchup())).append("</div>\n");
 
-        sb.append("  <div class=\"footer-row\">");
-        sb.append("<div class=\"footer-label\">Composição: ").append(e(data.competicao())).append("</div>");
-        sb.append("<div class=\"footer-content\">Categoria: ").append(e(data.categoria())).append("</div>");
-        sb.append("</div>\n");
+        // Composição / Categoria
+        sb.append("<table cellpadding=\"0\" cellspacing=\"0\" class=\"ft-row\">\n<tr>\n");
+        sb.append("<td class=\"ft-label\">Composição: ").append(e(data.competicao())).append("</td>\n");
+        sb.append("<td class=\"ft-value\">Categoria: ").append(e(data.categoria())).append("</td>\n");
+        sb.append("</tr>\n</table>\n");
 
-        sb.append("  <div class=\"footer-half-row\">");
-        sb.append("<div class=\"footer-half-left\">Nº Jogo: ").append(e(data.numeroJogo())).append("</div>");
-        sb.append("<div class=\"footer-half-right\">");
-        sb.append("<div class=\"footer-third-cell\">Grupo: ").append(e(data.grupo())).append("</div>");
-        sb.append("<div class=\"footer-third-cell\">Fase: ").append(e(data.fase())).append("</div>");
-        sb.append("<div class=\"footer-third-cell\">Data: ").append(e(data.data())).append("</div>");
-        sb.append("</div></div>\n");
+        // Nº Jogo / Grupo / Fase / Data
+        sb.append("<table cellpadding=\"0\" cellspacing=\"0\" class=\"ft-row\">\n<tr>\n");
+        sb.append("<td class=\"ft-quarter\">Nº Jogo: ").append(e(data.numeroJogo())).append("</td>\n");
+        sb.append("<td class=\"ft-quarter\">Grupo: ").append(e(data.grupo())).append("</td>\n");
+        sb.append("<td class=\"ft-quarter\">Fase: ").append(e(data.fase())).append("</td>\n");
+        sb.append("<td class=\"ft-quarter\">Data: ").append(e(data.data())).append("</td>\n");
+        sb.append("</tr>\n</table>\n");
 
-        sb.append("  <div class=\"footer-row full-width\">");
-        sb.append("<div class=\"footer-full-width-content\">Equipe de Arbitragem</div>");
-        sb.append("</div>\n");
+        // Equipe de Arbitragem (full-width)
+        sb.append("<div class=\"fw-row\">Equipe de Arbitragem</div>\n");
 
+        // Arbitration lines
         List<String> arb = data.arbitrationLines();
         for (int i = 0; i < 6; i++) {
             String line = i < arb.size() ? arb.get(i) : "";
-            sb.append("  <div class=\"footer-row\">");
-            sb.append("<div class=\"footer-label\">").append(e(line)).append("</div>");
-            sb.append("<div class=\"footer-content\"></div>");
-            sb.append("</div>\n");
+            sb.append("<table cellpadding=\"0\" cellspacing=\"0\" class=\"ft-row\">\n<tr>\n");
+            sb.append("<td class=\"ft-arb\">").append(e(line)).append("</td>\n");
+            sb.append("<td class=\"ft-sig\"></td>\n");
+            sb.append("</tr>\n</table>\n");
         }
 
         sb.append("</div>\n");
@@ -482,96 +554,96 @@ public class SumulaOficialPdfService {
 
     private static String css() {
         return """
-                @page { size: A4; margin: 5mm; }
+                @page { size: A4; margin: 4mm; }
                 * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: Arial, sans-serif; background-color: white; font-size: 12px; }
-                .container { border: 3px solid black; }
+                body { font-family: Arial, sans-serif; font-size: 11px; }
+                .page { border: 3px solid black; }
 
                 /* HEADER */
-                .header { display: flex; border-bottom: 3px solid black; }
-                .header-left { width: 120px; border-right: 3px solid black; padding: 10px; display: flex;
-                    flex-direction: column; align-items: center; justify-content: center; }
-                .header-left img { width: 60px; height: auto; }
-                .header-left-text { font-size: 10px; font-weight: bold; text-align: center; line-height: 1.2; }
-                .header-center { flex: 1; display: flex; align-items: center; justify-content: center;
-                    padding: 10px; }
-                .header-score-group { display: flex; flex-direction: column; align-items: center; }
-                .header-logo { width: 80px; height: 100px; display: flex; align-items: center; justify-content: center; }
-                .header-logo img { width: 100%; height: auto; }
-                .header-score-text { font-size: 12px; font-weight: bold; text-align: center;
-                    flex: 1; padding: 0 10px; }
+                .hdr { width: 100%; border-collapse: collapse; border-bottom: 3px solid black; }
+                .hdr-left { width: 120px; border-right: 3px solid black; padding: 10px;
+                    vertical-align: middle; text-align: center; }
+                .hdr-center { padding: 8px; vertical-align: middle; }
+                .hdr-name { font-size: 10px; font-weight: bold; text-align: center; line-height: 1.2; }
 
                 /* GAME INFO */
-                .game-info { border-bottom: 3px solid black; padding: 10px;
-                    text-align: right; font-size: 11px; font-weight: bold; }
+                .game-info { border-bottom: 3px solid black; padding: 8px 10px; text-align: right;
+                    font-size: 10px; font-weight: bold; }
 
-                /* F4 BODY */
-                .f4-body { border-bottom: 3px solid #191919; }
-                .f4-team { display: flex; border-bottom: 1px solid #191919; }
-                .f4-col { border-right: 1px solid #000; display: flex; flex-direction: column; }
-                .f4-section-title { border-bottom: 1px solid #000; padding: 8px 6px; font-weight: bold;
-                    font-size: 11px; min-height: 35px; display: flex; align-items: center; }
-                .f4-table { width: 100%; border-collapse: collapse; }
-                .f4-table th { border: 1px solid #191919; padding: 3px 2px; font-size: 10px;
-                    font-weight: bold; text-align: center; background-color: #fff; }
-                .f4-table td { border: 1px solid #191919; padding: 2px 3px; font-size: 10px;
-                    text-align: center; height: 22px; vertical-align: middle; }
-                .f4-player-name { text-align: left; padding-left: 6px; font-size: 9px; }
-                .f4-staff-row { border-top: 1px solid #191919; border-bottom: 1px solid #191919;
-                    padding: 3px 5px; font-size: 9px; }
+                /* TEAM BLOCK */
+                .team-tbl { width: 100%; border-collapse: collapse; border-bottom: 3px solid black; }
+                .col-players { width: 28%; border-right: 1px solid black; vertical-align: top; }
+                .col-cards   { width: 20%; border-right: 1px solid black; vertical-align: top; }
+                .col-metas   { width: 28%; border-right: 1px solid black; vertical-align: top; }
+                .col-geral   { vertical-align: top; }
+                .obs-row { height: 55px; border-top: 1px solid black; padding: 5px;
+                    vertical-align: top; font-size: 9px; color: #bbb; }
+
+                /* COLUMN TITLE */
+                .col-title { border-bottom: 1px solid black; padding: 5px 6px; font-weight: bold;
+                    font-size: 10px; min-height: 28px; }
+
+                /* INNER TABLE (players / cards / schedule) */
+                .itbl { width: 100%; border-collapse: collapse; }
+                .itbl th { border: 1px solid black; padding: 2px 2px; font-size: 9px;
+                    font-weight: bold; text-align: center; background: #f5f5f5; }
+                .itbl td { border: 1px solid black; padding: 1px 2px; font-size: 9px;
+                    text-align: center; height: 19px; vertical-align: middle; }
+
+                /* STAFF */
+                .staff-row { border-top: 1px solid black; border-bottom: 1px solid black;
+                    padding: 3px 5px; font-size: 9px; min-height: 19px; }
 
                 /* METAS */
-                .metas-container { display: flex; flex-direction: column; flex: 1; }
-                .metas-label { padding: 4px 8px; font-size: 10px; border-bottom: 1px solid #000; }
-                .f4-meta-grid { display: flex; flex-wrap: wrap; flex: 1;
-                    background-color: #000; gap: 1px; }
-                .meta-cell { display: flex; background-color: #fff; height: 48px;
-                    width: calc(33.33% - 1px); }
-                .meta-num { width: 25px; font-size: 9px; border-right: 1px solid #000;
-                    display: flex; align-items: center; justify-content: center;
-                    background-color: #f9f9f9; }
-                .meta-data { flex: 1; display: flex; flex-direction: column; align-items: center;
-                    justify-content: center; font-size: 10px; line-height: 1.2; }
+                .metas-label { padding: 3px 6px; font-size: 9px; border-bottom: 1px solid black;
+                    background: #fff; }
+                .metas-tbl { width: 100%; border-collapse: collapse; }
+                .metas-tbl td { border: 1px solid black; height: 44px; width: 33.33%; }
+                .meta-idx { width: 20px; border-right: 1px solid black; text-align: center;
+                    font-size: 8px; background: #f9f9f9; padding: 2px 1px; vertical-align: middle; }
+                .meta-content { text-align: center; font-size: 9px; vertical-align: middle;
+                    padding: 2px; }
 
-                /* V-BAR (faltas / pedidos de tempo) */
-                .v-bar { background-color: #000; color: #fff; width: 30px; display: flex;
-                    align-items: center; justify-content: center; border-right: 1px solid #fff; }
-                .v-text { writing-mode: vertical-rl; transform: rotate(180deg);
-                    white-space: nowrap; font-size: 9px; font-weight: bold; text-transform: uppercase; }
+                /* V-BAR */
+                .v-bar { background: #000; vertical-align: top; text-align: center;
+                    border-right: 1px solid #555; padding-top: 4px; }
+                .v-bar-text { color: #fff; font-size: 7px; font-weight: bold;
+                    line-height: 1.15; text-align: center; letter-spacing: 0; }
 
                 /* GERAL */
-                .geral-content { flex: 1; display: flex; flex-direction: column; }
-                .horarios-table td { height: 30px; }
-                .contagens-area { padding: 10px; border-top: 1px solid #000; }
-                .placar-box { border: 1px solid #000; width: 35px; height: 30px; display: inline-flex;
-                    align-items: center; justify-content: center; font-weight: bold; font-size: 13px; }
+                .geral-title { background: #f5f5f5; border-bottom: 1px solid black;
+                    padding: 4px; font-weight: bold; font-size: 9px; text-align: center; }
+                .contagens-title { padding: 4px 6px; font-size: 9px; font-weight: bold;
+                    border-top: 1px solid black; }
+                .placar-box { border: 1px solid black; width: 28px; height: 24px;
+                    display: inline-block; text-align: center; font-weight: bold;
+                    font-size: 12px; line-height: 24px; vertical-align: middle; }
+                .placar-final { background: #fffacd; }
 
                 /* FOOTER */
-                .footer { padding: 10px; }
-                .footer-row { display: flex; margin-bottom: 2px; border: 1px solid black; min-height: 25px; }
-                .footer-label { width: 350px; border-right: 1px solid black; padding: 5px;
-                    font-weight: bold; font-size: 10px; display: flex; align-items: center; }
-                .footer-content { flex: 1; padding: 5px; font-size: 10px; display: flex; align-items: center; }
-                .footer-row.full-width { justify-content: center; align-items: center; text-align: center;
-                    background-color: #f5f5f5; font-weight: bold; }
-                .footer-full-width-content { width: 100%; text-align: center; font-weight: bold;
-                    display: flex; align-items: center; justify-content: center; padding: 5px; }
-                .footer-half-row { display: flex; margin-bottom: 2px; border: 1px solid black; min-height: 25px; }
-                .footer-half-left { flex: 1; border-right: 1px solid black; padding: 5px;
-                    font-weight: bold; font-size: 10px; display: flex; align-items: center; }
-                .footer-half-right { flex: 1; display: flex; }
-                .footer-third-cell { flex: 1; border-right: 1px solid black; padding: 5px;
-                    font-size: 10px; display: flex; align-items: center; }
-                .footer-third-cell:last-child { border-right: none; }
+                .footer { padding: 6px 8px; }
+                .fw-row { border: 1px solid black; margin-bottom: 2px; padding: 4px 8px;
+                    text-align: center; background: #f5f5f5; font-weight: bold; font-size: 10px;
+                    min-height: 22px; }
+                .ft-row { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
+                .ft-label { border: 1px solid black; padding: 4px 5px; font-weight: bold;
+                    font-size: 9px; width: 55%; vertical-align: middle; }
+                .ft-value { border: 1px solid black; padding: 4px 5px; font-size: 9px;
+                    vertical-align: middle; }
+                .ft-quarter { border: 1px solid black; padding: 4px 5px; font-size: 9px;
+                    width: 25%; vertical-align: middle; }
+                .ft-arb { border: 1px solid black; padding: 4px 5px; font-weight: bold;
+                    font-size: 9px; width: 65%; vertical-align: middle; min-height: 22px; }
+                .ft-sig { border: 1px solid black; font-size: 9px; vertical-align: middle; }
                 """;
     }
 
     // ─── UTILITY ────────────────────────────────────────────────────────────────
 
-    /** HTML escape */
     private static String e(String value) {
         if (value == null) return "";
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+        return value.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private String safeText(String value) {
