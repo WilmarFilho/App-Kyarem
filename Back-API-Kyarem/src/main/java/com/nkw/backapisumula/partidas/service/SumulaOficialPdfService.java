@@ -9,6 +9,7 @@ import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,23 @@ public class SumulaOficialPdfService {
     public byte[] gerarPdf(UUID partidaId) {
         Partida partida = partidaRepo.findById(partidaId)
                 .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
+
+        // Force-load lazy relations so escudo URLs are available
+        if (partida.getEquipeA() != null) {
+            Hibernate.initialize(partida.getEquipeA());
+            if (partida.getEquipeA().getAtletica() != null)
+                Hibernate.initialize(partida.getEquipeA().getAtletica());
+            if (partida.getEquipeA().getCampeonato() != null)
+                Hibernate.initialize(partida.getEquipeA().getCampeonato());
+        }
+        if (partida.getEquipeB() != null) {
+            Hibernate.initialize(partida.getEquipeB());
+            if (partida.getEquipeB().getAtletica() != null)
+                Hibernate.initialize(partida.getEquipeB().getAtletica());
+            if (partida.getEquipeB().getCampeonato() != null)
+                Hibernate.initialize(partida.getEquipeB().getCampeonato());
+        }
+
         List<EventoPartida> eventos = eventoRepo.findByPartidaIdWithDetails(partidaId);
         List<PartidaArbitro> arbitros = partidaArbitroRepo.findByPartidaIdWithArbitro(partidaId);
         List<EquipeAtletaInscrito> inscritosA = partida.getEquipeA() == null ? List.of()
@@ -291,6 +309,8 @@ public class SumulaOficialPdfService {
     // ── Header ───────────────────────────────────────────────────────────────────
 
     private String headerHtml(SumulaData data) {
+        PeriodSummary ps = data.periodSummary();
+        String placarStr = ps.goalsAFinal() + " x " + ps.goalsBFinal();
         return "<table class=\"hdr\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n"
                 + "<td class=\"hdr-left\">"
                 + imgTag(data.escudoCompeticao())
@@ -301,7 +321,9 @@ public class SumulaOficialPdfService {
                 + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
                 + imgTag(data.escudoA()) + "</td>\n"
                 + "<td style=\"text-align:center; vertical-align:middle; font-weight:bold; font-size:13px;\">"
-                + e(data.headerMatchup()) + "</td>\n"
+                + e(data.headerMatchup())
+                + "<div style=\"font-size:18px; font-weight:bold; margin-top:4px;\">" + e(placarStr) + "</div>"
+                + "</td>\n"
                 + "<td style=\"width:80px; text-align:center; vertical-align:middle; padding:5px;\">"
                 + imgTag(data.escudoB()) + "</td>\n"
                 + "</tr>\n</table>"
@@ -325,14 +347,14 @@ public class SumulaOficialPdfService {
     // ── Team block ───────────────────────────────────────────────────────────────
 
     private String teamBlockHtml(TeamPdfData team, String letter, PeriodSummary ps, boolean showGeral) {
-        int colspan = showGeral ? 4 : 3;
         return "<table class=\"team-tbl\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n"
                 + colPlayersHtml(team, letter)
                 + colCardsHtml(team)
                 + colMetasHtml(team)
-                + (showGeral ? colGeralHtml(ps) : "")
+                + colFaltasHtml()
+                + (showGeral ? colGeralContagensHtml(ps) : "")
                 + "</tr>\n"
-                + "<tr><td colspan=\"" + colspan + "\" class=\"obs-row\"></td></tr>\n"
+                + "<tr><td colspan=\"" + (showGeral ? 5 : 4) + "\" class=\"obs-row\"></td></tr>\n"
                 + "</table>\n";
     }
 
@@ -428,9 +450,9 @@ public class SumulaOficialPdfService {
         return sb.toString();
     }
 
-    private String colGeralHtml(PeriodSummary ps) {
+    private String colFaltasHtml() {
         StringBuilder sb = new StringBuilder();
-        sb.append("<td class=\"col-geral\">\n");
+        sb.append("<td class=\"col-geral\" style=\"width:94px;\">\n");
         sb.append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%; height:100%; border-collapse:collapse;\">\n<tr>\n");
 
         // Faltas Acumuladas bar
@@ -446,8 +468,15 @@ public class SumulaOficialPdfService {
         sb.append(vBarLabel("Pedidos de Tempo"));
         sb.append("</td>\n");
 
+        sb.append("</tr>\n</table>\n</td>\n");
+        return sb.toString();
+    }
+
+    private String colGeralContagensHtml(PeriodSummary ps) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<td class=\"col-geral\">\n");
+
         // Em Geral content
-        sb.append("<td style=\"vertical-align:top;\">\n");
         sb.append("<div class=\"geral-title\">Em Geral</div>\n");
 
         // Schedule table
@@ -472,7 +501,7 @@ public class SumulaOficialPdfService {
         sb.append(scoreFinalRow("FINAL", ps.goalsAFinal(), ps.goalsBFinal()));
         sb.append("</table>\n");
 
-        sb.append("</td>\n</tr>\n</table>\n</td>\n");
+        sb.append("</td>\n");
         return sb.toString();
     }
 
@@ -524,11 +553,11 @@ public class SumulaOficialPdfService {
         sb.append("<div class=\"footer\">\n");
 
         // Identificação (full-width)
-        sb.append("<div class=\"fw-row\">").append(e(data.headerMatchup())).append("</div>\n");
+        sb.append("<div class=\"fw-row\">Identificação do Jogo").append("</div>\n");
 
-        // Composição / Categoria
+        // Competição / Categoria
         sb.append("<table cellpadding=\"0\" cellspacing=\"0\" class=\"ft-row\">\n<tr>\n");
-        sb.append("<td class=\"ft-label\">Composição: ").append(e(data.competicao())).append("</td>\n");
+        sb.append("<td class=\"ft-label\">Competição: ").append(e(data.competicao())).append("</td>\n");
         sb.append("<td class=\"ft-value\">Categoria: ").append(e(data.categoria())).append("</td>\n");
         sb.append("</tr>\n</table>\n");
 
