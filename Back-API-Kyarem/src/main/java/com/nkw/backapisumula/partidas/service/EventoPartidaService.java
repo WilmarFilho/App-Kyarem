@@ -590,6 +590,9 @@ public class EventoPartidaService {
             }
 
             if (isSub) {
+                System.out.println("[DEBUG addBatch] Substitution detected! equipeId=" + r.equipeId()
+                        + " atletaEntra=" + r.atletaId() + " atletaSai=" + r.atletaSaiId()
+                        + " isSubstitution=" + r.isSubstitution());
                 handleSubstitutionAtivoStatus(r.equipeId(), r.atletaId(), r.atletaSaiId());
             }
         }
@@ -729,17 +732,29 @@ public class EventoPartidaService {
     }
 
     private void handleSubstitutionAtivoStatus(UUID equipeId, UUID entraId, UUID saiId) {
+        System.out.println("[DEBUG handleSubstitutionAtivoStatus] equipeId=" + equipeId
+                + " entraId=" + entraId + " saiId=" + saiId);
         if (entraId != null) {
-            EquipeAtletaInscrito entra = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, entraId)
+            var entraOpt = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, entraId);
+            System.out.println("[DEBUG handleSubstitutionAtivoStatus] entra found=" + entraOpt.isPresent());
+            EquipeAtletaInscrito entra = entraOpt
                     .orElseThrow(() -> new IllegalStateException("Atleta (entra) não está inscrito nesta equipe."));
+            System.out.println("[DEBUG handleSubstitutionAtivoStatus] entra BEFORE ativo=" + entra.getAtivo()
+                    + " atletaId=" + entraId + " numero=" + entra.getNumeroCamisa());
             entra.setAtivo(true);
             inscritoRepo.save(entra);
+            System.out.println("[DEBUG handleSubstitutionAtivoStatus] entra AFTER ativo=" + entra.getAtivo());
         }
         if (saiId != null) {
-            EquipeAtletaInscrito sai = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, saiId)
+            var saiOpt = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, saiId);
+            System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai found=" + saiOpt.isPresent());
+            EquipeAtletaInscrito sai = saiOpt
                     .orElseThrow(() -> new IllegalStateException("Atleta (sai) não está inscrito nesta equipe."));
+            System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai BEFORE ativo=" + sai.getAtivo()
+                    + " atletaId=" + saiId + " numero=" + sai.getNumeroCamisa());
             sai.setAtivo(false);
             inscritoRepo.save(sai);
+            System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai AFTER ativo=" + sai.getAtivo());
         }
     }
 }

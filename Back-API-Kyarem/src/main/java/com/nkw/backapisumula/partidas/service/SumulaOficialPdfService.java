@@ -321,8 +321,20 @@ public class SumulaOficialPdfService {
     private int countPausas(List<EventoPartida> eventos, UUID equipeId, int targetPeriod) {
         if (equipeId == null) return 0;
         OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
-        
-        return (int) eventos.stream()
+        System.out.println("[DEBUG countPausas] equipeId=" + equipeId + " targetPeriod=" + targetPeriod + " tInicio2=" + tInicio2);
+
+        // Log all events to see what tipo names exist
+        eventos.forEach(e -> {
+            String tipoNome = e.getTipoEvento() != null ? e.getTipoEvento().getNome() : "NULL";
+            UUID evEquipeId = e.getEquipe() != null ? e.getEquipe().getId() : null;
+            System.out.println("[DEBUG countPausas] evento tipo=" + tipoNome
+                    + " equipe=" + evEquipeId
+                    + " criadoEm=" + e.getCriadoEm()
+                    + " isPausaTecnica=" + "PAUSA_TECNICA".equalsIgnoreCase(tipoNome)
+                    + " equipeMatch=" + Objects.equals(evEquipeId, equipeId));
+        });
+
+        long count = eventos.stream()
                 .filter(e -> isTipo(e, "PAUSA_TECNICA"))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
                 .filter(e -> {
@@ -332,6 +344,8 @@ public class SumulaOficialPdfService {
                     return period == targetPeriod;
                 })
                 .count();
+        System.out.println("[DEBUG countPausas] RESULT equipeId=" + equipeId + " period=" + targetPeriod + " count=" + count);
+        return (int) count;
     }
 
     private int resolvePeriod(String tempo, int tempoPeriodo) {
@@ -367,12 +381,25 @@ public class SumulaOficialPdfService {
             Map<UUID, Integer> numeroPorAtleta) {
         if (equipeId == null) return List.of();
 
+        System.out.println("[DEBUG buildIniciantesGrid] equipeId=" + equipeId);
+        System.out.println("[DEBUG buildIniciantesGrid] total inscritos=" + inscritos.size());
+        inscritos.forEach(i -> System.out.println("[DEBUG buildIniciantesGrid] inscrito: atletaId="
+                + (i.getAtleta() != null ? i.getAtleta().getId() : "null")
+                + " numero=" + i.getNumeroCamisa()
+                + " ativo=" + i.getAtivo()));
+
         // Substitution events for this team, ordered by criadoEm (already sorted)
         List<EventoPartida> subs = eventos.stream()
                 .filter(e -> Boolean.TRUE.equals(e.getIsSubstitution()))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
                 .filter(e -> e.getAtleta() != null && e.getAtletaSai() != null)
                 .toList();
+
+        System.out.println("[DEBUG buildIniciantesGrid] substitution events found=" + subs.size());
+        subs.forEach(s -> System.out.println("[DEBUG buildIniciantesGrid] sub: atletaEntra="
+                + s.getAtleta().getId() + " (num=" + numeroPorAtleta.get(s.getAtleta().getId()) + ")"
+                + " atletaSai=" + s.getAtletaSai().getId() + " (num=" + numeroPorAtleta.get(s.getAtletaSai().getId()) + ")"
+                + " isSubstitution=" + s.getIsSubstitution()));
 
         // Starters = inscritos with ativo = true, sorted by jersey number, limited to 5
         List<UUID> starters = inscritos.stream()
@@ -382,6 +409,10 @@ public class SumulaOficialPdfService {
                 .limit(5)
                 .map(i -> i.getAtleta().getId())
                 .toList();
+
+        System.out.println("[DEBUG buildIniciantesGrid] starters (ativo=true) found=" + starters.size());
+        starters.forEach(id -> System.out.println("[DEBUG buildIniciantesGrid] starter: atletaId=" + id
+                + " numero=" + numeroPorAtleta.get(id)));
 
         // Build chain for each starter
         List<List<String>> columns = new ArrayList<>();
@@ -398,11 +429,14 @@ public class SumulaOficialPdfService {
                 if (subEvent.isPresent()) {
                     UUID nextId = subEvent.get().getAtleta().getId();
                     chain.add(String.valueOf(numeroPorAtleta.getOrDefault(nextId, 0)));
+                    System.out.println("[DEBUG buildIniciantesGrid] chain: " + numeroPorAtleta.get(cur)
+                            + " -> " + numeroPorAtleta.get(nextId));
                     currentId = nextId;
                 } else {
                     break;
                 }
             }
+            System.out.println("[DEBUG buildIniciantesGrid] column chain=" + chain);
             columns.add(chain);
         }
 
@@ -411,6 +445,7 @@ public class SumulaOficialPdfService {
             columns.add(new ArrayList<>(List.of("")));
         }
 
+        System.out.println("[DEBUG buildIniciantesGrid] final grid columns=" + columns.size());
         return columns;
     }
 

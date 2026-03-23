@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS equipes_staff (
-    id UUID PRIMARY KEY,
-    equipe_id UUID NOT NULL,
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    equipe_id uuid NOT NULL,
     nome VARCHAR(255) NOT NULL,
     cargo VARCHAR(100) NOT NULL,
     criado_em TIMESTAMP WITH TIME ZONE,
