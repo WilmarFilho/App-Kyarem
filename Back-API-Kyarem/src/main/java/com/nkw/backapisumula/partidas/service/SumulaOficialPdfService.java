@@ -160,17 +160,22 @@ public class SumulaOficialPdfService {
                 .map(s -> safeText(s.getCargo()) + " - " + safeText(s.getNome()))
                 .toList();
 
+        List<List<String>> iniciantesA = buildIniciantesGrid(inscritosA, eventos, equipeAId, numeroPorAtleta);
+        List<List<String>> iniciantesB = buildIniciantesGrid(inscritosB, eventos, equipeBId, numeroPorAtleta);
+
         TeamPdfData teamA = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeA()).map(e -> e.getNomeEquipe()).orElse(null)),
                 rowsA, goalsA, capitaoA,
                 staffLinesA,
-                faltasA1, faltasA2, pausasA1, pausasA2
+                faltasA1, faltasA2, pausasA1, pausasA2,
+                iniciantesA
         );
         TeamPdfData teamB = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeB()).map(e -> e.getNomeEquipe()).orElse(null)),
                 rowsB, goalsB, capitaoB,
                 staffLinesB,
-                faltasB1, faltasB2, pausasB1, pausasB2
+                faltasB1, faltasB2, pausasB1, pausasB2,
+                iniciantesB
         );
 
         // Resolve campeonato from equipe or modalidade
@@ -267,6 +272,8 @@ public class SumulaOficialPdfService {
                                              UUID equipeAId, UUID equipeBId, int tempoPeriodo) {
         OffsetDateTime fim1 = firstCreatedAtOfTipo(eventos, "FIM_1_TEMPO");
         OffsetDateTime inicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
+        OffsetDateTime inicioProrrogacao = firstCreatedAtOfTipo(eventos, "PRORROGAÇÃO");
+        OffsetDateTime fimPartida = firstCreatedAtOfTipo(eventos, "FIM_PARTIDA");
         int golsA1 = countGoals(eventos, equipeAId, 1, tempoPeriodo);
         int golsB1 = countGoals(eventos, equipeBId, 1, tempoPeriodo);
         int golsA2 = countGoals(eventos, equipeAId, 2, tempoPeriodo);
@@ -282,7 +289,9 @@ public class SumulaOficialPdfService {
                 golsA1, golsB1, golsA2, golsB2,
                 Optional.ofNullable(partida.getPlacarA()).orElse(golsA1 + golsA2 + golsAE),
                 Optional.ofNullable(partida.getPlacarB()).orElse(golsB1 + golsB2 + golsBE),
-                golsAE, golsBE
+                golsAE, golsBE,
+                Optional.ofNullable(inicioProrrogacao).map(TIME_FMT::format).orElse(""),
+                Optional.ofNullable(fimPartida).map(TIME_FMT::format).orElse("")
         );
     }
 
@@ -344,6 +353,65 @@ public class SumulaOficialPdfService {
 
     private boolean isTipo(EventoPartida e, String tipo) {
         return e.getTipoEvento() != null && tipo.equalsIgnoreCase(e.getTipoEvento().getNome());
+    }
+
+    /**
+     * Builds the "Iniciantes" grid for a team.
+     * Column 0..4 = one per starter position.
+     * Row 0 = starter jersey number, row 1+ = substitution chain.
+     */
+    private List<List<String>> buildIniciantesGrid(
+            List<EquipeAtletaInscrito> inscritos,
+            List<EventoPartida> eventos,
+            UUID equipeId,
+            Map<UUID, Integer> numeroPorAtleta) {
+        if (equipeId == null) return List.of();
+
+        // Substitution events for this team, ordered by criadoEm (already sorted)
+        List<EventoPartida> subs = eventos.stream()
+                .filter(e -> Boolean.TRUE.equals(e.getIsSubstitution()))
+                .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
+                .filter(e -> e.getAtleta() != null && e.getAtletaSai() != null)
+                .toList();
+
+        // Starters = inscritos with ativo = true, sorted by jersey number, limited to 5
+        List<UUID> starters = inscritos.stream()
+                .filter(i -> Boolean.TRUE.equals(i.getAtivo()))
+                .sorted(Comparator.comparing(i -> Optional.ofNullable(i.getNumeroCamisa()).orElse(999)))
+                .filter(i -> i.getAtleta() != null)
+                .limit(5)
+                .map(i -> i.getAtleta().getId())
+                .toList();
+
+        // Build chain for each starter
+        List<List<String>> columns = new ArrayList<>();
+        for (UUID starterId : starters) {
+            List<String> chain = new ArrayList<>();
+            chain.add(String.valueOf(numeroPorAtleta.getOrDefault(starterId, 0)));
+
+            UUID currentId = starterId;
+            for (int safety = 0; safety < 20; safety++) {
+                UUID cur = currentId;
+                Optional<EventoPartida> subEvent = subs.stream()
+                        .filter(e -> Objects.equals(e.getAtletaSai().getId(), cur))
+                        .findFirst();
+                if (subEvent.isPresent()) {
+                    UUID nextId = subEvent.get().getAtleta().getId();
+                    chain.add(String.valueOf(numeroPorAtleta.getOrDefault(nextId, 0)));
+                    currentId = nextId;
+                } else {
+                    break;
+                }
+            }
+            columns.add(chain);
+        }
+
+        // Pad to 5 columns if fewer starters found
+        while (columns.size() < 5) {
+            columns.add(new ArrayList<>(List.of("")));
+        }
+
+        return columns;
     }
 
     // ─── HTML RENDERING ─────────────────────────────────────────────────────────
@@ -497,14 +565,21 @@ public class SumulaOficialPdfService {
         sb.append("<th colspan=\"5\" style=\"border-top:none; border-right:none;\">Iniciantes</th>");
         sb.append("</tr>\n");
         List<RosterRow> rows = team.rows();
+        List<List<String>> grid = team.iniciantesGrid();
         for (int i = 0; i < MAX_PLAYERS; i++) {
             RosterRow row = i < rows.size() ? rows.get(i) : new RosterRow("", "", "", "", "");
             sb.append("<tr>");
             sb.append("<td style=\"border-left:none;\">").append(e(row.numero())).append("</td>");
             sb.append("<td>").append(e(row.amarelo())).append("</td>");
             sb.append("<td>").append(e(row.vermelho())).append("</td>");
-            sb.append("<td></td><td></td><td></td><td></td>");
-            sb.append("<td style=\"border-right:none;\"></td>");
+            for (int col = 0; col < 5; col++) {
+                String value = "";
+                if (col < grid.size() && i < grid.get(col).size()) {
+                    value = grid.get(col).get(i);
+                }
+                String style = col == 4 ? " style=\"border-right:none;\"" : "";
+                sb.append("<td").append(style).append(">").append(e(value)).append("</td>");
+            }
             sb.append("</tr>\n");
         }
         sb.append("</table>\n</td>\n");
@@ -606,7 +681,7 @@ public class SumulaOficialPdfService {
         sb.append("</tr>\n");
         sb.append(scheduleRow("1º Período", ps.start1(), ps.end1()));
         sb.append(scheduleRow("2º Período", ps.start2(), ps.end2()));
-        sb.append(scheduleRow("P. Extra", "", ""));
+        sb.append(scheduleRow("P. Extra", ps.startExtra(), ps.endExtra()));
         sb.append("</table>\n");
 
         // Contagens
@@ -852,7 +927,8 @@ public class SumulaOficialPdfService {
             int faltas1,
             int faltas2,
             int pausas1,
-            int pausas2
+            int pausas2,
+            List<List<String>> iniciantesGrid
     ) {}
 
     private record RosterRow(String inscricao, String numero, String nome, String amarelo, String vermelho) {}
@@ -862,6 +938,7 @@ public class SumulaOficialPdfService {
     private record PeriodSummary(
             String scheduled1, String start1, String end1, String start2, String end2,
             int goalsA1, int goalsB1, int goalsA2, int goalsB2,
-            int goalsAFinal, int goalsBFinal, int goalsAExtra, int goalsBExtra
+            int goalsAFinal, int goalsBFinal, int goalsAExtra, int goalsBExtra,
+            String startExtra, String endExtra
     ) {}
 }
