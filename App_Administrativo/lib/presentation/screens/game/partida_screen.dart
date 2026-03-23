@@ -562,6 +562,58 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     }
   }
 
+  /// Registers an event WITH equipeId so it goes to /eventos (not /eventos-gerais)
+  Future<void> _registrarEventoComEquipe(
+    String nomeEventoNoBanco, {
+    required String? equipeId,
+    String descricao = '',
+  }) async {
+    debugPrint(
+      "REGISTRANDO EVENTO COM EQUIPE: $nomeEventoNoBanco equipeId=$equipeId",
+    );
+    final tipoEvento = _tiposDeEventosDisponiveis.firstWhere(
+      (e) => e.nome == nomeEventoNoBanco,
+      orElse: () => TipoEventoEsporte(
+        id: '',
+        nome: nomeEventoNoBanco,
+        esporteId: '',
+        idx: 0,
+      ),
+    );
+
+    final eventoFeed = EventoPartida(
+      tipo: nomeEventoNoBanco,
+      jogadorNome: null,
+      jogadorNumero: null,
+      corTime: null,
+      horario: _formatarTempo(_segundos),
+    );
+
+    setState(() {
+      _eventosPartida.insert(0, eventoFeed);
+    });
+
+    if (tipoEvento.id.isNotEmpty && equipeId != null && equipeId.isNotEmpty) {
+      debugPrint(
+        "SALVANDO EVENTO COM EQUIPE NO BANCO: ${tipoEvento.id} equipe=$equipeId",
+      );
+      await _partidaService.salvarEvento(
+        descricao: descricao,
+        partidaId: widget.partida.id,
+        equipeId: equipeId,
+        tipoEventoId: tipoEvento.id,
+        tempoFormatado: _formatarTempo(_segundos),
+      );
+    } else if (tipoEvento.id.isNotEmpty) {
+      await _partidaService.salvarEvento(
+        descricao: descricao,
+        partidaId: widget.partida.id,
+        tipoEventoId: tipoEvento.id,
+        tempoFormatado: _formatarTempo(_segundos),
+      );
+    }
+  }
+
   // Variáveis para controle de prorrogação
   int _tempoProrrogacao = 0; // Em segundos
   bool _temProrrogacao = false;
@@ -577,6 +629,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   int _pausasTecnicasTimeBPrimeiroTempo = 0;
   int _pausasTecnicasTimeASegundoTempo = 0;
   int _pausasTecnicasTimeBSegundoTempo = 0;
+  String? _equipeIdEmPausaTecnica; // tracks which team requested the pause
 
   @override
   void dispose() {
@@ -1105,8 +1158,14 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         break;
     }
 
-    _registrarEventoSistemico(
+    final String equipeIdPausa = isTimeA
+        ? widget.partida.equipeAId
+        : widget.partida.equipeBId;
+    _equipeIdEmPausaTecnica = equipeIdPausa;
+
+    _registrarEventoComEquipe(
       'PAUSA_TECNICA',
+      equipeId: equipeIdPausa,
       descricao:
           'Pausa técnica iniciada para os ${isTimeA ? nomeTimeA : nomeTimeB}!',
     );
@@ -1143,7 +1202,11 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
     );
 
-    _registrarEventoSistemico('FIM_PAUSA_TECNICA');
+    _registrarEventoComEquipe(
+      'FIM_PAUSA_TECNICA',
+      equipeId: _equipeIdEmPausaTecnica,
+    );
+    _equipeIdEmPausaTecnica = null;
   }
 
   Future<void> _alternarCronometro() async {

@@ -105,7 +105,8 @@ public class EventoPartidaService {
             UUID tipoEventoId,
             String tempoCronometro,
             String descricaoDetalhada,
-            String localEventoId   
+            String localEventoId,
+            UUID equipeId
     ) {}
 
     private final EventoPartidaRepository repo;
@@ -366,6 +367,14 @@ public class EventoPartidaService {
             ev.setTempoCronometro(r.tempoCronometro());
             ev.setDescricaoDetalhada(r.descricaoDetalhada());
             ev.setIsSubstitution(false);
+
+            // Optional equipeId for events like PAUSA_TECNICA
+            if (r.equipeId() != null) {
+                Equipe equipe = equipeRepo.findById(r.equipeId()).orElse(null);
+                if (equipe != null) {
+                    ev.setEquipe(equipe);
+                }
+            }
 
             toSave.add(ev);
         }

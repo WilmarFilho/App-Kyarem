@@ -47,7 +47,8 @@ public class EventosPartidaGeraisController {
                         r.tipoEventoId(),
                         r.tempoCronometro(),
                         r.descricaoDetalhada(),
-                        r.localEventoId()  // ← ADD
+                        r.localEventoId(),
+                        r.equipeId()
                 ))
                 .toList();
 
@@ -67,6 +68,7 @@ public class EventosPartidaGeraisController {
             @NotNull UUID tipoEventoId,
             @NotBlank String tempoCronometro,
             String descricaoDetalhada,
-            String localEventoId  // ← ADD (nullable, sem validação)
+            String localEventoId,
+            UUID equipeId
     ) {}
 }
