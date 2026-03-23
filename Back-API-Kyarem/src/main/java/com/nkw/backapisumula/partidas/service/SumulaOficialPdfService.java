@@ -302,19 +302,36 @@ public class SumulaOficialPdfService {
 
     private int countGoals(List<EventoPartida> eventos, UUID equipeId, int period, int tempoPeriodo) {
         if (equipeId == null) return 0;
+        OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
         return (int) eventos.stream()
                 .filter(e -> isTipo(e, "GOL"))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
-                .filter(e -> resolvePeriod(e.getTempoCronometro(), tempoPeriodo) == period)
+                .filter(e -> {
+                    OffsetDateTime t = e.getCriadoEm();
+                    if (t == null) return period == 1;
+                    int p = (tInicio2 != null && t.isAfter(tInicio2)) ? 2 : 1;
+                    // period 3 = extra time (after 2nd period goals tracked separately)
+                    if (period == 3) {
+                        OffsetDateTime tFim2 = firstCreatedAtOfTipo(eventos, "FIM_2_TEMPO");
+                        return tFim2 != null && t.isAfter(tFim2);
+                    }
+                    return p == period;
+                })
                 .count();
     }
 
     private int countFaltas(List<EventoPartida> eventos, UUID equipeId, int period, int tempoPeriodo) {
         if (equipeId == null) return 0;
+        OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
         return (int) eventos.stream()
                 .filter(e -> isTipo(e, "FALTA"))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
-                .filter(e -> resolvePeriod(e.getTempoCronometro(), tempoPeriodo) == period)
+                .filter(e -> {
+                    OffsetDateTime t = e.getCriadoEm();
+                    if (t == null) return period == 1;
+                    int p = (tInicio2 != null && t.isAfter(tInicio2)) ? 2 : 1;
+                    return p == period;
+                })
                 .count();
     }
 
