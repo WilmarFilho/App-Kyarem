@@ -272,7 +272,7 @@ public class SumulaOficialPdfService {
                                              UUID equipeAId, UUID equipeBId, int tempoPeriodo) {
         OffsetDateTime fim1 = firstCreatedAtOfTipo(eventos, "FIM_1_TEMPO");
         OffsetDateTime inicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
-        OffsetDateTime inicioProrrogacao = firstCreatedAtOfTipo(eventos, "PRORROGAÇÃO");
+        OffsetDateTime inicioProrrogacao = firstCreatedAtOfTipo(eventos, "PRORROGACAO");
         OffsetDateTime fimPartida = firstCreatedAtOfTipo(eventos, "FIM_PARTIDA");
         int golsA1 = countGoals(eventos, equipeAId, 1, tempoPeriodo);
         int golsB1 = countGoals(eventos, equipeBId, 1, tempoPeriodo);
@@ -401,16 +401,22 @@ public class SumulaOficialPdfService {
                 + " atletaSai=" + s.getAtletaSai().getId() + " (num=" + numeroPorAtleta.get(s.getAtletaSai().getId()) + ")"
                 + " isSubstitution=" + s.getIsSubstitution()));
 
-        // Starters = inscritos with ativo = true, sorted by jersey number, limited to 5
+        // Players who ENTERED via substitution cannot be starters
+        Set<UUID> enteredViaSub = subs.stream()
+                .map(e -> e.getAtleta().getId())
+                .collect(Collectors.toSet());
+
+        System.out.println("[DEBUG buildIniciantesGrid] enteredViaSub=" + enteredViaSub);
+
+        // Starters = first 5 inscritos (sorted by jersey number) who did NOT enter via substitution
         List<UUID> starters = inscritos.stream()
-                .filter(i -> Boolean.TRUE.equals(i.getAtivo()))
                 .sorted(Comparator.comparing(i -> Optional.ofNullable(i.getNumeroCamisa()).orElse(999)))
-                .filter(i -> i.getAtleta() != null)
+                .filter(i -> i.getAtleta() != null && !enteredViaSub.contains(i.getAtleta().getId()))
                 .limit(5)
                 .map(i -> i.getAtleta().getId())
                 .toList();
 
-        System.out.println("[DEBUG buildIniciantesGrid] starters (ativo=true) found=" + starters.size());
+        System.out.println("[DEBUG buildIniciantesGrid] starters (by exclusion) found=" + starters.size());
         starters.forEach(id -> System.out.println("[DEBUG buildIniciantesGrid] starter: atletaId=" + id
                 + " numero=" + numeroPorAtleta.get(id)));
 
