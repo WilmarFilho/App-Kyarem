@@ -1,7 +1,9 @@
 package com.nkw.backapisumula.partidas.service;
 
 import com.nkw.backapisumula.competicao.EquipeAtletaInscrito;
+import com.nkw.backapisumula.competicao.EquipeStaff;
 import com.nkw.backapisumula.competicao.repo.EquipeAtletaInscritoRepository;
+import com.nkw.backapisumula.competicao.repo.EquipeStaffRepository;
 import com.nkw.backapisumula.partidas.EventoPartida;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.PartidaArbitro;
@@ -35,17 +37,20 @@ public class SumulaOficialPdfService {
     private final EventoPartidaRepository eventoRepo;
     private final PartidaArbitroRepository partidaArbitroRepo;
     private final EquipeAtletaInscritoRepository inscritosRepo;
+    private final EquipeStaffRepository equipeStaffRepo;
 
     public SumulaOficialPdfService(
             PartidaRepository partidaRepo,
             EventoPartidaRepository eventoRepo,
             PartidaArbitroRepository partidaArbitroRepo,
-            EquipeAtletaInscritoRepository inscritosRepo
+            EquipeAtletaInscritoRepository inscritosRepo,
+            EquipeStaffRepository equipeStaffRepo
     ) {
         this.partidaRepo = partidaRepo;
         this.eventoRepo = eventoRepo;
         this.partidaArbitroRepo = partidaArbitroRepo;
         this.inscritosRepo = inscritosRepo;
+        this.equipeStaffRepo = equipeStaffRepo;
     }
 
     // ─── PUBLIC API ─────────────────────────────────────────────────────────────
@@ -78,8 +83,12 @@ public class SumulaOficialPdfService {
                 : inscritosRepo.findByEquipe_Id(partida.getEquipeA().getId());
         List<EquipeAtletaInscrito> inscritosB = partida.getEquipeB() == null ? List.of()
                 : inscritosRepo.findByEquipe_Id(partida.getEquipeB().getId());
+        List<EquipeStaff> staffA = partida.getEquipeA() == null ? List.of()
+                : equipeStaffRepo.findByEquipe_Id(partida.getEquipeA().getId());
+        List<EquipeStaff> staffB = partida.getEquipeB() == null ? List.of()
+                : equipeStaffRepo.findByEquipe_Id(partida.getEquipeB().getId());
 
-        SumulaData data = buildData(partida, inscritosA, inscritosB, arbitros, eventos);
+        SumulaData data = buildData(partida, inscritosA, inscritosB, staffA, staffB, arbitros, eventos);
         return renderHtmlToPdf(buildHtml(data));
     }
 
@@ -89,6 +98,8 @@ public class SumulaOficialPdfService {
             Partida partida,
             List<EquipeAtletaInscrito> inscritosA,
             List<EquipeAtletaInscrito> inscritosB,
+            List<EquipeStaff> staffA,
+            List<EquipeStaff> staffB,
             List<PartidaArbitro> arbitros,
             List<EventoPartida> eventos
     ) {
@@ -142,16 +153,23 @@ public class SumulaOficialPdfService {
         int pausasB1 = countPausas(eventos, equipeBId, 1);
         int pausasB2 = countPausas(eventos, equipeBId, 2);
 
+        List<String> staffLinesA = staffA.stream()
+                .map(s -> safeText(s.getCargo()) + " - " + safeText(s.getNome()))
+                .toList();
+        List<String> staffLinesB = staffB.stream()
+                .map(s -> safeText(s.getCargo()) + " - " + safeText(s.getNome()))
+                .toList();
+
         TeamPdfData teamA = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeA()).map(e -> e.getNomeEquipe()).orElse(null)),
                 rowsA, goalsA, capitaoA,
-                List.of("Técnico -", "Treinador -", "Preparador -", "Assistente -", "Fisioterapeuta -"),
+                staffLinesA,
                 faltasA1, faltasA2, pausasA1, pausasA2
         );
         TeamPdfData teamB = new TeamPdfData(
                 safeText(Optional.ofNullable(partida.getEquipeB()).map(e -> e.getNomeEquipe()).orElse(null)),
                 rowsB, goalsB, capitaoB,
-                List.of("Técnico -", "Treinador -", "Preparador -", "Assistente -", "Fisioterapeuta -"),
+                staffLinesB,
                 faltasB1, faltasB2, pausasB1, pausasB2
         );
 
@@ -238,22 +256,11 @@ public class SumulaOficialPdfService {
     }
 
     private List<String> buildArbitrationLines(List<PartidaArbitro> arbitros) {
-        return List.of(
-                lineForRole(arbitros, "principal", "Árbitro"),
-                lineForRole(arbitros, "aux", "Árbitro"),
-                lineForRole(arbitros, "cronomet", "Anotador Cronometrista"),
-                lineForRole(arbitros, "anot", "Anotador Cronometrista"),
-                lineForRole(arbitros, "represent", "Representante"),
-                lineForRole(arbitros, "deleg", "Representante")
-        );
-    }
-
-    private String lineForRole(List<PartidaArbitro> arbitros, String fragment, String label) {
+        if (arbitros == null) return List.of();
         return arbitros.stream()
-                .filter(a -> normalize(a.getFuncao()).contains(fragment)).findFirst()
-                .map(a -> label + " - " + safeText(
+                .map(a -> safeText(a.getFuncao()) + " - " + safeText(
                         a.getArbitro() == null ? null : a.getArbitro().getNomeExibicao()))
-                .orElse(label + " -");
+                .toList();
     }
 
     private PeriodSummary buildPeriodSummary(Partida partida, List<EventoPartida> eventos,
@@ -469,9 +476,8 @@ public class SumulaOficialPdfService {
         sb.append("</table>\n");
         // Staff
         List<String> staff = team.staffLines();
-        String[] lbl = {"Técnico -", "Treinador -", "Preparador -", "Assistente -", "Fisioterapeuta -"};
         for (int i = 0; i < 5; i++) {
-            String line = i < staff.size() ? staff.get(i) : lbl[i];
+            String line = i < staff.size() ? staff.get(i) : "";
             String style = i == 4 ? " style=\"border-bottom:none;\"" : "";
             sb.append("<div class=\"staff-row\"" + style + ">").append(e(line)).append("</div>\n");
         }
@@ -596,7 +602,7 @@ public class SumulaOficialPdfService {
         sb.append("<tr style=\"background:#f5f5f5;\">");
         sb.append("<th style=\"width:55px; border-top:none; border-left:none;\">Agendar</th>");
         sb.append("<th style=\"border-top:none;\">Lar</th>");
-        sb.append("<th style=\"border-top:none; border-right:none;\">Termino</th>");
+        sb.append("<th style=\"border-top:none; border-right:none;\">Ter</th>");
         sb.append("</tr>\n");
         sb.append(scheduleRow("1º Período", ps.start1(), ps.end1()));
         sb.append(scheduleRow("2º Período", ps.start2(), ps.end2()));
@@ -686,8 +692,7 @@ public class SumulaOficialPdfService {
 
         // Arbitration lines
         List<String> arb = data.arbitrationLines();
-        for (int i = 0; i < 6; i++) {
-            String line = i < arb.size() ? arb.get(i) : "";
+        for (String line : arb) {
             sb.append("<table cellpadding=\"0\" cellspacing=\"0\" class=\"ft-row\">\n<tr>\n");
             sb.append("<td class=\"ft-arb\">").append(e(line)).append("</td>\n");
             sb.append("<td class=\"ft-sig\"></td>\n");
