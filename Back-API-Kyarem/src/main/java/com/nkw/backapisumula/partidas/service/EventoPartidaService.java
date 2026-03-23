@@ -750,7 +750,7 @@ public class EventoPartidaService {
             System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai found=" + saiOpt.isPresent());
             EquipeAtletaInscrito sai = saiOpt
                     .orElseThrow(() -> new IllegalStateException("Atleta (sai) não está inscrito nesta equipe."));
-            System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai BEFORE ativo=" + sai.getAtivo()
+            System.out.println("[DEBUG: handleSubstitutionAtivoStatus] sai BEFORE ativo=" + sai.getAtivo()
                     + " atletaId=" + saiId + " numero=" + sai.getNumeroCamisa());
             sai.setAtivo(false);
             inscritoRepo.save(sai);
