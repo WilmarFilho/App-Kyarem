@@ -320,6 +320,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
+                    // ignore: deprecated_member_use
                     color: const Color(0xFFF22F1D).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -397,6 +398,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                 style: ElevatedButton.styleFrom(
                   // Se estiver salvando, deixa o botão um pouco mais escuro/desabilitado
                   backgroundColor: _saving
+                      // ignore: deprecated_member_use
                       ? const Color(0xFFF22F1D).withOpacity(0.7)
                       : const Color.fromARGB(255, 255, 255, 255),
                   foregroundColor:
