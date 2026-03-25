@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 /// Widget para exibir labels padronizados nos campos de entrada de autenticação
 class AuthInputLabel extends StatelessWidget {
   final String label;
-  
-  const AuthInputLabel({
-    super.key,
-    required this.label,
-  });
+
+  const AuthInputLabel({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +16,7 @@ class AuthInputLabel extends StatelessWidget {
           fontFamily: 'Poppins',
           fontWeight: FontWeight.w500,
           fontSize: 14,
-          color: Colors.black87,
+          color: Colors.white,
         ),
       ),
     );

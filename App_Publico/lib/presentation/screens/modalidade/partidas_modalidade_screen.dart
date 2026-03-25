@@ -6,6 +6,7 @@ import '../../../models/partida_api_model.dart';
 import '../../../services/competicao_service.dart';
 import '../../../services/estatistica_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
+import '../../widgets/layout/gradient_background.dart';
 import '../game/partida_screen.dart';
 
 class PartidasModalidadeScreen extends StatefulWidget {
@@ -208,14 +209,14 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         : 'Modalidade';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFF260404),
       appBar: AppBar(
         title: Text(
           titulo,
-          style: const TextStyle(fontFamily: 'Bebas Neue', fontSize: 22),
+          style: const TextStyle(fontFamily: 'Oswald', fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: const Color(0xFF110101),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -223,15 +224,16 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         length: 2,
         child: Stack(
           children: [
+            const GradientBackground(),
             Column(
               children: [
                 _buildHeader(titulo),
                 Container(
-                  color: Colors.white,
+                  color: const Color(0xFF110101),
                   child: const TabBar(
-                    labelColor: Color(0xFFF85C39),
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: Color(0xFFF85C39),
+                    labelColor: Color(0xFFF22F1D),
+                    unselectedLabelColor: Colors.white54,
+                    indicatorColor: Color(0xFFF22F1D),
                     tabs: [
                       Tab(text: 'Partidas'),
                       Tab(text: 'Estatísticas'),
@@ -263,11 +265,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   Widget _buildAbaPartidas() {
     return _loading
         ? const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+            child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
           )
         : RefreshIndicator(
             onRefresh: _carregar,
-            color: const Color(0xFFF85C39),
+            color: const Color(0xFFF22F1D),
             child: _partidas.isEmpty
                 ? ListView(
                     children: const [
@@ -295,11 +297,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   Widget _buildAbaEstatisticas() {
     return _loadingStats
         ? const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+            child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
           )
         : RefreshIndicator(
             onRefresh: _carregarEstatisticas,
-            color: const Color(0xFFF85C39),
+            color: const Color(0xFFF22F1D),
             child: _estatisticas.isEmpty
                 ? ListView(
                     children: const [
@@ -357,7 +359,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 label: Text(
                   f,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[700],
+                    color: isSelected ? Colors.white : Colors.white70,
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -372,14 +374,14 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                     });
                   }
                 },
-                selectedColor: const Color(0xFFF85C39),
-                backgroundColor: Colors.white,
+                selectedColor: const Color(0xFFF22F1D),
+                backgroundColor: const Color(0xFF1A0202),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
                     color: isSelected
-                        ? const Color(0xFFF85C39)
-                        : Colors.grey[300]!,
+                        ? const Color(0xFFF22F1D)
+                        : Colors.white12,
                   ),
                 ),
               ),
@@ -419,7 +421,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           backgroundColor: color.withOpacity(0.2),
           child: CircleAvatar(
             radius: pos == 1 ? 28 : 23,
-            backgroundColor: Colors.white,
+            backgroundColor: const Color(0xFF110101),
             backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
                 ? NetworkImage(est.fotoUrl!)
                 : (est.equipeEscudoUrl != null &&
@@ -436,7 +438,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         const SizedBox(height: 8),
         Text(
           est.nomeAtleta.split(' ').first,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
@@ -461,7 +463,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
-                  fontFamily: 'Bebas Neue',
+                  fontFamily: 'Oswald',
                 ),
               ),
               Text(
@@ -484,12 +486,12 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1A0202),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: Colors.white12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -504,13 +506,13 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: Colors.grey[400],
+                color: Colors.white30,
               ),
             ),
           ),
           CircleAvatar(
             radius: 20,
-            backgroundColor: Colors.grey.shade50,
+            backgroundColor: const Color(0xFF2A0808),
             backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
                 ? NetworkImage(est.fotoUrl!)
                 : (est.equipeEscudoUrl != null &&
@@ -533,11 +535,12 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
+                    color: Colors.white,
                   ),
                 ),
                 Text(
                   est.equipeNome,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
                 ),
               ],
             ),
@@ -576,7 +579,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         Text(emoji, style: const TextStyle(fontSize: 12)),
         Text(
           value,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ],
     );
@@ -586,10 +589,10 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: const Color(0xFF110101),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -602,8 +605,8 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                   widget.campeonatoNome,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.grey[700],
+                  style: const TextStyle(
+                    color: Colors.white70,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                   ),
@@ -618,6 +621,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -696,10 +700,10 @@ class _PartidaTile extends StatelessWidget {
         ? Colors.green
         : isFinalizada
         ? Colors.grey
-        : const Color(0xFFF85C39);
+        : const Color(0xFFF22F1D);
 
     return Material(
-      color: Colors.white,
+      color: const Color(0xFF110101),
       borderRadius: BorderRadius.circular(22),
       elevation: 0,
       child: InkWell(
@@ -716,8 +720,8 @@ class _PartidaTile extends StatelessWidget {
                   if (dtStr.isNotEmpty)
                     Text(
                       dtStr,
-                      style: TextStyle(
-                        color: Colors.grey[500],
+                      style: const TextStyle(
+                        color: Colors.white54,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -784,10 +788,10 @@ class _PartidaTile extends StatelessWidget {
                         Text(
                           '${partida.placarA}  –  ${partida.placarB}',
                           style: const TextStyle(
-                            fontFamily: 'Bebas Neue',
+                            fontFamily: 'Oswald',
                             fontSize: 30,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF1A1A1A),
+                            color: Colors.white,
                             letterSpacing: 2,
                           ),
                         ),
@@ -796,8 +800,8 @@ class _PartidaTile extends StatelessWidget {
                             partida.local!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey[400],
+                            style: const TextStyle(
+                              color: Colors.white30,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
@@ -835,7 +839,7 @@ class _PartidaTile extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 24,
-          backgroundColor: Colors.grey.shade100,
+          backgroundColor: const Color(0xFF2A0808),
           backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
           child: url.isEmpty
               ? Text(
@@ -859,7 +863,7 @@ class _PartidaTile extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 12,
-            color: Color(0xFF1A1A1A),
+            color: Colors.white,
           ),
         ),
       ],

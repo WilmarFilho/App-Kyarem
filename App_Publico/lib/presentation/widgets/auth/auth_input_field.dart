@@ -26,8 +26,11 @@ class AuthInputField extends StatelessWidget {
     return Container(
       height: isSmall ? 48 : 56,
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F3F3),
+        color: const Color(0xFF160202),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+        ),
       ),
       child: Row(
         children: [
@@ -40,7 +43,7 @@ class AuthInputField extends StatelessWidget {
                 height: 18,
                 // ignore: deprecated_member_use
                 colorFilter: ColorFilter.mode(
-                  const Color(0xFFF85C39).withOpacity(0.6),
+                  const Color(0xFFF22F1D).withValues(alpha: 0.6),
                   BlendMode.srcIn,
                 ),
               ),
@@ -54,12 +57,11 @@ class AuthInputField extends StatelessWidget {
               autocorrect: false,
               enableSuggestions: false,
               textCapitalization: TextCapitalization.none,
-              cursorColor: const Color(0xFFF85C39),
+              cursorColor: const Color(0xFFF22F1D),
               decoration: InputDecoration(
                 hintText: placeholder,
-                // ignore: deprecated_member_use
                 hintStyle: TextStyle(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 15,
                 ),
                 border: InputBorder.none,
@@ -71,7 +73,7 @@ class AuthInputField extends StatelessWidget {
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 15,
-                color: Colors.black,
+                color: Colors.white,
               ),
             ),
           ),

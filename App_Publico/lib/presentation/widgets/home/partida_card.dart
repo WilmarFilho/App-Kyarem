@@ -28,18 +28,17 @@ class PartidaCard extends StatelessWidget {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              // Usando a cor que você definiu, mas com um leve gradiente para dar profundidade
               gradient: const LinearGradient(
-                colors: [Color(0xFFF3A68F), Color(0xFFF85C39)],
+                colors: [Color(0xFFF2561D), Color(0xFFF22F1D)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFF85C39).withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
+                  color: const Color(0xFFF22F1D).withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -48,13 +47,21 @@ class PartidaCard extends StatelessWidget {
               children: [
                 // Badge de Status (AO VIVO ou AGENDADO)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    partida.status == '1° tempo' || partida.status == 'intervalo' || partida.status == '2° tempo' || partida.status == 'prorrogação' ? '● AO VIVO' : 'DESTAQUE',
+                    partida.status == '1° tempo' ||
+                            partida.status == 'intervalo' ||
+                            partida.status == '2° tempo' ||
+                            partida.status == 'prorrogação'
+                        ? '● AO VIVO'
+                        : 'DESTAQUE',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -64,7 +71,7 @@ class PartidaCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Área dos Times e Placar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -84,7 +91,8 @@ class PartidaCard extends StatelessWidget {
                             color: Colors.white,
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'Bebas Neue', // Usando a fonte do seu cabeçalho
+                            fontFamily:
+                                'Bebas Neue', // Usando a fonte do seu cabeçalho
                           ),
                         ),
                         const Text(
@@ -121,12 +129,15 @@ class PartidaCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: Colors.white.withOpacity(0.3),
+            backgroundColor: Colors.white.withValues(alpha: 0.3),
             backgroundImage: logoUrl != null ? NetworkImage(logoUrl) : null,
             child: logoUrl == null
                 ? Text(
                     nome[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   )
                 : null,
           ),

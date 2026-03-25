@@ -85,17 +85,19 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF110101),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Sair da Conta',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
         content: const Text(
           'Tem certeza que deseja sair?',
-          style: TextStyle(fontFamily: 'Poppins'),
+          style: TextStyle(fontFamily: 'Poppins', color: Colors.white70),
         ),
         actions: [
           TextButton(
@@ -137,12 +139,14 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF110101),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Alterar Senha',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
         content: Column(
@@ -150,7 +154,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           children: [
             const Text(
               'Digite seu e-mail para receber o link de redefinição de senha.',
-              style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.white70),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -158,17 +162,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
                 hintText: 'seu@email.com',
-                hintStyle: const TextStyle(fontFamily: 'Poppins'),
+                hintStyle: const TextStyle(fontFamily: 'Poppins', color: Colors.white30),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: Color(0xFFF85C39), width: 2),
+                      const BorderSide(color: Color(0xFFF22F1D), width: 2),
                 ),
               ),
-              style: const TextStyle(fontFamily: 'Poppins'),
+              style: const TextStyle(fontFamily: 'Poppins', color: Colors.white),
             ),
           ],
         ),
@@ -278,10 +287,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
       child: Text(
         'CONFIGURAÇÕES',
         style: TextStyle(
-          fontFamily: 'Bebas Neue',
+          fontFamily: 'Oswald',
           fontSize: 26,
           letterSpacing: 1.2,
-          color: Color(0xFF1B1B1B),
+          color: Colors.white,
         ),
       ),
     );
@@ -438,11 +447,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 10, 20, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF110101),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -456,15 +465,15 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
             child: Row(
               children: [
-                Icon(icon, color: const Color(0xFFF85C39), size: 20),
+                Icon(icon, color: const Color(0xFFF22F1D), size: 20),
                 const SizedBox(width: 8),
                 Text(
                   title.toUpperCase(),
                   style: const TextStyle(
-                    fontFamily: 'Bebas Neue',
+                    fontFamily: 'Oswald',
                     fontSize: 16,
                     letterSpacing: 1.0,
-                    color: Color(0xFF1B1B1B),
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -494,10 +503,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: const Color(0xFFF85C39).withValues(alpha: 0.08),
+                color: const Color(0xFFF22F1D).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFFF85C39), size: 20),
+              child: Icon(icon, color: const Color(0xFFF22F1D), size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -510,7 +519,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                       fontFamily: 'Poppins',
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1B1B1B),
+                      color: Colors.white,
                     ),
                   ),
                   Text(
@@ -518,7 +527,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 11,
-                      color: Colors.grey[500],
+                      color: Colors.white54,
                     ),
                   ),
                 ],
@@ -527,7 +536,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             Switch.adaptive(
               value: value,
               onChanged: enabled ? onChanged : null,
-              activeTrackColor: const Color(0xFFF85C39),
+              activeTrackColor: const Color(0xFFF22F1D),
             ),
           ],
         ),
@@ -554,11 +563,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
               decoration: BoxDecoration(
                 color: isDestructive
                     ? Colors.red.withOpacity(0.08)
-                    : Colors.grey[100],
+                    : Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon,
-                  color: isDestructive ? Colors.red[600] : Colors.grey[700],
+                  color: isDestructive ? Colors.red[600] : Colors.white70,
                   size: 20),
             ),
             const SizedBox(width: 14),
@@ -574,7 +583,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                       fontWeight: FontWeight.w500,
                       color: isDestructive
                           ? Colors.red[600]
-                          : const Color(0xFF1B1B1B),
+                          : Colors.white,
                     ),
                   ),
                   Text(
@@ -582,14 +591,14 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 11,
-                      color: Colors.grey[500],
+                      color: Colors.white54,
                     ),
                   ),
                 ],
               ),
             ),
             Icon(Icons.chevron_right,
-                color: Colors.grey[400], size: 22),
+                color: Colors.white30, size: 22),
           ],
         ),
       ),
@@ -608,10 +617,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFF1A0202),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.grey[700], size: 20),
+            child: Icon(icon, color: Colors.white70, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -621,7 +630,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                 fontFamily: 'Poppins',
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1B1B1B),
+                color: Colors.white,
               ),
             ),
           ),
@@ -629,7 +638,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFF1A0202),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -638,7 +647,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                 fontFamily: 'Poppins',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Colors.white70,
               ),
             ),
           ),
@@ -650,7 +659,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(color: Colors.grey[100], height: 1),
+      child: Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
     );
   }
 }

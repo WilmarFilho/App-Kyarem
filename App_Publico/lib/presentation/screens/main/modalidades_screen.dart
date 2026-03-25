@@ -4,6 +4,7 @@ import '../../../models/campeonato_model.dart';
 import '../../../models/modalidade_model.dart';
 import '../../../services/competicao_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
+import '../../widgets/layout/gradient_background.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
 
 class ModalidadesScreen extends StatefulWidget {
@@ -37,7 +38,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFF260404),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -50,23 +51,24 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
             Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
           },
         ),
-        title: Text(
+        title: const Text(
           'Modalidades',
-          style: const TextStyle(fontFamily: 'Bebas Neue', fontSize: 22),
+          style: TextStyle(fontFamily: 'Oswald', fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: const Color(0xFF110101),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: Stack(
         children: [
+          const GradientBackground(),
           FutureBuilder<List<Modalidade>>(
             future: _future,
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+                  child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
                 );
               }
 
@@ -81,10 +83,14 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                       children: [
                         const Text(
                           'Nenhuma modalidade encontrada.',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF22F1D),
+                            foregroundColor: Colors.white,
+                          ),
                           onPressed: _reload,
                           child: const Text('Tentar novamente'),
                         )
@@ -96,7 +102,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
 
               return RefreshIndicator(
                 onRefresh: _reload,
-                color: const Color(0xFFF85C39),
+                color: const Color(0xFFF22F1D),
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
                   itemCount: modalidades.length,
@@ -107,7 +113,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                     final subtitulo = (m.esporteNome ?? '').trim();
 
                     return Material(
-                      color: Colors.white,
+                      color: const Color(0xFF110101),
                       borderRadius: BorderRadius.circular(20),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(20),
@@ -130,10 +136,10 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF85C39).withOpacity(0.12),
+                                  color: const Color(0xFFF22F1D).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: const Icon(Icons.sports, color: Color(0xFFF85C39)),
+                                child: const Icon(Icons.sports, color: Color(0xFFF22F1D)),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -144,19 +150,19 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                                       titulo,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
                                     ),
                                     if (subtitulo.isNotEmpty) ...[
                                       const SizedBox(height: 4),
                                       Text(
                                         subtitulo,
-                                        style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w600),
+                                        style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
                                       ),
                                     ]
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_right, color: Colors.black45),
+                              const Icon(Icons.chevron_right, color: Colors.white30),
                             ],
                           ),
                         ),

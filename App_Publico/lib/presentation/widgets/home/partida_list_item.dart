@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Para formatar a data
+import 'package:intl/intl.dart';
 import 'package:kyarem_eventos_publico/models/partida_model.dart';
 
 class PartidaListItem extends StatelessWidget {
   final Partida partida;
   final VoidCallback? onTap;
 
-  const PartidaListItem({
-    super.key,
-    required this.partida,
-    this.onTap,
-  });
+  const PartidaListItem({super.key, required this.partida, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    // Formatação da data (Ex: 15 Out)
     final String dataFormatada = partida.iniciadaEm != null
         ? DateFormat('dd MMM', 'pt_BR').format(partida.iniciadaEm!)
         : '--/--';
@@ -22,18 +17,12 @@ class PartidaListItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: const Color(0xFF160202),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Row(
           children: [
@@ -42,32 +31,37 @@ class PartidaListItem extends StatelessWidget {
               children: [
                 Text(
                   dataFormatada.toUpperCase(),
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(partida.status).withOpacity(0.1),
+                    color: _getStatusColor(
+                      partida.status,
+                    ).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     partida.status == 'finalizada' ? 'FIM' : 'AGEND',
                     style: TextStyle(
                       color: _getStatusColor(partida.status),
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: 16),
-            
+            const SizedBox(width: 14),
+
             // Times e Placar
             Expanded(
               child: Column(
@@ -78,7 +72,7 @@ class PartidaListItem extends StatelessWidget {
                     partida.placarA,
                     venceu: partida.placarA > partida.placarB,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   _buildTeamRow(
                     partida.equipeB?.nome ?? 'Time B',
                     partida.equipeB?.atletica?.escudoUrl,
@@ -89,48 +83,53 @@ class PartidaListItem extends StatelessWidget {
               ),
             ),
 
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: Colors.white30, size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTeamRow(String nome, String? logoUrl, int placar, {bool venceu = false}) {
+  Widget _buildTeamRow(
+    String nome,
+    String? logoUrl,
+    int placar, {
+    bool venceu = false,
+  }) {
     return Row(
       children: [
-        // Escudo ou Inicial
         CircleAvatar(
           radius: 12,
-          backgroundColor: Colors.grey[200],
+          backgroundColor: const Color(0xFF2A0808),
           backgroundImage: logoUrl != null ? NetworkImage(logoUrl) : null,
           child: logoUrl == null
-              ? Text(nome[0], style: const TextStyle(fontSize: 10, color: Colors.black54))
+              ? Text(
+                  nome[0],
+                  style: const TextStyle(fontSize: 10, color: Colors.white54),
+                )
               : null,
         ),
         const SizedBox(width: 10),
-        
-        // Nome do Time
+
         Expanded(
           child: Text(
             nome,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: venceu ? FontWeight.bold : FontWeight.w500,
-              color: venceu ? Colors.black : Colors.black87,
+              color: venceu ? Colors.white : Colors.white70,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        
-        // Placar
+
         Text(
           placar.toString(),
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: venceu ? const Color(0xFFF85C39) : Colors.black54,
+            color: venceu ? const Color(0xFFF2561D) : Colors.white54,
           ),
         ),
       ],
@@ -139,9 +138,13 @@ class PartidaListItem extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'encerrada': return Colors.grey;
-      case 'em_andamento': return const Color(0xFFF85C39);
-      default: return Colors.blueAccent;
+      case 'encerrada':
+      case 'finalizada':
+        return Colors.grey;
+      case 'em_andamento':
+        return const Color(0xFFF22F1D);
+      default:
+        return const Color(0xFFF29422);
     }
   }
 }

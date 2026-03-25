@@ -100,7 +100,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(32),
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: Color(0xFF110101),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40), 
                         topRight: Radius.circular(40)
@@ -112,7 +112,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         children: [
                           const Text(
                             'Crie uma nova senha segura para o seu acesso.', 
-                            style: TextStyle(fontFamily: 'Poppins', color: Colors.black54)
+                            style: TextStyle(fontFamily: 'Poppins', color: Colors.white54)
                           ),
                           const SizedBox(height: 30),
                           

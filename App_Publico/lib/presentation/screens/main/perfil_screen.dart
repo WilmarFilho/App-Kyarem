@@ -122,7 +122,7 @@ class _PerfilScreenState extends State<PerfilScreen>
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: Color(0xFF1A0202),
           borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -133,7 +133,7 @@ class _PerfilScreenState extends State<PerfilScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Colors.white30,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -144,6 +144,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                 fontFamily: 'Poppins',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 20),
@@ -151,14 +152,14 @@ class _PerfilScreenState extends State<PerfilScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF85C39).withValues(alpha: 0.1),
+                  color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child:
-                    const Icon(Icons.camera_alt, color: Color(0xFFF85C39)),
+                    const Icon(Icons.camera_alt, color: Color(0xFFF22F1D)),
               ),
               title: const Text('Câmera',
-                  style: TextStyle(fontFamily: 'Poppins')),
+                  style: TextStyle(fontFamily: 'Poppins', color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
                 _uploadPhoto(ImageSource.camera);
@@ -169,14 +170,14 @@ class _PerfilScreenState extends State<PerfilScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF85C39).withValues(alpha: 0.1),
+                  color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.photo_library,
-                    color: Color(0xFFF85C39)),
+                    color: Color(0xFFF22F1D)),
               ),
               title: const Text('Galeria',
-                  style: TextStyle(fontFamily: 'Poppins')),
+                  style: TextStyle(fontFamily: 'Poppins', color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
                 _uploadPhoto(ImageSource.gallery);
@@ -262,10 +263,10 @@ class _PerfilScreenState extends State<PerfilScreen>
               const Text(
                 'MEU PERFIL',
                 style: TextStyle(
-                  fontFamily: 'Bebas Neue',
+                  fontFamily: 'Oswald',
                   fontSize: 26,
                   letterSpacing: 1.2,
-                  color: Color(0xFF1B1B1B),
+                  color: Colors.white,
                 ),
               ),
               if (!_editing)
@@ -275,7 +276,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF252525),
+                      color: const Color(0xFFF22F1D),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Row(
@@ -343,7 +344,7 @@ class _PerfilScreenState extends State<PerfilScreen>
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
+                  border: Border.all(color: const Color(0xFF110101), width: 4),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.15),
@@ -355,13 +356,13 @@ class _PerfilScreenState extends State<PerfilScreen>
                 child: _uploadingPhoto
                     ? const CircleAvatar(
                         radius: 55,
-                        backgroundColor: Color(0xFFE0E0E0),
+                        backgroundColor: Color(0xFF2A0808),
                         child: CircularProgressIndicator(
-                            color: Color(0xFFF85C39)),
+                            color: Color(0xFFF22F1D)),
                       )
                     : CircleAvatar(
                         radius: 55,
-                        backgroundColor: const Color(0xFFE0E0E0),
+                        backgroundColor: const Color(0xFF2A0808),
                         backgroundImage: _profile?.fotoUrl != null
                             ? NetworkImage(_profile!.fotoUrl!)
                             : null,
@@ -376,12 +377,12 @@ class _PerfilScreenState extends State<PerfilScreen>
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF85C39),
+                    color: const Color(0xFFF22F1D),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
+                    border: Border.all(color: const Color(0xFF110101), width: 2.5),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFF85C39).withValues(alpha: 0.3),
+                        color: const Color(0xFFF22F1D).withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -401,7 +402,7 @@ class _PerfilScreenState extends State<PerfilScreen>
               fontFamily: 'Poppins',
               fontSize: 22,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1B1B1B),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 6),
@@ -409,7 +410,7 @@ class _PerfilScreenState extends State<PerfilScreen>
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
-              color: const Color(0xFFF85C39).withValues(alpha: 0.12),
+              color: const Color(0xFFF22F1D).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -418,7 +419,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                 fontFamily: 'Poppins',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFFF85C39),
+                color: Color(0xFFF22F1D),
               ),
             ),
           ),
@@ -432,11 +433,11 @@ class _PerfilScreenState extends State<PerfilScreen>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF110101),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -490,7 +491,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                 child: ElevatedButton(
                   onPressed: _saving ? null : _saveProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF85C39),
+                    backgroundColor: const Color(0xFFF22F1D),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -539,10 +540,10 @@ class _PerfilScreenState extends State<PerfilScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF85C39).withValues(alpha: 0.08),
+              color: const Color(0xFFF22F1D).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFFF85C39), size: 22),
+            child: Icon(icon, color: const Color(0xFFF22F1D), size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -555,7 +556,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey[500],
+                    color: Colors.white54,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -568,7 +569,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                           fontFamily: 'Poppins',
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF1B1B1B),
+                          color: Colors.white,
                         ),
                         decoration: InputDecoration(
                           isDense: true,
@@ -578,16 +579,16 @@ class _PerfilScreenState extends State<PerfilScreen>
                           hintStyle: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 15,
-                            color: Colors.grey[400],
+                            color: Colors.white30,
                           ),
                           border: InputBorder.none,
                           enabledBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(
-                                color: Color(0xFFF85C39), width: 1.5),
+                                color: Color(0xFFF22F1D), width: 1.5),
                           ),
                           focusedBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(
-                                color: Color(0xFFF85C39), width: 2),
+                                color: Color(0xFFF22F1D), width: 2),
                           ),
                         ),
                       )
@@ -600,8 +601,8 @@ class _PerfilScreenState extends State<PerfilScreen>
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           color: controller.text.isEmpty
-                              ? Colors.grey[400]
-                              : const Color(0xFF1B1B1B),
+                              ? Colors.white30
+                              : Colors.white,
                         ),
                       ),
               ],
@@ -624,10 +625,10 @@ class _PerfilScreenState extends State<PerfilScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFF1A0202),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.grey[600], size: 22),
+            child: Icon(icon, color: Colors.white70, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -640,7 +641,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey[500],
+                    color: Colors.white54,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -651,14 +652,14 @@ class _PerfilScreenState extends State<PerfilScreen>
                     fontFamily: 'Poppins',
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1B1B1B),
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
           if (_editing)
-            Icon(Icons.lock_outline, color: Colors.grey[400], size: 18),
+            Icon(Icons.lock_outline, color: Colors.white30, size: 18),
         ],
       ),
     );
@@ -667,7 +668,7 @@ class _PerfilScreenState extends State<PerfilScreen>
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(color: Colors.grey[100], height: 1),
+      child: Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
     );
   }
 }

@@ -3,6 +3,7 @@ class Campeonato {
   final String nome;
   final String? nivel;
   final DateTime? dataInicio;
+  final String? escudoUrl;
   final DateTime? dataFim;
 
   Campeonato({
@@ -10,6 +11,7 @@ class Campeonato {
     required this.nome,
     this.nivel,
     this.dataInicio,
+    this.escudoUrl,
     this.dataFim,
   });
 
@@ -17,6 +19,7 @@ class Campeonato {
     return Campeonato(
       id: (map['id'] ?? '').toString(),
       nome: (map['nome'] ?? 'Sem nome').toString(),
+      escudoUrl: (map['escudoUrl'] ?? map['escudo_url'])?.toString(),
       // API: nivelCampeonato | Supabase: nivel_campeonato
       nivel: (map['nivelCampeonato'] ?? map['nivel_campeonato'])?.toString(),
       dataInicio: _parseDate(map['dataInicio'] ?? map['data_inicio']),

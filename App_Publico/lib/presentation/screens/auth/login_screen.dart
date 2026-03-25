@@ -16,7 +16,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  
   final AuthService _authService = AuthService(); // Instancia o service
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -75,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: Color(0xFF110101),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
@@ -98,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
                               fontSize: isSmallScreen ? 28 : 34,
-                              color: Colors.black,
+                              color: Colors.white,
                             ),
                           ),
                           SizedBox(height: isSmallScreen ? 25 : 35),
@@ -138,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       onChanged: (val) => setState(
                                         () => _remember = val ?? false,
                                       ),
-                                      activeColor: const Color(0xFFF85C39),
+                                      activeColor: const Color(0xFFF22F1D),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(4),
                                       ),
@@ -150,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     style: TextStyle(
                                       fontFamily: 'Poppins',
                                       fontSize: isSmallScreen ? 12 : 13,
-                                      color: Colors.black54,
+                                      color: Colors.white54,
                                     ),
                                   ),
                                 ],
@@ -162,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: TextStyle(
                                     fontFamily: 'Poppins',
                                     fontSize: isSmallScreen ? 12 : 13,
-                                    color: Colors.black54,
+                                    color: Colors.white54,
                                   ),
                                 ),
                               ),
@@ -204,17 +203,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                     style: TextStyle(
                                       fontFamily: 'Poppins',
                                       fontSize: isSmallScreen ? 12 : 13,
-                                      color: Colors.black.withOpacity(0.5),
+                                      color: Colors.white54,
                                       height: 1.4,
                                     ),
                                     children: [
                                       const TextSpan(
                                         text: 'Não tem conta ainda? ',
                                       ),
+                                      const TextSpan(text: '\n'),
                                       TextSpan(
                                         text: 'Cadastre-se aqui',
                                         style: TextStyle(
-                                          color: const Color(0xFFF85C39),
+                                          color: const Color(0xFFF22F1D),
                                           fontWeight: FontWeight.w700,
                                           decoration: TextDecoration
                                               .underline, // Opcional: adiciona um charme de link

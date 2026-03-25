@@ -100,7 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: Color(0xFF110101),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
@@ -122,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
                               fontSize: isSmallScreen ? 28 : 34,
-                              color: Colors.black,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 5),
@@ -131,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: isSmallScreen ? 13 : 14,
-                              color: Colors.black54,
+                              color: Colors.white54,
                             ),
                           ),
                           SizedBox(height: isSmallScreen ? 25 : 30),
@@ -192,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   style: const TextStyle(
                                     fontFamily: 'Poppins',
                                     fontSize: 14,
-                                    color: Colors.black54,
+                                    color: Colors.white54,
                                   ),
                                   children: [
                                     const TextSpan(text: 'Já tem uma conta? '),

@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,13 +26,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<Partida> _partidasDestaque = [];
   List<Partida> _historicoPartidas = [];
   bool _carregandoDados = true;
-  bool _verMeus = false;
+  List<Map<String, dynamic>> _modalidades = [];
+
+  // Scroll-driven header animation
+  final ScrollController _scrollController = ScrollController();
+  double _headerCollapseProgress = 0.0;
 
   late AnimationController _animationController;
   late List<Animation<double>> _fadeAnimations = [];
   late List<Animation<Offset>> _slideAnimations = [];
 
   late final Stream<List<Map<String, dynamic>>> _partidasRealtimeStream;
+
+  List<Map<String, dynamic>> _topArtilheiros = [];
+  List<Map<String, dynamic>> _topCestinhas = [];
 
   @override
   void initState() {
@@ -41,15 +49,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
     );
 
+    // Listener para animar o header com base no scroll
+    _scrollController.addListener(_onScroll);
+
     _partidasRealtimeStream = _supabase
         .from('partidas')
         .stream(primaryKey: ['id']);
 
     _carregarDadosReais();
+    _carregarDestaques();
 
     _partidasRealtimeStream.listen((_) {
       _carregarDadosReais(isRefresh: true);
     });
+  }
+
+  // 1. Ajuste na busca (buscando gols e pontos separadamente)
+  void _carregarDestaques() async {
+    try {
+      final resultados = await Future.wait([
+        _partidaService.buscarTopAtletas('GOL'),
+        _partidaService.buscarTopAtletas('GOL'), // Ajustado para PONTO
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _topArtilheiros = resultados[0];
+          _topCestinhas = resultados[1];
+        });
+      }
+    } catch (e) {
+      debugPrint("Erro ao carregar destaques: $e");
+    }
+  }
+
+  void _onScroll() {
+    const maxScroll = 120.0; // pixels para colapsar totalmente
+    final progress = (_scrollController.offset / maxScroll).clamp(0.0, 1.0);
+    if ((progress - _headerCollapseProgress).abs() > 0.01) {
+      setState(() => _headerCollapseProgress = progress);
+    }
   }
 
   void _initializeAnimations(int count) {
@@ -85,32 +124,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _carregarDadosReais({bool isRefresh = false}) async {
     if (!mounted) return;
-
     if (!isRefresh) setState(() => _carregandoDados = true);
 
     try {
+      final campeonatoId = dotenv.get('CAMPEONATO_ID');
+
       final resultados = await Future.wait([
         _partidaService.listarPartidasDestaque(),
         _partidaService.listarHistoricoPartidas(),
+        _partidaService.listarModalidades(campeonatoId),
       ]);
 
       if (mounted) {
         setState(() {
-          _partidasDestaque = resultados[0];
-          _historicoPartidas = resultados[1];
+          _partidasDestaque = resultados[0] as List<Partida>;
+          _historicoPartidas = resultados[1] as List<Partida>;
+          _modalidades = resultados[2] as List<Map<String, dynamic>>;
 
-          if (!isRefresh) {
-            _initializeAnimations(_partidasDestaque.length);
-          }
+          if (!isRefresh) _initializeAnimations(_partidasDestaque.length);
           _carregandoDados = false;
         });
-
         if (!isRefresh) _animationController.forward();
       }
     } catch (e) {
@@ -119,92 +160,106 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  // ─── SECTION TITLE HELPER ───
+  Widget _buildSectionTitle(String title, Color accentColor) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 28, 22, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 5,
+            height: 22,
+            decoration: BoxDecoration(
+              color: accentColor,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: GoogleFonts.oswald(
+              fontSize: 22,
+              color: Colors.white,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── BUILD ───
   @override
   Widget build(BuildContext context) {
+    // A altura do header diminui conforme o colapso
+    final headerHeight = (130.0 - (_headerCollapseProgress * 130)).clamp(
+      70.0,
+      170.0,
+    );
+
     return Scaffold(
       body: Stack(
         children: [
           const GradientBackground(),
+
+          // ── CONTEÚDO SCROLLÁVEL ──
           SafeArea(
             bottom: false,
             child: RefreshIndicator(
               onRefresh: _carregarDadosReais,
               color: const Color(0xFFF22F1D),
               backgroundColor: const Color(0xFF1A0202),
-              child: CustomScrollView(
+              child: ListView(
+                controller: _scrollController,
+                padding: EdgeInsets.only(top: headerHeight),
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
-                slivers: [
-                  // --- HEADER ANIMADO COM SLIVER APP BAR ---
-                  SliverAppBar(
-                    expandedHeight: 80.0,
-                    floating: true,
-                    pinned: true,
-                    elevation: 0,
-                    backgroundColor: const Color(
-                      0xFF160202,
-                    ).withValues(alpha: 0.95),
-                    flexibleSpace: const FlexibleSpaceBar(
-                      background: Padding(
-                        padding: EdgeInsets.only(top: 10),
-                        child: HomeHeader(),
-                      ),
-                    ),
+                children: [
+                  // ── 2. PARTIDAS AO VIVO ──
+                  _buildSectionTitle(
+                    "PARTIDAS AO VIVO",
+                    const Color(0xFFF22F1D),
                   ),
+                  _buildCardsSection(),
 
-                  // --- ESTATÍSTICAS (NOVO) ---
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 10, 22, 20),
-                      child: _buildStatsRow(),
-                    ),
+                  // ── 3. ÚLTIMAS FINALIZADAS ──
+                  _buildSectionTitle(
+                    "ÚLTIMAS FINALIZADAS",
+                    const Color(0xFFF22F1D),
                   ),
+                  _buildFinalizadasSection(),
 
-                  // --- PARTIDAS AO VIVO ---
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF22F1D),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "PARTIDAS AO VIVO",
-                            style: GoogleFonts.teko(
-                              fontSize: 26,
-                              color: Colors.white,
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // ── 5. ATLETAS MVP ──
+                  // No seu build, substitua as chamadas antigas por:
+                  _buildSectionTitle(
+                    "DESTAQUES DO CAMPEONATO",
+                    const Color(0xFFF22F1D),
                   ),
-                  SliverToBoxAdapter(child: _buildCardsSection()),
+                  _buildMvpSection([
+                    if (_topArtilheiros.isNotEmpty) _topArtilheiros.first,
+                    if (_topCestinhas.isNotEmpty) _topCestinhas.first,
+                  ]),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 30)),
-
-                  // --- LISTA DE HISTÓRICO FLUIDA ---
-                  SliverToBoxAdapter(child: _buildMainGamesSection()),
-
+                  // ── 4. MODALIDADES ──
+                  _buildSectionTitle("MODALIDADES", const Color(0xFFF22F1D)),
+                  _buildModalidadesSection(),
                   // Espaço para o Bottom Nav
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
           ),
+
+          // ── HEADER FIXO NO TOPO ──
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: HomeHeader(collapseProgress: _headerCollapseProgress),
+          ),
+
           const Align(
             alignment: Alignment.bottomCenter,
             child: BottomNavigationWidget(currentRoute: '/home'),
@@ -214,86 +269,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            "AO VIVO",
-            _partidasDestaque.length.toString(),
-            Icons.sensors,
-            const Color(0xFFF22F1D),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            "FINALIZADAS",
-            _historicoPartidas.length.toString(),
-            Icons.check_circle_outline,
-            const Color(0xFFF26B1D),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            "NOVIDADES",
-            "+2", // Exemplo genérico mockado
-            Icons.whatshot,
-            const Color(0xFFF29422),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF160202),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.teko(
-              fontSize: 26,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              height: 1.0,
-            ),
-          ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // ─── PARTIDAS AO VIVO ───
   Widget _buildCardsSection() {
     if (_carregandoDados && _partidasDestaque.isEmpty) {
       return const SizedBox(
@@ -305,16 +281,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     if (_partidasDestaque.isEmpty) {
-      // Estilização muito mais premium e disruptiva para o fallback do AppBar vazio
       return Container(
-        height: 185,
+        height: 160,
         margin: const EdgeInsets.symmetric(horizontal: 22),
         decoration: BoxDecoration(
           color: const Color(0xFF160202),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: const Color(0xFFF22F1D).withValues(alpha: 0.2),
-            width: 1.5,
+            color: const Color(0xFFF22F1D).withValues(alpha: 0.15),
           ),
         ),
         child: Stack(
@@ -325,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               bottom: -20,
               child: Icon(
                 Icons.sports_soccer,
-                size: 150,
+                size: 140,
                 color: Colors.white.withValues(alpha: 0.03),
               ),
             ),
@@ -339,23 +313,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.info_outline,
+                    Icons.sports,
                     color: Color(0xFFF22F1D),
-                    size: 28,
+                    size: 26,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   "QUADRAS VAZIAS NO MOMENTO",
-                  style: GoogleFonts.teko(
-                    fontSize: 24,
+                  style: GoogleFonts.oswald(
+                    fontSize: 18,
                     color: Colors.white,
-                    letterSpacing: 1.0,
+                    letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  "Siga acompanhando o app para novidades.",
+                  "Acompanhe o app para novidades!",
                   style: TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
@@ -389,83 +363,277 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMainGamesSection() {
+  // ─── ÚLTIMAS FINALIZADAS ───
+  Widget _buildFinalizadasSection() {
+    if (_carregandoDados && _historicoPartidas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(30),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF2561D)),
+        ),
+      );
+    }
+
+    if (_historicoPartidas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+        child: Text(
+          "Nenhuma partida finalizada recentemente.",
+          style: TextStyle(color: Colors.white54, fontSize: 13),
+        ),
+      );
+    }
+
+    return Column(
+      children: _historicoPartidas.take(5).map((partida) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 5),
+          child: PartidaListItem(
+            partida: partida,
+            onTap: () => _navegarParaPartida(context, partida),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ─── MODALIDADES ───
+  Widget _buildModalidadesSection() {
+    if (_carregandoDados && _modalidades.isEmpty) {
+      return const SizedBox(
+        height: 110,
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 110,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        physics: const BouncingScrollPhysics(),
+        itemCount: _modalidades.length,
+        itemBuilder: (context, index) {
+          final mod = _modalidades[index];
+          // Pegamos o nome e normalizamos para comparar
+          final nomeMod = mod['nome'].toString().toUpperCase();
+
+          // 1. Definir ÍCONE baseado no NOME
+          final IconData iconData = switch (nomeMod) {
+            String s when s.contains('FUTSAL') || s.contains('FUTEBOL') =>
+              Icons.sports_soccer,
+            String s when s.contains('VÔLEI') || s.contains('VOLEI') =>
+              Icons.sports_volleyball,
+            String s when s.contains('BASQUETE') || s.contains('BASKET') =>
+              Icons.sports_basketball,
+            String s when s.contains('HANDEBOL') => Icons.sports_handball,
+            String s when s.contains('TÊNIS') || s.contains('TENIS') =>
+              Icons.sports_tennis,
+            _ => Icons.sports, // Ícone padrão para outros
+          };
+
+          // 2. Definir COR baseado no NOME
+          final Color modColor = switch (nomeMod) {
+            String s when s.contains('FUTSAL') => const Color(
+              0xFFF22F1D,
+            ), // Vermelho
+            String s when s.contains('VÔLEI') => const Color(
+              0xFFF2561D,
+            ), // Laranja
+            String s when s.contains('BASQUETE') => const Color(
+              0xFFF26B1D,
+            ), // Laranja Escuro
+            String s when s.contains('HANDEBOL') => const Color(
+              0xFFF29422,
+            ), // Âmbar
+            _ => const Color(0xFFF22F1D), // Cor padrão
+          };
+
+          return GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/modalidades'),
+            child: Container(
+              width: 130,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF160202),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: modColor.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: modColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(iconData, color: modColor, size: 26),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    nomeMod,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMvpSection(List<Map<String, dynamic>> destaques) {
+    if (destaques.isEmpty) return const SizedBox.shrink();
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF110101),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white, // Fundo branco solicitado
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(25, 30, 25, 15),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: destaques.map((atleta) {
+          final bool isLast = destaques.last == atleta;
+          final Color primaryColor = atleta['label'].toString().contains('GOL')
+              ? const Color(0xFFF22F1D)
+              : const Color(0xFFF2561D);
+
+          return Container(
+            width: double.infinity,
+            margin: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: isLast ? 0 : 20,
+            ),
+            height: 140,
+            decoration: BoxDecoration(
+              color: const Color(
+                0xFFF8F8F8,
+              ), // Cinza muito claro para o card interno
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.black12),
+            ),
+            child: Stack(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2561D),
-                        borderRadius: BorderRadius.circular(3),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      // Foto do Atleta ou Placeholder
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          image: atleta['foto'] != null
+                              ? DecorationImage(
+                                  image: NetworkImage(atleta['foto']),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          border: Border.all(
+                            color: primaryColor.withValues(alpha: 0.2),
+                            width: 2,
+                          ),
+                        ),
+                        child: atleta['foto'] == null
+                            ? Icon(
+                                Icons.person,
+                                size: 40,
+                                color: primaryColor.withValues(alpha: 0.3),
+                              )
+                            : null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "HISTÓRICO",
-                      style: GoogleFonts.teko(
-                        fontSize: 24,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(width: 16),
+
+                      // Informações
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Label + Valor juntos no Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    atleta['valor'] ?? '0',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    // Tradução: Pega o label, e se o valor convertido para int for > 1, adiciona 'S'
+                                    "${atleta['label']}${int.tryParse(atleta['valor'].toString()) != null && int.parse(atleta['valor'].toString()) > 1 ? 'S' : ''}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              atleta['nome']?.toUpperCase() ?? '',
+                              style: GoogleFonts.oswald(
+                                color: const Color(0xFF1A0202),
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              atleta['modalidade'] ?? '',
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () => setState(() => _verMeus = !_verMeus),
-                  child: Text(
-                    _verMeus ? 'Ver Tudo' : 'Meus Favoritos',
-                    style: TextStyle(
-                      color: _verMeus
-                          ? const Color(0xFFF22F1D)
-                          : Colors.white60,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-          if (_carregandoDados && _historicoPartidas.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(40),
-              child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
-            )
-          else if (_historicoPartidas.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(40),
-              child: Text(
-                "Nenhuma partida finalizada recentemente.",
-                style: TextStyle(color: Colors.white70),
-              ),
-            )
-          else
-            ..._historicoPartidas.map(
-              (partida) => Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 8,
-                ),
-                child: PartidaListItem(
-                  partida: partida,
-                  onTap: () => _navegarParaPartida(context, partida),
-                ),
-              ),
-            ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
