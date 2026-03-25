@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -53,17 +54,18 @@ class HomeHeader extends StatelessWidget {
                     'Olá $displayUserName,',
                     style: const TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 20,
-                      color: Color(0xFF1B1B1B),
+                      fontSize: 16,
+                      color: Colors.white70,
                     ),
                   ),
-                  const Text(
-                    'Seja bem vindo!',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1B1B1B),
+                  Text(
+                    'SEJA BEM VINDO!',
+                    style: GoogleFonts.teko(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                      height: 1.0,
+                      letterSpacing: 1.0,
                     ),
                   ),
                 ],
@@ -75,22 +77,38 @@ class HomeHeader extends StatelessWidget {
               // Botão de Logout
               GestureDetector(
                 onTap: () => _logout(context),
-                child: const CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Color(0xFF555555),
-                  child: Icon(Icons.logout, color: Colors.white, size: 22),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFF22F1D).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.logout,
+                    color: Color(0xFFF22F1D),
+                    size: 22,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               // Botão de Perfil
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/perfil'),
-                child: const CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Color(0xFF555555),
-                  child: Icon(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFF22F1D).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Icon(
                     Icons.person_outline,
-                    color: Colors.white,
+                    color: Color(0xFFF22F1D),
                     size: 22,
                   ),
                 ),

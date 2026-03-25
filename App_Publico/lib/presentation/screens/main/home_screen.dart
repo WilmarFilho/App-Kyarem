@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kyarem_eventos_publico/models/partida_model.dart';
 import '../../../services/partida_service.dart';
-import '../game/partida_screen.dart'; // Certifique-se que aponta para JogoDetalhesScreen
+import '../game/partida_screen.dart';
 
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -30,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late List<Animation<double>> _fadeAnimations = [];
   late List<Animation<Offset>> _slideAnimations = [];
 
-  // Stream que escuta qualquer mudança na tabela de partidas
   late final Stream<List<Map<String, dynamic>>> _partidasRealtimeStream;
 
   @override
@@ -41,15 +41,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
     );
 
-    // Inicializa o Stream do Supabase focado na tabela 'partidas'
     _partidasRealtimeStream = _supabase
         .from('partidas')
         .stream(primaryKey: ['id']);
 
     _carregarDadosReais();
 
-    // Ouvinte do Stream: Toda vez que algo mudar no banco, recarregamos as listas
-    // Isso garante que o placar mude na Home assim que mudar no banco
     _partidasRealtimeStream.listen((_) {
       _carregarDadosReais(isRefresh: true);
     });
@@ -92,11 +89,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  /// Carrega os dados usando o Service (que já traz as relações de nomes de times)
   Future<void> _carregarDadosReais({bool isRefresh = false}) async {
     if (!mounted) return;
 
-    // Só mostra o loading circular na primeira carga
     if (!isRefresh) setState(() => _carregandoDados = true);
 
     try {
@@ -129,39 +124,83 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          const GradientBackground(heightFactor: 0.85),
+          const GradientBackground(),
           SafeArea(
+            bottom: false,
             child: RefreshIndicator(
               onRefresh: _carregarDadosReais,
-              color: const Color(0xFFF85C39),
+              color: const Color(0xFFF22F1D),
+              backgroundColor: const Color(0xFF1A0202),
               child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
                 slivers: [
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                  const SliverToBoxAdapter(child: HomeHeader()),
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 15,
+                  // --- HEADER ANIMADO COM SLIVER APP BAR ---
+                  SliverAppBar(
+                    expandedHeight: 80.0,
+                    floating: true,
+                    pinned: true,
+                    elevation: 0,
+                    backgroundColor: const Color(
+                      0xFF160202,
+                    ).withValues(alpha: 0.95),
+                    flexibleSpace: const FlexibleSpaceBar(
+                      background: Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: HomeHeader(),
                       ),
-                      child: Text(
-                        "PARTIDAS AO VIVO",
-                        style: TextStyle(
-                          fontFamily: 'Bebas Neue',
-                          fontSize: 22,
-                          color: Color.fromARGB(255, 32, 32, 32),
-                          letterSpacing: 1.2,
-                        ),
+                    ),
+                  ),
+
+                  // --- ESTATÍSTICAS (NOVO) ---
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(22, 10, 22, 20),
+                      child: _buildStatsRow(),
+                    ),
+                  ),
+
+                  // --- PARTIDAS AO VIVO ---
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF22F1D),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "PARTIDAS AO VIVO",
+                            style: GoogleFonts.teko(
+                              fontSize: 26,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   SliverToBoxAdapter(child: _buildCardsSection()),
-                  const SliverToBoxAdapter(child: SizedBox(height: 25)),
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _buildMainGamesSection(),
-                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 30)),
+
+                  // --- LISTA DE HISTÓRICO FLUIDA ---
+                  SliverToBoxAdapter(child: _buildMainGamesSection()),
+
+                  // Espaço para o Bottom Nav
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
             ),
@@ -175,30 +214,153 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildStatsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            "AO VIVO",
+            _partidasDestaque.length.toString(),
+            Icons.sensors,
+            const Color(0xFFF22F1D),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            "FINALIZADAS",
+            _historicoPartidas.length.toString(),
+            Icons.check_circle_outline,
+            const Color(0xFFF26B1D),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            "NOVIDADES",
+            "+2", // Exemplo genérico mockado
+            Icons.whatshot,
+            const Color(0xFFF29422),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF160202),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.teko(
+              fontSize: 26,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              height: 1.0,
+            ),
+          ),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardsSection() {
     if (_carregandoDados && _partidasDestaque.isEmpty) {
       return const SizedBox(
-        height: 160,
-        child: Center(child: CircularProgressIndicator(color: Colors.white)),
+        height: 185,
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+        ),
       );
     }
 
     if (_partidasDestaque.isEmpty) {
+      // Estilização muito mais premium e disruptiva para o fallback do AppBar vazio
       return Container(
-        height: 160,
+        height: 185,
         margin: const EdgeInsets.symmetric(horizontal: 22),
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 33, 33, 33).withOpacity(0.2),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Center(
-          child: Text(
-            "Nenhuma partida ao vivo no momento",
-            style: TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-            ),
+          color: const Color(0xFF160202),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0xFFF22F1D).withValues(alpha: 0.2),
+            width: 1.5,
           ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Icon(
+                Icons.sports_soccer,
+                size: 150,
+                color: Colors.white.withValues(alpha: 0.03),
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFFF22F1D),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "QUADRAS VAZIAS NO MOMENTO",
+                  style: GoogleFonts.teko(
+                    fontSize: 24,
+                    color: Colors.white,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Siga acompanhando o app para novidades.",
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
         ),
       );
     }
@@ -230,15 +392,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildMainGamesSection() {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFF8F9FA),
+        color: Color(0xFF110101),
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -247,13 +402,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "HISTÓRICO",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Bebas Neue',
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2561D),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "HISTÓRICO",
+                      style: GoogleFonts.teko(
+                        fontSize: 24,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 GestureDetector(
                   onTap: () => setState(() => _verMeus = !_verMeus),
@@ -261,8 +430,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _verMeus ? 'Ver Tudo' : 'Meus Favoritos',
                     style: TextStyle(
                       color: _verMeus
-                          ? const Color(0xFFF85C39)
-                          : Colors.grey[600],
+                          ? const Color(0xFFF22F1D)
+                          : Colors.white60,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -273,29 +442,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           if (_carregandoDados && _historicoPartidas.isEmpty)
             const Padding(
               padding: EdgeInsets.all(40),
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
             )
           else if (_historicoPartidas.isEmpty)
             const Padding(
               padding: EdgeInsets.all(40),
-              child: Text("Nenhuma partida finalizada recentemente."),
+              child: Text(
+                "Nenhuma partida finalizada recentemente.",
+                style: TextStyle(color: Colors.white70),
+              ),
             )
           else
-            ..._historicoPartidas
-                .map(
-                  (partida) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 8,
-                    ),
-                    child: PartidaListItem(
-                      partida: partida,
-                      onTap: () => _navegarParaPartida(context, partida),
-                    ),
-                  ),
-                )
-                .toList(),
-          const SizedBox(height: 100),
+            ..._historicoPartidas.map(
+              (partida) => Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 8,
+                ),
+                child: PartidaListItem(
+                  partida: partida,
+                  onTap: () => _navegarParaPartida(context, partida),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -319,6 +488,5 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
     ).then((_) => _carregarDadosReais(isRefresh: true));
-    // O .then() garante que ao voltar, a home atualize os dados uma última vez por segurança
   }
 }

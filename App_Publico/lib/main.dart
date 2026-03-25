@@ -69,9 +69,16 @@ class MyApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF260404),
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFF85C39), // Usei a cor do seu botão
+          brightness: Brightness.dark,
+          seedColor: const Color(0xFFF22F1D),
+          surface: const Color(0xFF260404),
+          primary: const Color(0xFFF22F1D),
+          secondary: const Color(0xFFF2561D),
+          tertiary: const Color(0xFFF26B1D),
         ),
         fontFamily: 'Poppins', // Define Poppins como padrão para o app
       ),
