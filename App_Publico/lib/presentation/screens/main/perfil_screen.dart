@@ -22,7 +22,6 @@ class _PerfilScreenState extends State<PerfilScreen>
   bool _loading = true;
   bool _editing = false;
   bool _saving = false;
-  bool _uploadingPhoto = false;
 
   late TextEditingController _nomeController;
   late TextEditingController _telefoneController;
@@ -189,10 +188,8 @@ class _PerfilScreenState extends State<PerfilScreen>
     );
     if (image == null) return;
 
-    setState(() => _uploadingPhoto = true);
     final url = await _profileService.uploadProfilePhoto(File(image.path));
     if (mounted) {
-      setState(() => _uploadingPhoto = false);
       if (url != null) {
         _loadProfile();
       }
