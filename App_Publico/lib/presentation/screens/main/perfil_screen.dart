@@ -325,7 +325,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    _profile?.roleLabel?.toUpperCase() ?? 'ALUNO',
+                    _profile?.roleLabel.toUpperCase() ?? 'ALUNO',
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 10,
