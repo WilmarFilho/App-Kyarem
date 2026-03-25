@@ -32,17 +32,15 @@ class ProfileService {
   Future<bool> updateProfile({
     required String nomeExibicao,
     String? telefone,
-    String? universidade,
   }) async {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) return false;
 
-      await _supabase.from('profiles').update({
-        'nome_exibicao': nomeExibicao,
-        'telefone': telefone,
-        'universidade': universidade,
-      }).eq('id', user.id);
+      await _supabase
+          .from('profiles')
+          .update({'nome_exibicao': nomeExibicao, 'telefone': telefone})
+          .eq('id', user.id);
 
       return true;
     } catch (e) {
@@ -61,23 +59,28 @@ class ProfileService {
       final filePath = '${user.id}/avatar.$fileExt';
 
       // Upload ao bucket 'avatars'
-      await _supabase.storage.from('avatars').upload(
+      await _supabase.storage
+          .from('avatars')
+          .upload(
             filePath,
             imageFile,
             fileOptions: const FileOptions(upsert: true),
           );
 
       // Pega a URL pública
-      final publicUrl =
-          _supabase.storage.from('avatars').getPublicUrl(filePath);
+      final publicUrl = _supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
 
       // Adiciona timestamp para cache busting
-      final urlWithCacheBust = '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      final urlWithCacheBust =
+          '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 
       // Atualiza no perfil
-      await _supabase.from('profiles').update({
-        'foto_url': urlWithCacheBust,
-      }).eq('id', user.id);
+      await _supabase
+          .from('profiles')
+          .update({'foto_url': urlWithCacheBust})
+          .eq('id', user.id);
 
       return urlWithCacheBust;
     } catch (e) {

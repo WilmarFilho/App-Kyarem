@@ -26,7 +26,6 @@ class _PerfilScreenState extends State<PerfilScreen>
 
   late TextEditingController _nomeController;
   late TextEditingController _telefoneController;
-  late TextEditingController _universidadeController;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -36,7 +35,6 @@ class _PerfilScreenState extends State<PerfilScreen>
     super.initState();
     _nomeController = TextEditingController();
     _telefoneController = TextEditingController();
-    _universidadeController = TextEditingController();
 
     _animController = AnimationController(
       vsync: this,
@@ -54,7 +52,6 @@ class _PerfilScreenState extends State<PerfilScreen>
   void dispose() {
     _nomeController.dispose();
     _telefoneController.dispose();
-    _universidadeController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -68,7 +65,6 @@ class _PerfilScreenState extends State<PerfilScreen>
         if (profile != null) {
           _nomeController.text = profile.nomeExibicao ?? '';
           _telefoneController.text = profile.telefone ?? '';
-          _universidadeController.text = profile.universidade ?? '';
         }
       });
       _animController.forward();
@@ -82,9 +78,6 @@ class _PerfilScreenState extends State<PerfilScreen>
       telefone: _telefoneController.text.trim().isEmpty
           ? null
           : _telefoneController.text.trim(),
-      universidade: _universidadeController.text.trim().isEmpty
-          ? null
-          : _universidadeController.text.trim(),
     );
     if (mounted) {
       setState(() {
@@ -93,23 +86,15 @@ class _PerfilScreenState extends State<PerfilScreen>
       });
       if (success) {
         _loadProfile();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Perfil atualizado com sucesso!'),
-            backgroundColor: const Color(0xFF2E7D32),
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Erro ao atualizar perfil'),
             backgroundColor: Colors.red[700],
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -155,11 +140,12 @@ class _PerfilScreenState extends State<PerfilScreen>
                   color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child:
-                    const Icon(Icons.camera_alt, color: Color(0xFFF22F1D)),
+                child: const Icon(Icons.camera_alt, color: Color(0xFFF22F1D)),
               ),
-              title: const Text('Câmera',
-                  style: TextStyle(fontFamily: 'Poppins', color: Colors.white)),
+              title: const Text(
+                'Câmera',
+                style: TextStyle(fontFamily: 'Poppins', color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _uploadPhoto(ImageSource.camera);
@@ -173,11 +159,15 @@ class _PerfilScreenState extends State<PerfilScreen>
                   color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.photo_library,
-                    color: Color(0xFFF22F1D)),
+                child: const Icon(
+                  Icons.photo_library,
+                  color: Color(0xFFF22F1D),
+                ),
               ),
-              title: const Text('Galeria',
-                  style: TextStyle(fontFamily: 'Poppins', color: Colors.white)),
+              title: const Text(
+                'Galeria',
+                style: TextStyle(fontFamily: 'Poppins', color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _uploadPhoto(ImageSource.gallery);
@@ -205,15 +195,6 @@ class _PerfilScreenState extends State<PerfilScreen>
       setState(() => _uploadingPhoto = false);
       if (url != null) {
         _loadProfile();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Foto atualizada!'),
-            backgroundColor: const Color(0xFF2E7D32),
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
       }
     }
   }
@@ -227,17 +208,23 @@ class _PerfilScreenState extends State<PerfilScreen>
           SafeArea(
             child: _loading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                        color: Color(0xFFF85C39)))
+                    child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+                  )
                 : FadeTransition(
                     opacity: _fadeAnimation,
                     child: CustomScrollView(
                       physics: const BouncingScrollPhysics(),
                       slivers: [
+                        const SliverToBoxAdapter(child: SizedBox(height: 60)),
                         SliverToBoxAdapter(child: _buildHeader()),
-                        SliverToBoxAdapter(child: _buildProfileCard()),
-                        const SliverToBoxAdapter(
-                            child: SizedBox(height: 100)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                        // MUDANÇA AQUI: Trocamos SliverToBoxAdapter por SliverFillRemaining
+                        SliverFillRemaining(
+                          hasScrollBody:
+                              false, // Permite que a Column interna use Spacer
+                          child: _buildProfileCard(),
+                        ),
                       ],
                     ),
                   ),
@@ -252,178 +239,106 @@ class _PerfilScreenState extends State<PerfilScreen>
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 15, 22, 0),
-      child: Column(
-        children: [
-          // Top bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'MEU PERFIL',
-                style: TextStyle(
-                  fontFamily: 'Oswald',
-                  fontSize: 26,
-                  letterSpacing: 1.2,
-                  color: Colors.white,
-                ),
-              ),
-              if (!_editing)
-                GestureDetector(
-                  onTap: () => setState(() => _editing = true),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF22F1D),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.edit, color: Colors.white, size: 16),
-                        SizedBox(width: 6),
-                        Text(
-                          'Editar',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                GestureDetector(
-                  onTap: () {
-                    setState(() => _editing = false);
-                    // Reset controllers to original values
-                    if (_profile != null) {
-                      _nomeController.text = _profile!.nomeExibicao ?? '';
-                      _telefoneController.text = _profile!.telefone ?? '';
-                      _universidadeController.text =
-                          _profile!.universidade ?? '';
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[600],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.close, color: Colors.white, size: 16),
-                        SizedBox(width: 6),
-                        Text(
-                          'Cancelar',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 22),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          const SizedBox(height: 25),
-          // Avatar
+        ],
+      ),
+      child: Row(
+        children: [
+          // Coluna da Esquerda: Foto
           Stack(
             alignment: Alignment.bottomRight,
             children: [
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF110101), width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  border: Border.all(color: const Color(0xFFF5F5F5), width: 3),
                 ),
-                child: _uploadingPhoto
-                    ? const CircleAvatar(
-                        radius: 55,
-                        backgroundColor: Color(0xFF2A0808),
-                        child: CircularProgressIndicator(
-                            color: Color(0xFFF22F1D)),
-                      )
-                    : CircleAvatar(
-                        radius: 55,
-                        backgroundColor: const Color(0xFF2A0808),
-                        backgroundImage: _profile?.fotoUrl != null
-                            ? NetworkImage(_profile!.fotoUrl!)
-                            : null,
-                        child: _profile?.fotoUrl == null
-                            ? const Icon(Icons.person,
-                                size: 50, color: Colors.white)
-                            : null,
-                      ),
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: const Color(0xFFEEEEEE),
+                  backgroundImage: _profile?.fotoUrl != null
+                      ? NetworkImage(_profile!.fotoUrl!)
+                      : null,
+                  child: _profile?.fotoUrl == null
+                      ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                      : null,
+                ),
               ),
               GestureDetector(
                 onTap: _pickAndUploadPhoto,
                 child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF22F1D),
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF22F1D),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF110101), width: 2.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFF22F1D).withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
                   ),
-                  child: const Icon(Icons.camera_alt,
-                      color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 14,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          // Nome e Role badge
-          Text(
-            _profile?.nomeExibicao ?? 'Usuário',
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          const SizedBox(width: 20),
+          // Coluna da Direita: Nome e Email
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _profile?.nomeExibicao ?? 'Usuário',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                Text(
+                  _profile?.email ?? '---',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Badge de Role
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF22F1D).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _profile?.roleLabel?.toUpperCase() ?? 'ALUNO',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF22F1D),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF22F1D).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              _profile?.roleLabel ?? 'Aluno',
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFF22F1D),
-              ),
-            ),
-          ),
-          const SizedBox(height: 25),
         ],
       ),
     );
@@ -431,32 +346,22 @@ class _PerfilScreenState extends State<PerfilScreen>
 
   Widget _buildProfileCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 20, right: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF110101),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: const Color(0xFF110101).withOpacity(0.8),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
       ),
       child: Column(
+        // MainAxisSize.max garante que a coluna tente ocupar o espaço total do Container
+        mainAxisSize: MainAxisSize.max,
         children: [
-          const SizedBox(height: 24),
+          const SizedBox(height: 30),
           _buildField(
             icon: Icons.person_outline,
             label: 'Nome de Exibição',
             controller: _nomeController,
             editable: _editing,
-          ),
-          _buildDivider(),
-          _buildInfoField(
-            icon: Icons.email_outlined,
-            label: 'E-mail',
-            value: _profile?.email ?? '---',
           ),
           _buildDivider(),
           _buildField(
@@ -465,15 +370,6 @@ class _PerfilScreenState extends State<PerfilScreen>
             controller: _telefoneController,
             editable: _editing,
             keyboardType: TextInputType.phone,
-            placeholder: 'Adicionar telefone',
-          ),
-          _buildDivider(),
-          _buildField(
-            icon: Icons.school_outlined,
-            label: 'Universidade',
-            controller: _universidadeController,
-            editable: _editing,
-            placeholder: 'Adicionar universidade',
           ),
           _buildDivider(),
           _buildInfoField(
@@ -481,45 +377,71 @@ class _PerfilScreenState extends State<PerfilScreen>
             label: 'Cargo',
             value: _profile?.roleLabel ?? 'Aluno',
           ),
-          if (_editing) ...[
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF22F1D),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
+
+          const SizedBox(height: 30),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            child: SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _saving
+                    ? null
+                    : () {
+                        if (_editing) {
+                          _saveProfile(); // Se estiver editando, salva
+                        } else {
+                          setState(
+                            () => _editing = true,
+                          ); // Se não, entra em modo edição
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  // Se estiver salvando, deixa o botão um pouco mais escuro/desabilitado
+                  backgroundColor: _saving
+                      ? const Color(0xFFF22F1D).withOpacity(0.7)
+                      : const Color.fromARGB(255, 255, 255, 255),
+                  foregroundColor:
+                      Colors.white, // Define a cor do texto/ripple como branco
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: _saving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : const Text(
-                          'Salvar Alterações',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                  elevation: 0,
                 ),
+                child: _saving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Color.fromARGB(255, 14, 14, 14),
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        _editing ? 'SALVAR ALTERAÇÕES' : 'EDITAR PERFIL',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color.fromARGB(
+                            255,
+                            25,
+                            25,
+                            25,
+                          ), // Garante que o texto seja branco
+                        ),
+                      ),
               ),
             ),
-          ],
-          const SizedBox(height: 24),
+          ),
+
+          // Este Spacer ou Expanded empurra o conteúdo para cima
+          // e garante que o fundo preto continue até o final
+          const Spacer(),
+
+          // Margem final para não ficar colado na BottomNavigation
+          const SizedBox(height: 120),
         ],
       ),
     );
@@ -573,8 +495,9 @@ class _PerfilScreenState extends State<PerfilScreen>
                         ),
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 4),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                          ),
                           hintText: placeholder,
                           hintStyle: TextStyle(
                             fontFamily: 'Poppins',
@@ -584,11 +507,15 @@ class _PerfilScreenState extends State<PerfilScreen>
                           border: InputBorder.none,
                           enabledBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(
-                                color: Color(0xFFF22F1D), width: 1.5),
+                              color: Color(0xFFF22F1D),
+                              width: 1.5,
+                            ),
                           ),
                           focusedBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(
-                                color: Color(0xFFF22F1D), width: 2),
+                              color: Color(0xFFF22F1D),
+                              width: 2,
+                            ),
                           ),
                         ),
                       )

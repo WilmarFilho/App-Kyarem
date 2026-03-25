@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     // A altura do header diminui conforme o colapso
-    final headerHeight = (130.0 - (_headerCollapseProgress * 130)).clamp(
+    final headerHeight = (155.0 - (_headerCollapseProgress * 150)).clamp(
       70.0,
       170.0,
     );

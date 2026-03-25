@@ -85,7 +85,7 @@ class HomeHeader extends StatelessWidget {
     final contentOpacity = (1.0 - collapseProgress * 2.5).clamp(0.0, 1.0);
     final searchOpacity = ((collapseProgress - 0.6) / 0.4).clamp(0.0, 1.0);
     final waveHeight = 30.0 * (1.0 - collapseProgress);
-    final headerHeight = 120.0 + (waveHeight) - (collapseProgress * 50);
+    final headerHeight = 150.0 + (waveHeight) - (collapseProgress * 50);
 
     return ClipPath(
       clipper: _WaveClipper(waveHeight: waveHeight),
@@ -162,7 +162,7 @@ class HomeHeader extends StatelessWidget {
                   Opacity(
                     opacity: searchOpacity,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.only(top: 5),
                       child: GestureDetector(
                         onTap: () => Navigator.push(
                           context,

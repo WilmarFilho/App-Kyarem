@@ -3,14 +3,33 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AuthHeader extends StatelessWidget {
+class AuthHeader extends StatefulWidget {
   final bool isSmall;
 
   const AuthHeader({super.key, this.isSmall = false});
 
-  Future<Map<String, dynamic>> _fetchCampeonato() async {
-    final campeonatoId = dotenv.get('CAMPEONATO_ID');
+  @override
+  State<AuthHeader> createState() => _AuthHeaderState();
+}
 
+class _AuthHeaderState extends State<AuthHeader> {
+  // CACHE ESTÁTICO: Fica na memória durante toda a vida do App
+  static Map<String, dynamic>? _cachedCampeonato;
+  late Future<Map<String, dynamic>> _campeonatoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Se já tivermos o cache, retornamos ele imediatamente, senão fazemos o fetch
+    _campeonatoFuture = _getCameponatoData();
+  }
+
+  Future<Map<String, dynamic>> _getCameponatoData() async {
+    if (_cachedCampeonato != null) {
+      return _cachedCampeonato!;
+    }
+
+    final campeonatoId = dotenv.get('CAMPEONATO_ID');
     try {
       final res = await Supabase.instance.client
           .from('campeonatos')
@@ -18,6 +37,7 @@ class AuthHeader extends StatelessWidget {
           .eq('id', campeonatoId)
           .single();
 
+      _cachedCampeonato = res; // Salva no cache para a próxima vez
       return res;
     } catch (e) {
       debugPrint('Erro ao buscar campeonato: $e');
@@ -30,18 +50,17 @@ class AuthHeader extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: isSmall ? 25 : 40),
+        padding: EdgeInsets.symmetric(vertical: widget.isSmall ? 25 : 40),
         child: FutureBuilder<Map<String, dynamic>>(
-          future: _fetchCampeonato(),
+          future: _campeonatoFuture, // Usa a variável inicializada no initState
           builder: (context, snapshot) {
-            // Exibe loading enquanto espera os dados
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                _cachedCampeonato == null) {
               return const Center(
                 child: CircularProgressIndicator(color: Colors.white),
               );
             }
 
-            // Caso ocorra erro (ID inexistente ou falha de rede)
             if (snapshot.hasError || !snapshot.hasData) {
               return const Center(
                 child: Icon(Icons.error_outline, color: Colors.white),
@@ -56,24 +75,23 @@ class AuthHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(isSmall ? 8 : 12),
+                  borderRadius: BorderRadius.circular(widget.isSmall ? 8 : 12),
                   child: Image.network(
                     escudoUrl,
-                    width: isSmall ? 60 : 80,
-                    height: isSmall ? 60 : 80,
+                    width: widget.isSmall ? 60 : 80,
+                    height: widget.isSmall ? 60 : 80,
                     fit: BoxFit.cover,
-                    // Caso a URL falhe ao carregar a imagem real
                     errorBuilder: (context, error, stackTrace) =>
                         _buildDefaultLogo(),
                   ),
                 ),
-                SizedBox(height: isSmall ? 10 : 16),
+                SizedBox(height: widget.isSmall ? 10 : 16),
                 Text(
                   nomeCampeonato.toUpperCase(),
                   style: TextStyle(
                     fontFamily: 'Bebas Neue',
                     fontWeight: FontWeight.w400,
-                    fontSize: isSmall ? 42 : 52,
+                    fontSize: widget.isSmall ? 42 : 52,
                     color: Colors.white,
                     height: 1.0,
                     letterSpacing: 1.5,
@@ -86,7 +104,7 @@ class AuthHeader extends StatelessWidget {
                   'Área Pública',
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: isSmall ? 14 : 16,
+                    fontSize: widget.isSmall ? 14 : 16,
                     color: Colors.white70,
                   ),
                   textAlign: TextAlign.center,
@@ -102,8 +120,8 @@ class AuthHeader extends StatelessWidget {
   Widget _buildDefaultLogo() {
     return SvgPicture.asset(
       'assets/images/meteor.svg',
-      width: isSmall ? 60 : 80,
-      height: isSmall ? 60 : 80,
+      width: widget.isSmall ? 60 : 80,
+      height: widget.isSmall ? 60 : 80,
     );
   }
 }
