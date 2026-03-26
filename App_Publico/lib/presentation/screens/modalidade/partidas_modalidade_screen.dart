@@ -11,13 +11,8 @@ import '../game/partida_screen.dart';
 
 class PartidasModalidadeScreen extends StatefulWidget {
   final Modalidade modalidade;
-  final String campeonatoNome;
 
-  const PartidasModalidadeScreen({
-    super.key,
-    required this.modalidade,
-    required this.campeonatoNome,
-  });
+  const PartidasModalidadeScreen({super.key, required this.modalidade});
 
   @override
   State<PartidasModalidadeScreen> createState() =>
@@ -192,10 +187,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 ),
               ],
             ),
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: BottomNavigationWidget(currentRoute: '/modalidades'),
-            ),
+            const BottomNavigationWidget(currentRoute: '/modalidades'),
           ],
         ),
       ),
@@ -558,16 +550,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.campeonatoNome,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
                 const SizedBox(height: 4),
                 Text(
                   (widget.modalidade.esporteNome ?? '').isNotEmpty

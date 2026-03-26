@@ -10,11 +10,13 @@ import '../modalidade/partidas_modalidade_screen.dart';
 class ModalidadesScreen extends StatefulWidget {
   final Campeonato campeonato;
   final bool isMainScreenChild;
+  final ModalidadeService? modalidadeService;
 
   const ModalidadesScreen({
-    super.key, 
+    super.key,
     required this.campeonato,
     this.isMainScreenChild = false,
+    this.modalidadeService,
   });
 
   @override
@@ -22,7 +24,8 @@ class ModalidadesScreen extends StatefulWidget {
 }
 
 class _ModalidadesScreenState extends State<ModalidadesScreen> {
-  final _service = ModalidadeService();
+  late final ModalidadeService _service =
+      widget.modalidadeService ?? ModalidadeService();
   late Future<List<Modalidade>> _future;
 
   @override
@@ -115,7 +118,12 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                 onRefresh: _reload,
                 color: const Color(0xFFF22F1D),
                 child: ListView.separated(
-                  padding: EdgeInsets.fromLTRB(18, 18, 18, widget.isMainScreenChild ? 80 : 100),
+                  padding: EdgeInsets.fromLTRB(
+                    18,
+                    18,
+                    18,
+                    widget.isMainScreenChild ? 80 : 100,
+                  ),
                   itemCount: modalidades.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
@@ -134,10 +142,8 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PartidasModalidadeScreen(
-                                modalidade: m,
-                                campeonatoNome: widget.campeonato.nome,
-                              ),
+                              builder: (_) =>
+                                  PartidasModalidadeScreen(modalidade: m),
                             ),
                           );
                         },
@@ -206,10 +212,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
             },
           ),
           if (!widget.isMainScreenChild)
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: BottomNavigationWidget(currentRoute: '/modalidades'),
-            ),
+            const BottomNavigationWidget(currentRoute: '/modalidades'),
         ],
       ),
     );

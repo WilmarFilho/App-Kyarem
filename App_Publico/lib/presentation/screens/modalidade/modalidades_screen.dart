@@ -116,10 +116,8 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PartidasModalidadeScreen(
-                                modalidade: m,
-                                campeonatoNome: widget.campeonato.nome,
-                              ),
+                              builder: (_) =>
+                                  PartidasModalidadeScreen(modalidade: m),
                             ),
                           );
                         },

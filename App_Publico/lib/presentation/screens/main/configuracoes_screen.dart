@@ -46,8 +46,13 @@ class _WaveClipper extends CustomClipper<Path> {
 
 class ConfiguracoesScreen extends StatefulWidget {
   final bool isMainScreenChild;
+  final SupabaseClient? supabaseClient;
 
-  const ConfiguracoesScreen({super.key, this.isMainScreenChild = false});
+  const ConfiguracoesScreen({
+    super.key,
+    this.isMainScreenChild = false,
+    this.supabaseClient,
+  });
 
   @override
   State<ConfiguracoesScreen> createState() => _ConfiguracoesScreenState();
@@ -55,6 +60,9 @@ class ConfiguracoesScreen extends StatefulWidget {
 
 class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     with SingleTickerProviderStateMixin {
+  late final SupabaseClient _supabase =
+      widget.supabaseClient ?? Supabase.instance.client;
+
   // Notification toggles
   bool _notificacoesGerais = true;
   bool _notificacoesPartidas = true;
@@ -70,7 +78,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
 
   late ScrollController _scrollController;
   double _headerCollapseProgress = 0.0;
-  String _userName = 'Usuário';
 
   @override
   void initState() {
@@ -110,18 +117,16 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
 
   Future<void> _fetchUserName() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser;
+      final user = _supabase.auth.currentUser;
       if (user != null) {
-        final profile = await Supabase.instance.client
+        final profile = await _supabase
             .from('profiles')
             .select('nome_exibicao')
             .eq('id', user.id)
             .single();
 
         if (profile['nome_exibicao'] != null && mounted) {
-          setState(() {
-            _userName = profile['nome_exibicao'];
-          });
+          setState(() {});
         }
       }
     } catch (e) {
@@ -205,7 +210,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     );
 
     if (confirm == true && mounted) {
-      await Supabase.instance.client.auth.signOut();
+      await _supabase.auth.signOut();
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
@@ -287,7 +292,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             onPressed: () async {
               if (emailController.text.trim().isNotEmpty) {
                 try {
-                  await Supabase.instance.client.auth.resetPasswordForEmail(
+                  await _supabase.auth.resetPasswordForEmail(
                     emailController.text.trim().toLowerCase(),
                     redirectTo: 'apppublico://reset-password',
                   );
@@ -367,10 +372,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                   ),
                 ),
           if (!widget.isMainScreenChild)
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: BottomNavigationWidget(currentRoute: '/configuracoes'),
-            ),
+            const BottomNavigationWidget(currentRoute: '/configuracoes'),
 
           if (!_loading)
             Positioned(top: 0, left: 0, right: 0, child: _buildHeader()),
@@ -456,7 +458,12 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                     child: Padding(
                       padding: const EdgeInsets.only(top: 5),
                       child: GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen())),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SearchScreen(),
+                          ),
+                        ),
                         child: Container(
                           height: 45,
                           decoration: BoxDecoration(
@@ -632,6 +639,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             );
           },
         ),
+        const SizedBox(height: 60),
       ],
     );
   }

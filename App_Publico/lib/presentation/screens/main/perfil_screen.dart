@@ -226,10 +226,7 @@ class _PerfilScreenState extends State<PerfilScreen>
                     ),
                   ),
           ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: BottomNavigationWidget(currentRoute: '/perfil'),
-          ),
+          const BottomNavigationWidget(currentRoute: '/perfil'),
         ],
       ),
     );

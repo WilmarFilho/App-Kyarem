@@ -29,7 +29,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
       left: 0,
       right: 0,
       child: Container(
-        height: 65 + bottomPadding,
+        height: 75 + bottomPadding,
         padding: EdgeInsets.only(bottom: bottomPadding * 0.5),
         decoration: BoxDecoration(
           color: Colors.white, // Fundo limpo
@@ -58,12 +58,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
       children: [
         _buildNavItem(Icons.home_max_rounded, 'Início', '/home', 0),
         _buildNavItem(Icons.sports_soccer_rounded, 'Jogos', '/modalidades', 1),
-        _buildNavItem(
-          Icons.settings_rounded,
-          'Configurações',
-          '/configuracoes',
-          2,
-        ),
+        _buildNavItem(Icons.settings_rounded, 'Ajustes', '/configuracoes', 2),
       ],
     );
   }

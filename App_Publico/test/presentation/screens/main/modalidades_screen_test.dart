@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:kyarem_eventos_publico/presentation/screens/main/modalidades_screen.dart';
+import 'package:kyarem_eventos_publico/services/modalidade_service.dart';
+import 'package:kyarem_eventos_publico/models/campeonato_model.dart';
+import 'package:kyarem_eventos_publico/models/modalidade_model.dart';
+
+class MockModalidadeService extends Mock implements ModalidadeService {}
+
+void main() {
+  late MockModalidadeService mockService;
+  final dummyCampeonato = Campeonato(id: '1', nome: 'Campeonato Teste');
+
+  setUp(() {
+    mockService = MockModalidadeService();
+  });
+
+  Widget createWidgetUnderTest() {
+    return MaterialApp(
+      home: ModalidadesScreen(
+        campeonato: dummyCampeonato,
+        modalidadeService: mockService,
+      ),
+    );
+  }
+
+  group('Testes da Tela de Modalidades (ModalidadesScreen)', () {
+    testWidgets('Exibe CircularProgressIndicator enquanto carrega', (
+      tester,
+    ) async {
+      when(() => mockService.getModalities()).thenAnswer((_) async {
+        await Future.delayed(const Duration(milliseconds: 500));
+        return <Modalidade>[];
+      });
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump(
+        const Duration(milliseconds: 100),
+      ); // allow Future to start
+
+      // Initially, CircularProgressIndicator must be on screen
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      await tester.pumpAndSettle(); // Resolve future to avoid pending timers
+    });
+
+    testWidgets(
+      'Exibe mensagem de erro e botão de recarregar quando não há resultados',
+      (tester) async {
+        when(
+          () => mockService.getModalities(),
+        ).thenAnswer((_) async => <Modalidade>[]);
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Nenhuma modalidade encontrada.'), findsOneWidget);
+        expect(find.text('Tentar novamente'), findsOneWidget);
+      },
+    );
+
+    testWidgets('Renderiza a lista de modalidades corretamente', (
+      tester,
+    ) async {
+      when(() => mockService.getModalities()).thenAnswer(
+        (_) async => [
+          Modalidade(
+            id: '1',
+            esporteId: '1',
+            nome: 'Futsal Masculino',
+            esporteNome: 'Futsal',
+          ),
+          Modalidade(
+            id: '2',
+            esporteId: '2',
+            nome: 'Vôlei Feminino',
+            esporteNome: 'Vôlei',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Futsal Masculino'), findsOneWidget);
+      expect(find.text('Vôlei Feminino'), findsOneWidget);
+      expect(find.text('Futsal'), findsOneWidget);
+      expect(find.text('Vôlei'), findsOneWidget);
+    });
+  });
+}

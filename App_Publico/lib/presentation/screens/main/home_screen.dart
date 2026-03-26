@@ -20,18 +20,33 @@ import '../../widgets/home/partida_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isMainScreenChild;
+  final SupabaseClient? supabaseClient;
+  final PartidaService? partidaService;
+  final ModalidadeService? modalidadeService;
+  final AtletaService? atletaService;
 
-  const HomeScreen({super.key, this.isMainScreenChild = false});
+  const HomeScreen({
+    super.key,
+    this.isMainScreenChild = false,
+    this.supabaseClient,
+    this.partidaService,
+    this.modalidadeService,
+    this.atletaService,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final PartidaService _partidaService = PartidaService();
-  final ModalidadeService _modalidadeService = ModalidadeService();
-  final AtletaService _atletaService = AtletaService();
+  late final SupabaseClient _supabase =
+      widget.supabaseClient ?? Supabase.instance.client;
+  late final PartidaService _partidaService =
+      widget.partidaService ?? PartidaService();
+  late final ModalidadeService _modalidadeService =
+      widget.modalidadeService ?? ModalidadeService();
+  late final AtletaService _atletaService =
+      widget.atletaService ?? AtletaService();
 
   List<Partida> _partidasDestaque = [];
   List<Partida> _historicoPartidas = [];
@@ -145,17 +160,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (!isRefresh) setState(() => _carregandoDados = true);
 
     // Buscas que possuem cache local (retornam quase instantaneamente)
-    _partidaService.getFinishedMatches().then<void>((historico) {
-      if (mounted) setState(() => _historicoPartidas = historico);
-    }).catchError((e) {
-      debugPrint("Erro histórico: \$e");
-    });
+    _partidaService
+        .getFinishedMatches()
+        .then<void>((historico) {
+          if (mounted) setState(() => _historicoPartidas = historico);
+        })
+        .catchError((e) {
+          debugPrint("Erro histórico: \$e");
+        });
 
-    _modalidadeService.getModalities().then<void>((mods) {
-      if (mounted) setState(() => _modalidades = mods);
-    }).catchError((e) {
-      debugPrint("Erro modalidades: \$e");
-    });
+    _modalidadeService
+        .getModalities()
+        .then<void>((mods) {
+          if (mounted) setState(() => _modalidades = mods);
+        })
+        .catchError((e) {
+          debugPrint("Erro modalidades: \$e");
+        });
 
     // O request de Partidas Ao Vivo não possui cache (pois é realtime)
     // Logo, ele ditará o fim do "_carregandoDados" geral.
@@ -266,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   if (!widget.isMainScreenChild)
                     const SizedBox(height: 120)
                   else
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 170),
                 ],
               ),
             ),
@@ -281,10 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
 
           if (!widget.isMainScreenChild)
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: BottomNavigationWidget(currentRoute: '/home'),
-            ),
+            const BottomNavigationWidget(currentRoute: '/home'),
         ],
       ),
     );
@@ -477,10 +495,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PartidasModalidadeScreen(
-                    modalidade: mod,
-                    campeonatoNome: dotenv.env['APP_NAME'] ?? 'Campeonato',
-                  ),
+                  builder: (_) => PartidasModalidadeScreen(modalidade: mod),
                 ),
               );
             },
