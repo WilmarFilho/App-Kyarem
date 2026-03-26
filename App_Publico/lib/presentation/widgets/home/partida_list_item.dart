@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:kyarem_eventos_publico/models/partida_model.dart';
 
@@ -20,7 +21,7 @@ class PartidaListItem extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF160202),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
@@ -129,7 +130,7 @@ class PartidaListItem extends StatelessWidget {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: venceu ? const Color(0xFFF2561D) : Colors.white54,
+            color: venceu ? AppColors.orange : Colors.white54,
           ),
         ),
       ],
@@ -142,9 +143,9 @@ class PartidaListItem extends StatelessWidget {
       case 'finalizada':
         return Colors.grey;
       case 'em_andamento':
-        return const Color(0xFFF22F1D);
+        return AppColors.primary;
       default:
-        return const Color(0xFFF29422);
+        return AppColors.amber;
     }
   }
 }

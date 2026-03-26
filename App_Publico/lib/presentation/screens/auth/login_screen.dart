@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/auth/auth_header.dart';
@@ -76,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF110101),
+                      color: AppColors.bgCard,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
@@ -96,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             'Login',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
                               fontSize: isSmallScreen ? 28 : 34,
                               color: Colors.white,
@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       onChanged: (val) => setState(
                                         () => _remember = val ?? false,
                                       ),
-                                      activeColor: const Color(0xFFF22F1D),
+                                      activeColor: AppColors.primary,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(4),
                                       ),
@@ -149,7 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Text(
                                     'Lembrar',
                                     style: TextStyle(
-                                      fontFamily: 'Poppins',
                                       fontSize: isSmallScreen ? 12 : 13,
                                       color: Colors.white54,
                                     ),
@@ -161,7 +160,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Text(
                                   'Esqueci a senha',
                                   style: TextStyle(
-                                    fontFamily: 'Poppins',
                                     fontSize: isSmallScreen ? 12 : 13,
                                     color: Colors.white54,
                                   ),
@@ -203,7 +201,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   textAlign: TextAlign.center,
                                   text: TextSpan(
                                     style: TextStyle(
-                                      fontFamily: 'Poppins',
                                       fontSize: isSmallScreen ? 12 : 13,
                                       color: Colors.white54,
                                       height: 1.4,
@@ -216,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       TextSpan(
                                         text: 'Cadastre-se aqui',
                                         style: TextStyle(
-                                          color: const Color(0xFFF22F1D),
+                                          color: AppColors.primary,
                                           fontWeight: FontWeight.w700,
                                           decoration: TextDecoration
                                               .underline, // Opcional: adiciona um charme de link

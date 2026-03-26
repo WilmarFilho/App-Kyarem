@@ -1,13 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../models/profile_model.dart';
 import '../../../services/profile_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
+import '../../widgets/common/app_loader.dart';
+import '../../widgets/common/app_snackbar.dart';
+import '../../widgets/common/themed_divider.dart';
 
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key});
+  final ProfileService? profileService;
+
+  const PerfilScreen({super.key, this.profileService});
 
   @override
   State<PerfilScreen> createState() => _PerfilScreenState();
@@ -15,7 +21,7 @@ class PerfilScreen extends StatefulWidget {
 
 class _PerfilScreenState extends State<PerfilScreen>
     with SingleTickerProviderStateMixin {
-  final ProfileService _profileService = ProfileService();
+  late final ProfileService _profileService;
   final ImagePicker _picker = ImagePicker();
 
   Profile? _profile;
@@ -32,6 +38,7 @@ class _PerfilScreenState extends State<PerfilScreen>
   @override
   void initState() {
     super.initState();
+    _profileService = widget.profileService ?? ProfileService();
     _nomeController = TextEditingController();
     _telefoneController = TextEditingController();
 
@@ -86,16 +93,7 @@ class _PerfilScreenState extends State<PerfilScreen>
       if (success) {
         _loadProfile();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Erro ao atualizar perfil'),
-            backgroundColor: Colors.red[700],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        showAppSnackBar(context, 'Erro ao atualizar perfil', isError: true);
       }
     }
   }
@@ -106,7 +104,7 @@ class _PerfilScreenState extends State<PerfilScreen>
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF1A0202),
+          color: AppColors.bgDeep,
           borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -125,7 +123,6 @@ class _PerfilScreenState extends State<PerfilScreen>
             const Text(
               'Escolher foto',
               style: TextStyle(
-                fontFamily: 'Poppins',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -136,7 +133,7 @@ class _PerfilScreenState extends State<PerfilScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.camera_alt, color: Color(0xFFF22F1D)),
@@ -205,7 +202,7 @@ class _PerfilScreenState extends State<PerfilScreen>
           SafeArea(
             child: _loading
                 ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+                    child: AppLoader(),
                   )
                 : FadeTransition(
                     opacity: _fadeAnimation,
@@ -358,7 +355,7 @@ class _PerfilScreenState extends State<PerfilScreen>
             controller: _nomeController,
             editable: _editing,
           ),
-          _buildDivider(),
+          buildThemedDivider(),
           _buildField(
             icon: Icons.phone_outlined,
             label: 'Telefone',
@@ -366,7 +363,7 @@ class _PerfilScreenState extends State<PerfilScreen>
             editable: _editing,
             keyboardType: TextInputType.phone,
           ),
-          _buildDivider(),
+          buildThemedDivider(),
           _buildInfoField(
             icon: Icons.badge_outlined,
             label: 'Cargo',
@@ -409,23 +406,16 @@ class _PerfilScreenState extends State<PerfilScreen>
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          color: Color.fromARGB(255, 14, 14, 14),
-                          strokeWidth: 2,
+                        child: AppLoader(
+                          color: AppColors.bgCard,
                         ),
                       )
                     : Text(
                         _editing ? 'SALVAR ALTERAÇÕES' : 'EDITAR PERFIL',
                         style: const TextStyle(
-                          fontFamily: 'Poppins',
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Color.fromARGB(
-                            255,
-                            25,
-                            25,
-                            25,
-                          ), // Garante que o texto seja branco
+                          color: AppColors.bgDark, // Garante que o texto seja branco (bgDark = contraste escuro)
                         ),
                       ),
               ),
@@ -458,10 +448,10 @@ class _PerfilScreenState extends State<PerfilScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF22F1D).withValues(alpha: 0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFFF22F1D), size: 22),
+            child: Icon(icon, color: AppColors.primary, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -471,7 +461,6 @@ class _PerfilScreenState extends State<PerfilScreen>
                 Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: Colors.white54,
@@ -501,7 +490,6 @@ class _PerfilScreenState extends State<PerfilScreen>
                           controller: controller,
                           keyboardType: keyboardType,
                           style: const TextStyle(
-                            fontFamily: 'Poppins',
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: Colors.white,
@@ -512,21 +500,20 @@ class _PerfilScreenState extends State<PerfilScreen>
                               vertical: 4,
                             ),
                             hintText: placeholder,
-                            hintStyle: TextStyle(
-                              fontFamily: 'Poppins',
+                             hintStyle: TextStyle(
                               fontSize: 15,
                               color: Colors.white30,
                             ),
                             border: InputBorder.none,
                             enabledBorder: const UnderlineInputBorder(
                               borderSide: BorderSide(
-                                color: Color(0xFFF22F1D),
+                                color: AppColors.primary,
                                 width: 1.5,
                               ),
                             ),
                             focusedBorder: const UnderlineInputBorder(
                               borderSide: BorderSide(
-                                color: Color(0xFFF22F1D),
+                                color: AppColors.primary,
                                 width: 2,
                               ),
                             ),
@@ -542,7 +529,6 @@ class _PerfilScreenState extends State<PerfilScreen>
                                 ? (placeholder ?? '---')
                                 : controller.text,
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                               color: controller.text.isEmpty
@@ -572,7 +558,7 @@ class _PerfilScreenState extends State<PerfilScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A0202),
+              color: AppColors.bgDeep,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white70, size: 22),
@@ -585,7 +571,6 @@ class _PerfilScreenState extends State<PerfilScreen>
                 Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: Colors.white54,
@@ -596,7 +581,6 @@ class _PerfilScreenState extends State<PerfilScreen>
                 Text(
                   value,
                   style: const TextStyle(
-                    fontFamily: 'Poppins',
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
@@ -612,10 +596,4 @@ class _PerfilScreenState extends State<PerfilScreen>
     );
   }
 
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
-    );
-  }
 }

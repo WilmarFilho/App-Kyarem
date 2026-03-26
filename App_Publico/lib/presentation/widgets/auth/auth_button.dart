@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 
 /// Botão padronizado para ações de autenticação
 /// Suporta estado de loading com indicador circular
@@ -24,7 +25,7 @@ class AuthButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFF22F1D),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(100),
@@ -43,7 +44,6 @@ class AuthButton extends StatelessWidget {
             : Text(
                 text,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
                   fontSize: isSmall ? 16 : 18,
                 ),

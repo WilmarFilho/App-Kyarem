@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// Campo de entrada padronizado para telas de autenticação
@@ -26,7 +27,7 @@ class AuthInputField extends StatelessWidget {
     return Container(
       height: isSmall ? 48 : 56,
       decoration: BoxDecoration(
-        color: const Color(0xFF160202),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.1),
@@ -43,7 +44,7 @@ class AuthInputField extends StatelessWidget {
                 height: 18,
                 // ignore: deprecated_member_use
                 colorFilter: ColorFilter.mode(
-                  const Color(0xFFF22F1D).withValues(alpha: 0.6),
+                  AppColors.primary.withValues(alpha: 0.6),
                   BlendMode.srcIn,
                 ),
               ),
@@ -57,7 +58,7 @@ class AuthInputField extends StatelessWidget {
               autocorrect: false,
               enableSuggestions: false,
               textCapitalization: TextCapitalization.none,
-              cursorColor: const Color(0xFFF22F1D),
+              cursorColor: AppColors.primary,
               decoration: InputDecoration(
                 hintText: placeholder,
                 hintStyle: TextStyle(
@@ -71,7 +72,6 @@ class AuthInputField extends StatelessWidget {
                 ),
               ),
               style: const TextStyle(
-                fontFamily: 'Poppins',
                 fontSize: 15,
                 color: Colors.white,
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/auth_service.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -102,7 +103,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF110101),
+                      color: AppColors.bgCard,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
@@ -121,7 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Text(
                             'Nova Conta',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
                               fontSize: isSmallScreen ? 28 : 34,
                               color: Colors.white,
@@ -131,7 +131,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Text(
                             'Crie seu acesso para participar dos eventos.',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontSize: isSmallScreen ? 13 : 14,
                               color: Colors.white54,
                             ),
@@ -192,7 +191,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 textAlign: TextAlign.center,
                                 text: TextSpan(
                                   style: const TextStyle(
-                                    fontFamily: 'Poppins',
                                     fontSize: 14,
                                     color: Colors.white54,
                                   ),
@@ -201,7 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     TextSpan(
                                       text: 'Entrar agora',
                                       style: TextStyle(
-                                        color: const Color(0xFFF85C39),
+                                        color: AppColors.accent,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),

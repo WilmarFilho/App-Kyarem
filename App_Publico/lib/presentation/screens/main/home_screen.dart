@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:kyarem_eventos_publico/services/atleta_service.dart';
 import 'package:kyarem_eventos_publico/services/modalidade_service.dart';
@@ -93,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       final resultados = await Future.wait([
         _atletaService.getTopAthletes('GOL'),
-        _atletaService.getTopAthletes('GOL'), // Ajustado para PONTO
+        _atletaService.getTopAthletes('PONTO'),
       ]);
 
       if (mounted) {
@@ -245,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             bottom: false,
             child: RefreshIndicator(
               onRefresh: _carregarDadosReais,
-              color: const Color(0xFFF22F1D),
+              color: AppColors.primary,
               backgroundColor: const Color(0xFF1A0202),
               child: ListView(
                 controller: _scrollController,
@@ -257,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // ── 2. PARTIDAS AO VIVO ──
                   _buildSectionTitle(
                     "PARTIDAS AO VIVO",
-                    const Color(0xFFF22F1D),
+                    AppColors.primary,
                   ),
                   _buildCardsSection(),
 
@@ -313,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return const SizedBox(
         height: 185,
         child: Center(
-          child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -326,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           color: const Color(0xFF160202),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: const Color(0xFFF22F1D).withValues(alpha: 0.15),
+            color: AppColors.primary.withValues(alpha: 0.15),
           ),
         ),
         child: Stack(
@@ -347,12 +348,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF22F1D).withValues(alpha: 0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.sports,
-                    color: Color(0xFFF22F1D),
+                    color: AppColors.primary,
                     size: 26,
                   ),
                 ),
@@ -407,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return const Padding(
         padding: EdgeInsets.all(30),
         child: Center(
-          child: CircularProgressIndicator(color: Color(0xFFF2561D)),
+          child: CircularProgressIndicator(color: AppColors.orange),
         ),
       );
     }
@@ -441,7 +442,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return const SizedBox(
         height: 110,
         child: Center(
-          child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -502,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               width: 130,
               margin: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF160202),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: modColor.withValues(alpha: 0.3)),
               ),
@@ -546,8 +547,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         // === GRADIENTE ASSINATURA DO PARTIDA CARD ===
         gradient: const LinearGradient(
           colors: [
-            Color(0xFFF2561D),
-            Color(0xFFF22F1D),
+            AppColors.orange,
+            AppColors.primary,
           ], // Laranja para Vermelho
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -561,7 +562,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           BoxShadow(
             color: const Color(
               0xFFF22F1D,
-            ).withValues(alpha: 0.35), // Sombra vermelha
+            ).withValues(alpha: 0.35),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

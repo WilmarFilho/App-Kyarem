@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/modalidade_model.dart';
@@ -147,7 +148,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         : 'Modalidade';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF260404),
+      backgroundColor: AppColors.bgDeep,
       appBar: AppBar(
         title: Text(
           titulo,
@@ -158,7 +159,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF110101),
+        backgroundColor: AppColors.bgCard,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -171,11 +172,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
               children: [
                 _buildHeader(titulo),
                 Container(
-                  color: const Color(0xFF110101),
+                  color: AppColors.bgCard,
                   child: const TabBar(
-                    labelColor: Color(0xFFF22F1D),
+                    labelColor: AppColors.primary,
                     unselectedLabelColor: Colors.white54,
-                    indicatorColor: Color(0xFFF22F1D),
+                    indicatorColor: AppColors.primary,
                     tabs: [
                       Tab(text: 'Partidas'),
                       Tab(text: 'Estatísticas'),
@@ -204,11 +205,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   Widget _buildAbaPartidas() {
     return _loading
         ? const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+            child: CircularProgressIndicator(color: AppColors.primary),
           )
         : RefreshIndicator(
             onRefresh: _carregar,
-            color: const Color(0xFFF22F1D),
+            color: AppColors.primary,
             child: _partidas.isEmpty
                 ? ListView(
                     children: const [
@@ -239,11 +240,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   Widget _buildAbaEstatisticas() {
     return _loadingStats
         ? const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+            child: CircularProgressIndicator(color: AppColors.primary),
           )
         : RefreshIndicator(
             onRefresh: _carregarEstatisticas,
-            color: const Color(0xFFF22F1D),
+            color: AppColors.primary,
             child: _estatisticas.isEmpty
                 ? ListView(
                     children: const [
@@ -316,13 +317,13 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                     });
                   }
                 },
-                selectedColor: const Color(0xFFF22F1D),
-                backgroundColor: const Color(0xFF1A0202),
+                selectedColor: AppColors.primary,
+                backgroundColor: AppColors.bgDeep,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
                     color: isSelected
-                        ? const Color(0xFFF22F1D)
+                        ? AppColors.primary
                         : Colors.white12,
                   ),
                 ),
@@ -360,10 +361,10 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       children: [
         CircleAvatar(
           radius: pos == 1 ? 32 : 26,
-          backgroundColor: color.withOpacity(0.2),
+          backgroundColor: color.withValues(alpha: 0.2),
           child: CircleAvatar(
             radius: pos == 1 ? 28 : 23,
-            backgroundColor: const Color(0xFF110101),
+            backgroundColor: AppColors.bgCard,
             backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
                 ? NetworkImage(est.fotoUrl!)
                 : (est.equipeEscudoUrl != null &&
@@ -397,7 +398,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [color, color.withOpacity(0.6)],
+              colors: [color, color.withValues(alpha: 0.6)],
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           ),
@@ -433,12 +434,12 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A0202),
+        color: AppColors.bgDeep,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -459,7 +460,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           ),
           CircleAvatar(
             radius: 20,
-            backgroundColor: const Color(0xFF2A0808),
+            backgroundColor: AppColors.bgDeep,
             backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
                 ? NetworkImage(est.fotoUrl!)
                 : (est.equipeEscudoUrl != null &&
@@ -542,7 +543,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF110101),
+        color: AppColors.bgCard,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -648,10 +649,10 @@ class _PartidaTile extends StatelessWidget {
         ? Colors.green
         : isFinalizada
         ? Colors.grey
-        : const Color(0xFFF22F1D);
+        : AppColors.primary;
 
     return Material(
-      color: const Color(0xFF110101),
+      color: AppColors.bgCard,
       borderRadius: BorderRadius.circular(22),
       elevation: 0,
       child: InkWell(
@@ -682,7 +683,7 @@ class _PartidaTile extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.12),
+                      color: badgeColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
@@ -787,7 +788,7 @@ class _PartidaTile extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 24,
-          backgroundColor: const Color(0xFF2A0808),
+          backgroundColor: AppColors.bgDeep,
           backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
           onBackgroundImageError: url.isNotEmpty
               ? (error, stackTrace) {

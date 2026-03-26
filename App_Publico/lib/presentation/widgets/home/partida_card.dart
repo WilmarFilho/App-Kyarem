@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:kyarem_eventos_publico/models/partida_model.dart';
 
 class PartidaCard extends StatelessWidget {
@@ -29,14 +30,14 @@ class PartidaCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFF2561D), Color(0xFFF22F1D)],
+                colors: [AppColors.orange, AppColors.primary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFF22F1D).withValues(alpha: 0.35),
+                  color: AppColors.primary.withValues(alpha: 0.35),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),

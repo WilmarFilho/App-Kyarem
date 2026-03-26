@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../../models/atleta_model.dart';
+import '../../../../services/game_service.dart';
 import 'estatistica_atleta_screen.dart';
 
 class AtletasPartidaScreen extends StatefulWidget {
@@ -9,6 +10,7 @@ class AtletasPartidaScreen extends StatefulWidget {
   final String timeB;
   final String? escudoA;
   final String? escudoB;
+  final GameService? gameService;
 
   const AtletasPartidaScreen({
     super.key,
@@ -17,6 +19,7 @@ class AtletasPartidaScreen extends StatefulWidget {
     required this.timeB,
     this.escudoA,
     this.escudoB,
+    this.gameService,
   });
 
   @override
@@ -25,7 +28,7 @@ class AtletasPartidaScreen extends StatefulWidget {
 
 class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
     with SingleTickerProviderStateMixin {
-  final _supabase = Supabase.instance.client;
+  late final GameService _gameService = widget.gameService ?? GameService();
   late TabController _tabController;
 
   String? _equipeIdA;
@@ -46,65 +49,51 @@ class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
 
   Future<void> _carregarDados() async {
     try {
-      // Busca os IDs das equipes associadas à partida
-      final partidaData = await _supabase
-          .from('partidas')
-          .select('equipe_a_id, equipe_b_id')
-          .eq('id', widget.partidaId)
-          .single();
+      final partidaData = await _gameService.getPartidaEquipes(widget.partidaId);
 
       _equipeIdA = partidaData['equipe_a_id']?.toString();
       _equipeIdB = partidaData['equipe_b_id']?.toString();
 
-      // Busca os atletas inscritos de ambas as equipes em paralelo
       final futures = <Future>[];
       if (_equipeIdA != null) {
         futures.add(
-          _supabase
-              .from('equipe_atlet_inscritos')
-              .select('ativo, numero_camisa, atletas(*)')
-              .eq('equipe_id', _equipeIdA!)
-              .then((inscritos) {
-                for (var inscrito in inscritos) {
-                  final ativo = inscrito['ativo'] == true;
-                  final atletaMap = inscrito['atletas'];
-                  if (atletaMap != null) {
-                    final atleta = Atleta.fromMap(atletaMap);
-                    if (ativo) {
-                      _titularesA.add(atleta);
-                    } else {
-                      _reservasA.add(atleta);
-                    }
-                  }
+          _gameService.getAtletasInscritos(_equipeIdA!).then((inscritos) {
+            for (var inscrito in inscritos) {
+              final ativo = inscrito['ativo'] == true;
+              final atletaMap = inscrito['atletas'];
+              if (atletaMap != null) {
+                final atleta = Atleta.fromMap(atletaMap);
+                if (ativo) {
+                  _titularesA.add(atleta);
+                } else {
+                  _reservasA.add(atleta);
                 }
-                _titularesA.sort((a, b) => a.nome.compareTo(b.nome));
-                _reservasA.sort((a, b) => a.nome.compareTo(b.nome));
-              }),
+              }
+            }
+            _titularesA.sort((a, b) => a.nome.compareTo(b.nome));
+            _reservasA.sort((a, b) => a.nome.compareTo(b.nome));
+          }),
         );
       }
 
       if (_equipeIdB != null) {
         futures.add(
-          _supabase
-              .from('equipe_atlet_inscritos')
-              .select('ativo, numero_camisa, atletas(*)')
-              .eq('equipe_id', _equipeIdB!)
-              .then((inscritos) {
-                for (var inscrito in inscritos) {
-                  final ativo = inscrito['ativo'] == true;
-                  final atletaMap = inscrito['atletas'];
-                  if (atletaMap != null) {
-                    final atleta = Atleta.fromMap(atletaMap);
-                    if (ativo) {
-                      _titularesB.add(atleta);
-                    } else {
-                      _reservasB.add(atleta);
-                    }
-                  }
+          _gameService.getAtletasInscritos(_equipeIdB!).then((inscritos) {
+            for (var inscrito in inscritos) {
+              final ativo = inscrito['ativo'] == true;
+              final atletaMap = inscrito['atletas'];
+              if (atletaMap != null) {
+                final atleta = Atleta.fromMap(atletaMap);
+                if (ativo) {
+                  _titularesB.add(atleta);
+                } else {
+                  _reservasB.add(atleta);
                 }
-                _titularesB.sort((a, b) => a.nome.compareTo(b.nome));
-                _reservasB.sort((a, b) => a.nome.compareTo(b.nome));
-              }),
+              }
+            }
+            _titularesB.sort((a, b) => a.nome.compareTo(b.nome));
+            _reservasB.sort((a, b) => a.nome.compareTo(b.nome));
+          }),
         );
       }
 
@@ -131,7 +120,7 @@ class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
           style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 24),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         bottom: TabBar(
@@ -147,7 +136,7 @@ class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : TabBarView(
               controller: _tabController,
@@ -183,7 +172,7 @@ class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       children: [
         if (titulares.isNotEmpty) ...[
-          _buildSectionHeader("TITULARES", const Color(0xFFF85C39)),
+          _buildSectionHeader("TITULARES", AppColors.primary),
           ...titulares.map((a) => _buildAtletaCard(a, timeNome, escudoUrl)),
           const SizedBox(height: 20),
         ],
@@ -230,7 +219,7 @@ class _AtletasPartidaScreenState extends State<AtletasPartidaScreen>
           atleta.nome,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Color(0xFFF85C39)),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
         onTap: () {
           Navigator.push(
             context,

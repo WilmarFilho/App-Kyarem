@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/auth_service.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -102,7 +103,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(32),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF110101),
+                      color: AppColors.bgCard,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40), 
                         topRight: Radius.circular(40)
@@ -114,7 +115,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         children: [
                           const Text(
                             'Crie uma nova senha segura para o seu acesso.', 
-                            style: TextStyle(fontFamily: 'Poppins', color: Colors.white54)
+                            style: TextStyle(color: Colors.white54)
                           ),
                           const SizedBox(height: 30),
                           

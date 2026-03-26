@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../screens/main/search_screen.dart';
@@ -76,8 +77,8 @@ class HomeHeader extends StatelessWidget {
     );
 
     final iconBadgeColor = Color.lerp(
-      const Color(0xFFF22F1D).withOpacity(0.08),
-      Colors.white.withOpacity(0.1),
+      AppColors.primary.withValues(alpha: 0.08),
+      Colors.white.withValues(alpha: 0.1),
       collapseProgress,
     );
 
@@ -119,7 +120,7 @@ class HomeHeader extends StatelessWidget {
                               Text(
                                 'Olá $displayUserName,',
                                 style: const TextStyle(
-                                  fontFamily: 'Poppins',
+
                                   fontSize: 15,
                                   color: Color(0xFF555555),
                                 ),
@@ -129,7 +130,7 @@ class HomeHeader extends StatelessWidget {
                                 style: GoogleFonts.oswald(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF260404),
+                                  color: AppColors.bgDark,
                                   height: 1.1,
                                   letterSpacing: 1.0,
                                 ),
@@ -173,7 +174,7 @@ class HomeHeader extends StatelessWidget {
                         child: Container(
                           height: 45,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(color: Colors.white24),
                           ),
@@ -213,7 +214,7 @@ class HomeHeader extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-        child: Icon(icon, color: const Color(0xFFF22F1D), size: 20),
+        child: Icon(icon, color: AppColors.primary, size: 20),
       ),
     );
   }

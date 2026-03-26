@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../../models/atleta_model.dart';
+import '../../../../services/game_service.dart';
 
 class ResumoEstatisticaPartidaScreen extends StatefulWidget {
   final String partidaId;
@@ -8,6 +9,7 @@ class ResumoEstatisticaPartidaScreen extends StatefulWidget {
   final String timeB;
   final String? escudoA;
   final String? escudoB;
+  final GameService? gameService;
 
   const ResumoEstatisticaPartidaScreen({
     super.key,
@@ -16,6 +18,7 @@ class ResumoEstatisticaPartidaScreen extends StatefulWidget {
     required this.timeB,
     this.escudoA,
     this.escudoB,
+    this.gameService,
   });
 
   @override
@@ -25,22 +28,19 @@ class ResumoEstatisticaPartidaScreen extends StatefulWidget {
 
 class _ResumoEstatisticaPartidaScreenState
     extends State<ResumoEstatisticaPartidaScreen> {
-  final _supabase = Supabase.instance.client;
+  late final GameService _gameService = widget.gameService ?? GameService();
   bool _isLoading = true;
 
-  // Estatísticas do Time A
   int golsA = 0;
   int faltasA = 0;
   int amarelosA = 0;
   int vermelhosA = 0;
 
-  // Estatísticas do Time B
   int golsB = 0;
   int faltasB = 0;
   int amarelosB = 0;
   int vermelhosB = 0;
 
-  // Dados do MVP
   Atleta? mvpData;
   int mvpGols = 0;
   String? mvpTeam;
@@ -53,43 +53,16 @@ class _ResumoEstatisticaPartidaScreenState
 
   Future<void> _carregarResumo() async {
     try {
-      // 1. Busca IDs das Atléticas
-      final partidaData = await _supabase
-          .from('partidas')
-          .select('''
-            modalidade_id,
-            equipe_a:equipes!partidas_equipe_a_id_fkey(atletica_id),
-            equipe_b:equipes!partidas_equipe_b_id_fkey(atletica_id)
-          ''')
-          .eq('id', widget.partidaId)
-          .single();
+      final partidaData = await _gameService.getPartidaComEquipes(widget.partidaId);
 
-      final String? atleticaIdA = partidaData['equipe_a']?['atletica_id']
-          ?.toString();
-      final String? atleticaIdB = partidaData['equipe_b']?['atletica_id']
-          ?.toString();
+      final String? atleticaIdA = partidaData['equipe_a']?['atletica_id']?.toString();
+      final String? atleticaIdB = partidaData['equipe_b']?['atletica_id']?.toString();
       final String modalidadeId = partidaData['modalidade_id'];
 
-      // 2. Busca Tipos de Eventos (precisamos do esporte_id)
-      final modalidadeInfo = await _supabase
-          .from('modalidades')
-          .select('esporte_id')
-          .eq('id', modalidadeId)
-          .single();
+      final modalidadeInfo = await _gameService.getModalidadeInfo(modalidadeId);
+      final tipos = await _gameService.getTiposEventos(modalidadeInfo['esporte_id']);
+      final eventosDocs = await _gameService.getEventosPartida(widget.partidaId);
 
-      final tiposDocs = await _supabase
-          .from('tipos_eventos')
-          .select('id, nome')
-          .eq('esporte_id', modalidadeInfo['esporte_id']);
-      final tipos = List<Map<String, dynamic>>.from(tiposDocs);
-
-      // 3. Busca todos os Eventos da Partida
-      final eventosDocs = await _supabase
-          .from('eventos_partida')
-          .select('*, atletas!eventos_partida_atleta_id_fkey(atletica_id,nome)')
-          .eq('partida_id', widget.partidaId);
-
-      // Contadores e Dicionário de MVP
       Map<String, int> performanceAtletas = {};
       Map<String, Map<String, dynamic>> cacheAtletas = {};
 
@@ -135,7 +108,6 @@ class _ResumoEstatisticaPartidaScreenState
         }
       }
 
-      // Calcula MVP baseado em quem fez mais gols/pontos
       if (performanceAtletas.isNotEmpty) {
         String melhorAtletaId = performanceAtletas.entries
             .reduce((a, b) => a.value > b.value ? a : b)
@@ -171,13 +143,13 @@ class _ResumoEstatisticaPartidaScreenState
           style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 24),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -207,14 +179,14 @@ class _ResumoEstatisticaPartidaScreenState
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFF85C39), Color(0xFFFF8B70)],
+          colors: [AppColors.primary, const Color(0xFFFF8B70)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF85C39).withValues(alpha: 0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -300,7 +272,6 @@ class _ResumoEstatisticaPartidaScreenState
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -328,7 +299,6 @@ class _ResumoEstatisticaPartidaScreenState
             ],
           ),
           const Divider(height: 30, thickness: 1),
-          // Rows
           _buildStatRow("Gols / Pontos", golsA.toString(), golsB.toString()),
           _buildStatRow("Faltas", faltasA.toString(), faltasB.toString()),
           _buildStatRow(
@@ -371,7 +341,7 @@ class _ResumoEstatisticaPartidaScreenState
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 22,
-                    color: Color(0xFFF85C39),
+                    color: AppColors.primary,
                   ),
                 ),
               ),

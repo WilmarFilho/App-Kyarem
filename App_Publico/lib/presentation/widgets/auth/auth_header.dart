@@ -103,7 +103,7 @@ class _AuthHeaderState extends State<AuthHeader> {
                 Text(
                   'Área Pública',
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+
                     fontSize: widget.isSmall ? 14 : 16,
                     color: Colors.white70,
                   ),

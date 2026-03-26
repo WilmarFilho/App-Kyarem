@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
   final String? currentRoute;
@@ -18,7 +19,7 @@ class BottomNavigationWidget extends StatefulWidget {
 
 class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
   // Cor principal extraída do seu card para manter a harmonia
-  final Color brandRed = const Color(0xFFF22F1D);
+  static const Color brandRed = AppColors.primary;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +40,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, -10),
             ),
@@ -92,7 +93,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
               decoration: BoxDecoration(
                 // Se selecionado, fundo vermelho clarinho (opaco)
                 color: isSelected
-                    ? brandRed.withOpacity(0.12)
+                    ? brandRed.withValues(alpha: 0.12)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -107,7 +108,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Poppins',
+
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? brandRed : Colors.black38,
@@ -132,7 +133,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             'VOLTAR',
             style: TextStyle(
               color: brandRed,
-              fontFamily: 'Poppins',
+
               fontWeight: FontWeight.bold,
               letterSpacing: 1.1,
             ),

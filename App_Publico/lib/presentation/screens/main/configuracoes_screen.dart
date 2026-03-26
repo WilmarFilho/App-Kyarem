@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:kyarem_eventos_publico/presentation/screens/main/search_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
+import '../../widgets/common/app_loader.dart';
+import '../../widgets/common/app_snackbar.dart';
+import '../../widgets/common/themed_divider.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
   final double waveHeight;
@@ -172,26 +176,25 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF110101),
+        backgroundColor: AppColors.bgCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Sair da Conta',
           style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
+
             color: Colors.white,
           ),
         ),
         content: const Text(
           'Tem certeza que deseja sair?',
-          style: TextStyle(fontFamily: 'Poppins', color: Colors.white70),
+          style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text(
               'Cancelar',
-              style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+              style: TextStyle(color: Colors.grey),
             ),
           ),
           TextButton(
@@ -199,8 +202,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             child: const Text(
               'Sair',
               style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Color(0xFFF85C39),
+                color: AppColors.accent,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -222,7 +224,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF110101),
+        backgroundColor: AppColors.bgCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Alterar Senha',
@@ -268,7 +270,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
-                    color: Color(0xFFF22F1D),
+                    color: AppColors.primary,
                     width: 2,
                   ),
                 ),
@@ -285,7 +287,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text(
               'Cancelar',
-              style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+              style: TextStyle(color: Colors.grey),
             ),
           ),
           TextButton(
@@ -298,29 +300,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                   );
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('E-mail de redefinição enviado!'),
-                        backgroundColor: const Color(0xFF2E7D32),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
+                    showAppSnackBar(context, 'E-mail de redefinição enviado!', isError: false);
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Erro ao enviar e-mail'),
-                        backgroundColor: Colors.red[700],
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
+                    showAppSnackBar(context, 'Erro ao enviar e-mail', isError: true);
                   }
                 }
               }
@@ -328,8 +312,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             child: const Text(
               'Enviar',
               style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Color(0xFFF85C39),
+                color: AppColors.accent,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -348,7 +331,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           // REMOVIDO o SafeArea daqui para o header encostar no topo
           _loading
               ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+                  child: AppLoader(color: AppColors.accent),
                 )
               : FadeTransition(
                   opacity: _fadeAnimation,
@@ -467,7 +450,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                         child: Container(
                           height: 45,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(color: Colors.white24),
                           ),
@@ -514,7 +497,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           value: _notificacoesGerais,
           onChanged: _toggleNotificacoesGerais,
         ),
-        _buildDivider(),
+        buildThemedDivider(),
         _buildSwitchTile(
           icon: Icons.sports_soccer,
           title: 'Notificações de Partidas',
@@ -526,7 +509,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             await _savePreference('notif_partidas', val);
           },
         ),
-        _buildDivider(),
+        buildThemedDivider(),
         _buildSwitchTile(
           icon: Icons.emoji_events_outlined,
           title: 'Notificações de Resultados',
@@ -577,7 +560,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           subtitle: 'Enviar e-mail de redefinição',
           onTap: _showAlterarSenha,
         ),
-        _buildDivider(),
+        buildThemedDivider(),
         _buildActionTile(
           icon: Icons.logout,
           title: 'Sair da Conta',
@@ -601,42 +584,24 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           title: 'Versão do App',
           value: '1.0.0',
         ),
-        _buildDivider(),
+        buildThemedDivider(),
         _buildActionTile(
           icon: Icons.description_outlined,
           title: 'Termos de Uso',
           subtitle: 'Em breve',
           enabled: false,
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Em breve!'),
-                backgroundColor: const Color(0xFF252525),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
+            showAppSnackBar(context, 'Em breve!', isError: false);
           },
         ),
-        _buildDivider(),
+        buildThemedDivider(),
         _buildActionTile(
           icon: Icons.privacy_tip_outlined,
           title: 'Política de Privacidade',
           subtitle: 'Em breve',
           enabled: false,
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Em breve!'),
-                backgroundColor: const Color(0xFF252525),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
+            showAppSnackBar(context, 'Em breve!', isError: false);
           },
         ),
         const SizedBox(height: 60),
@@ -656,7 +621,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 10, 20, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF110101),
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -674,7 +639,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
             child: Row(
               children: [
-                Icon(icon, color: const Color(0xFFF22F1D), size: 20),
+                Icon(icon, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   title.toUpperCase(),
@@ -712,10 +677,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: const Color(0xFFF22F1D).withValues(alpha: 0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFFF22F1D), size: 20),
+              child: Icon(icon, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -745,7 +710,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             Switch.adaptive(
               value: value,
               onChanged: enabled ? onChanged : null,
-              activeTrackColor: const Color(0xFFF22F1D),
+              activeTrackColor: AppColors.primary,
             ),
           ],
         ),
@@ -774,7 +739,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: isDestructive
-                      ? Colors.red.withOpacity(0.08)
+                      ? Colors.red.withValues(alpha: 0.08)
                       : Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -829,7 +794,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A0202),
+              color: AppColors.bgDeep,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white70, size: 20),
@@ -849,7 +814,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A0202),
+              color: AppColors.bgDeep,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -867,10 +832,4 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     );
   }
 
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
-    );
-  }
 }

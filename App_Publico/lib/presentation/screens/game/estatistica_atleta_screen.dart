@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../../models/atleta_model.dart';
 import '../../../../services/evento_service.dart';
+import '../../../../services/game_service.dart';
 
 class EstatisticaAtletaScreen extends StatefulWidget {
-  final String? partidaId; // Permite null para buscar estats gerais
+  final String? partidaId;
   final Atleta atleta;
   final String timeNome;
   final String? escudoUrl;
+  final GameService? gameService;
+  final EventoService? eventoService;
 
   const EstatisticaAtletaScreen({
     super.key,
@@ -15,6 +18,8 @@ class EstatisticaAtletaScreen extends StatefulWidget {
     required this.atleta,
     required this.timeNome,
     this.escudoUrl,
+    this.gameService,
+    this.eventoService,
   });
 
   @override
@@ -23,7 +28,8 @@ class EstatisticaAtletaScreen extends StatefulWidget {
 }
 
 class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
-  final _supabase = Supabase.instance.client;
+  late final GameService _gameService = widget.gameService ?? GameService();
+  late final EventoService _eventoService = widget.eventoService ?? EventoService();
   List<Map<String, dynamic>> _eventos = [];
   List<Map<String, dynamic>> _tiposEventos = [];
   bool _isLoading = true;
@@ -45,48 +51,23 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
       List<Map<String, dynamic>> eventosDocs = [];
 
       if (widget.partidaId != null) {
-        // 1. Busca modalidade e esporte para carregar os tipos de eventos locais
-        final partidaData = await _supabase
-            .from('partidas')
-            .select('modalidade_id')
-            .eq('id', widget.partidaId!)
-            .single();
+        final partidaData = await _gameService.getPartidaEquipes(widget.partidaId!);
+        final modalidadeId = partidaData['modalidade_id'] ??
+            (await _gameService.getPartidaComEquipes(widget.partidaId!))['modalidade_id'];
 
         tipos = List<Map<String, dynamic>>.from(
-          await EventoService().getEventTypesByModality(
-            partidaData['modalidade_id'],
-          ),
+          await _eventoService.getEventTypesByModality(modalidadeId),
         );
 
-        // 2. Busca todos os eventos DESSA partida relacionados DSTE atleta
-        eventosDocs = List<Map<String, dynamic>>.from(
-          await _supabase
-              .from('eventos_partida')
-              .select('*')
-              .eq('partida_id', widget.partidaId!)
-              .or(
-                'atleta_id.eq.${widget.atleta.id},atleta_sai_id.eq.${widget.atleta.id}',
-              ),
+        eventosDocs = await _gameService.getEventosAtleta(
+          widget.partidaId!,
+          widget.atleta.id,
         );
       } else {
-        // Busca geral (Todas as partidas do atleta no campeonato)
-        final tiposRes = await _supabase.from('tipos_eventos').select('*');
-        tipos = List<Map<String, dynamic>>.from(tiposRes);
-
-        final eventosRes = await _supabase
-            .from('eventos_partida')
-            .select('*')
-            .or(
-              'atleta_id.eq.${widget.atleta.id},atleta_sai_id.eq.${widget.atleta.id}',
-            );
-        eventosDocs = List<Map<String, dynamic>>.from(eventosRes);
+        tipos = await _gameService.getTodosTiposEventos();
+        eventosDocs = await _gameService.getEventosAtletaGeral(widget.atleta.id);
       }
 
-      debugPrint('tipos: $tipos');
-      debugPrint('eventosDocs: $eventosDocs');
-      debugPrint('widget.atleta.id: ${widget.atleta.id}');
-
-      // 3. Processa e calcula as estatísticas
       int calcGols = 0;
       int calcFaltas = 0;
       int calcCA = 0;
@@ -100,7 +81,6 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
         );
         final rawNome = (tipo['nome']?.toString() ?? '').toUpperCase();
 
-        // Só conta se ele foi o autor principal da ação (atleta_id)
         if (ev['atleta_id'] == widget.atleta.id) {
           if (rawNome.contains('GOL') ||
               rawNome.contains('PENALTI_CONVERTIDO')) {
@@ -142,13 +122,13 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
           style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 24),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -187,7 +167,7 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -279,7 +259,7 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -346,7 +326,6 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
         );
         final friendlyName = EventoService.friendly(tipo['nome']?.toString());
 
-        // Tratamento de mensagens baseadas no tipo de evento
         String subtitulo = ev['tempo_cronometro'] ?? '--:--';
         if (widget.partidaId == null && ev['criado_em'] != null) {
           try {
@@ -374,12 +353,12 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF85C39).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.history,
-                  color: Color(0xFFF85C39),
+                  color: AppColors.primary,
                   size: 20,
                 ),
               ),

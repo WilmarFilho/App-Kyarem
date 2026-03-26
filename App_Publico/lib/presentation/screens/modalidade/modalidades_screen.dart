@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 
 import '../../../models/campeonato_model.dart';
 import '../../../models/modalidade_model.dart';
@@ -54,7 +55,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
           style: const TextStyle(fontFamily: 'Bebas Neue', fontSize: 22),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -65,7 +66,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 );
               }
 
@@ -95,7 +96,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
 
               return RefreshIndicator(
                 onRefresh: _reload,
-                color: const Color(0xFFF85C39),
+                color: AppColors.primary,
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
                   itemCount: modalidades.length,
@@ -132,9 +133,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFFF85C39,
-                                  ).withOpacity(0.12),
+                                  color: AppColors.primary.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: const Icon(

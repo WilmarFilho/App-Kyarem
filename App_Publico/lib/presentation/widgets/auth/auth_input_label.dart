@@ -13,7 +13,7 @@ class AuthInputLabel extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          fontFamily: 'Poppins',
+
           fontWeight: FontWeight.w500,
           fontSize: 14,
           color: Colors.white,

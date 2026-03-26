@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../services/evento_service.dart';
 import '../../../services/firebase_messaging_service.dart';
 import 'atletas_partida_screen.dart';
@@ -18,6 +19,9 @@ class JogoDetalhesScreen extends StatefulWidget {
   final String placarA;
   final String placarB;
   final String status;
+  final SupabaseClient? supabaseClient;
+  final EventoService? eventoService;
+  final bool enableFirebaseMessaging;
 
   const JogoDetalhesScreen({
     super.key,
@@ -31,6 +35,9 @@ class JogoDetalhesScreen extends StatefulWidget {
     this.placarA = "0",
     this.placarB = "0",
     this.status = "AO VIVO",
+    this.supabaseClient,
+    this.eventoService,
+    this.enableFirebaseMessaging = true,
   });
 
   @override
@@ -51,8 +58,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   DateTime? _timestampAncora;
   // ────────────────────────────────────────────────────────────────────
 
-  final SupabaseClient supabase = Supabase.instance.client;
-  final EventoService _eventoService = EventoService();
+  late final SupabaseClient supabase = widget.supabaseClient ?? Supabase.instance.client;
+  late final EventoService _eventoService = widget.eventoService ?? EventoService();
 
   late final Stream<List<Map<String, dynamic>>> _eventosStream;
   late final Stream<Map<String, dynamic>> _partidaStream;
@@ -94,7 +101,9 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
           return tipos;
         });
 
-    FirebaseMessagingService().subscribeToPartidaTopic(widget.partidaId);
+    if (widget.enableFirebaseMessaging) {
+      FirebaseMessagingService().subscribeToPartidaTopic(widget.partidaId);
+    }
 
     // Escuta eventos para atualizar âncora do cronômetro
     _eventosStream.listen((eventos) {
@@ -320,7 +329,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
           style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 24),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF85C39),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -349,7 +358,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFFF85C39),
+                        color: AppColors.primary,
                       ),
                     );
                   }
@@ -380,7 +389,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
               );
             },
             backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFFF85C39),
+            foregroundColor: AppColors.primary,
             elevation: 4,
             icon: const Icon(Icons.group_outlined),
             label: const Text('Atletas'),
@@ -402,7 +411,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                 ),
               );
             },
-            backgroundColor: const Color(0xFFF85C39),
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             elevation: 4,
             icon: const Icon(Icons.analytics_outlined),
@@ -420,7 +429,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-      decoration: const BoxDecoration(color: Color(0xFFF85C39)),
+      decoration: const BoxDecoration(color: AppColors.primary),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -503,7 +512,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       children: [
         CircleAvatar(
           radius: 35,
-          backgroundColor: Colors.white.withOpacity(0.2),
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
           backgroundImage: escudo != null ? NetworkImage(escudo) : null,
           child: escudo == null
               ? Text(
@@ -680,12 +689,12 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
               margin: const EdgeInsets.symmetric(vertical: 8),
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9F9F9),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
-                    color: iconColor.withOpacity(0.05),
+                    color: iconColor.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -701,7 +710,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                           "${ev['tempo_cronometro'] ?? "00'00"}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFF85C39),
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: 2),
