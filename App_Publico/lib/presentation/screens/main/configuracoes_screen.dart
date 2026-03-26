@@ -44,7 +44,9 @@ class WaveClipper extends CustomClipper<Path> {
 }
 
 class ConfiguracoesScreen extends StatefulWidget {
-  const ConfiguracoesScreen({super.key});
+  final bool isMainScreenChild;
+
+  const ConfiguracoesScreen({super.key, this.isMainScreenChild = false});
 
   @override
   State<ConfiguracoesScreen> createState() => _ConfiguracoesScreenState();
@@ -318,10 +320,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                     ],
                   ),
                 ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: BottomNavigationWidget(currentRoute: '/configuracoes'),
-          ),
+          if (!widget.isMainScreenChild)
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomNavigationWidget(currentRoute: '/configuracoes'),
+            ),
         ],
       ),
     );

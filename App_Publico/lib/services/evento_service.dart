@@ -35,13 +35,12 @@ class EventoService {
     'PARTIDA_PAUSADA': 'Partida Pausada',
   };
 
-  /// Retorna o nome amigável do tipo de evento a partir do nome cru do banco
   static String friendly(String? rawName) {
     if (rawName == null || rawName.isEmpty) return 'Evento';
     return friendlyNames[rawName.trim().toUpperCase()] ?? rawName;
   }
 
-  Future<List<Map<String, dynamic>>> buscarTiposPorPartida(
+  Future<List<Map<String, dynamic>>> getEventTypesByModality(
     String modalidadeId,
   ) async {
     try {
@@ -68,7 +67,7 @@ class EventoService {
   }
 
   /// Busca o nome de um atleta pelo ID. Retorna null se não encontrado.
-  Future<String?> buscarNomeAtleta(String atletaId) async {
+  Future<String?> getAthleteNameById(String atletaId) async {
     try {
       final data = await _supabase
           .from('atletas')

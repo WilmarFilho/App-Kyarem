@@ -88,7 +88,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
         .order('criado_em', ascending: false);
 
     _futureTipos = _eventoService
-        .buscarTiposPorPartida(widget.modalidadeId)
+        .getEventTypesByModality(widget.modalidadeId)
         .then((tipos) {
           if (mounted) setState(() => _tiposEventosCache = tipos);
           return tipos;
@@ -278,7 +278,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       return _atletaNomeCache[atletaId];
     }
 
-    final nome = await _eventoService.buscarNomeAtleta(atletaId);
+    final nome = await _eventoService.getAthleteNameById(atletaId);
     if (nome != null) {
       _atletaNomeCache[atletaId] = nome;
     }

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/modalidade_model.dart';
-import '../../../models/partida_api_model.dart';
-import '../../../services/competicao_service.dart';
+import '../../../models/partida_model.dart';
 import '../../../services/estatistica_service.dart';
+import '../../../services/partida_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../game/partida_screen.dart';
@@ -26,26 +26,16 @@ class PartidasModalidadeScreen extends StatefulWidget {
 
 enum _FiltroStatus { todas, agendadas, emAndamento, finalizadas }
 
-// ✅ Struct auxiliar para guardar nome + escudo da equipe
-class _DadosEquipe {
-  final String nome;
-  final String? escudoUrl;
-  const _DadosEquipe({required this.nome, this.escudoUrl});
-}
-
 class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
-  final _service = CompeticaoService();
+  final _partidaService = PartidaService();
   final _estatisticaService = EstatisticaService();
 
   bool _loading = true;
   bool _loadingStats = true;
   _FiltroStatus _filtro = _FiltroStatus.todas;
   String _ordemStats = 'Gols'; // 'Gols', 'Faltas', 'Cartões', 'Pênaltis'
-  List<PartidaApi> _partidas = [];
+  List<Partida> _partidas = [];
   List<EstatisticaAtleta> _estatisticas = [];
-
-  // ✅ Mapa agora guarda nome + escudo
-  Map<String, _DadosEquipe> _equipeById = {};
 
   @override
   void initState() {
@@ -56,7 +46,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 
   Future<void> _carregarEstatisticas() async {
     setState(() => _loadingStats = true);
-    final stats = await _estatisticaService.buscarEstatisticasPorModalidade(
+    final stats = await _estatisticaService.getEstatisticsByModality(
       widget.modalidade.id,
     );
     if (!mounted) return;
@@ -93,85 +83,31 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   Future<void> _carregar() async {
     setState(() => _loading = true);
 
-    // 1) Partidas (API)
-    final statusApi = _statusParaApi(_filtro);
-    final partidas = await _service.listarPartidas(
-      modalidadeId: widget.modalidade.id,
-      status: statusApi,
+    // 1) Partidas (Supabase)
+    final statusSupabase = _statusParaApi(_filtro);
+    var partidas = await _partidaService.getMatchesByModalityAndStatus(
+      modalityId: widget.modalidade.id,
+      status: statusSupabase ?? 'all',
     );
 
-    // 2) Montar conjunto de IDs de equipes usadas nas partidas
-    final idsEquipes = <String>{};
-    for (final p in partidas) {
-      final a = p.equipeAId;
-      final b = p.equipeBId;
-      if (a != null && a.trim().isNotEmpty) idsEquipes.add(a);
-      if (b != null && b.trim().isNotEmpty) idsEquipes.add(b);
-    }
-
-    // 3) Para cada ID, buscar equipe e guardar nome + escudo
-    final Map<String, _DadosEquipe> dadosEquipes = {};
-    await Future.wait(
-      idsEquipes.map((id) async {
-        final equipe = await _service.buscarEquipePorId(id);
-        if (equipe != null && equipe.id.isNotEmpty) {
-          dadosEquipes[equipe.id] = _DadosEquipe(
-            nome: equipe.nome,
-            // ✅ Ajuste o campo conforme seu modelo — pode ser:
-            // equipe.atleticaEscudoUrl, equipe.escudoUrl, equipe.logoUrl, etc.
-            escudoUrl: equipe.atleticaEscudoUrl,
-          );
-        }
-      }),
-    );
-
-    _equipeById = dadosEquipes;
-
-    // 4) Enriquecer nomes E escudos das equipes na lista de partidas
-    var enriched = partidas
-        .map(
-          (p) => p.copyWith(
-            equipeANome: p.equipeAId != null
-                ? _equipeById[p.equipeAId!]?.nome
-                : null,
-            equipeBNome: p.equipeBId != null
-                ? _equipeById[p.equipeBId!]?.nome
-                : null,
-            // ✅ Novos campos — adicione-os ao copyWith do seu PartidaApi
-            equipeAEscudo: p.equipeAId != null
-                ? _equipeById[p.equipeAId!]?.escudoUrl
-                : null,
-            equipeBEscudo: p.equipeBId != null
-                ? _equipeById[p.equipeBId!]?.escudoUrl
-                : null,
-          ),
-        )
-        .toList();
-
-    // 5) Filtro "Em andamento"
+    // 2) Filtro "Em andamento"
     if (_filtro == _FiltroStatus.emAndamento) {
-      enriched = enriched.where((p) {
+      partidas = partidas.where((p) {
         final st = p.status.trim().toLowerCase();
-        return st != 'agendada' && st != 'finalizada';
+        return st != 'agendada' && st != 'finalizada' && st != 'fechada';
       }).toList();
     }
 
-    // 6) Ordenação
-    enriched.sort((a, b) {
-      final da =
-          a.agendadoPara ??
-          a.iniciadaEm ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-      final db =
-          b.agendadoPara ??
-          b.iniciadaEm ??
-          DateTime.fromMillisecondsSinceEpoch(0);
+    // 3) Ordenação
+    partidas.sort((a, b) {
+      final da = a.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final db = b.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
       return db.compareTo(da);
     });
 
     if (!mounted) return;
     setState(() {
-      _partidas = enriched;
+      _partidas = partidas;
       _loading = false;
     });
   }
@@ -213,7 +149,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       appBar: AppBar(
         title: Text(
           titulo,
-          style: const TextStyle(fontFamily: 'Oswald', fontSize: 22, color: Colors.white),
+          style: const TextStyle(
+            fontFamily: 'Oswald',
+            fontSize: 22,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF110101),
@@ -277,7 +217,10 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                       Center(
                         child: Text(
                           'Nenhuma partida encontrada.',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
@@ -425,10 +368,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
                 ? NetworkImage(est.fotoUrl!)
                 : (est.equipeEscudoUrl != null &&
-                        est.equipeEscudoUrl!.isNotEmpty)
-                    ? NetworkImage(est.equipeEscudoUrl!)
-                    : null,
-            child: ((est.fotoUrl == null || est.fotoUrl!.isEmpty) &&
+                      est.equipeEscudoUrl!.isNotEmpty)
+                ? NetworkImage(est.equipeEscudoUrl!)
+                : null,
+            child:
+                ((est.fotoUrl == null || est.fotoUrl!.isEmpty) &&
                     (est.equipeEscudoUrl == null ||
                         est.equipeEscudoUrl!.isEmpty))
                 ? const Icon(Icons.person)
@@ -438,7 +382,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         const SizedBox(height: 8),
         Text(
           est.nomeAtleta.split(' ').first,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: Colors.white,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
@@ -516,10 +464,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             backgroundImage: (est.fotoUrl != null && est.fotoUrl!.isNotEmpty)
                 ? NetworkImage(est.fotoUrl!)
                 : (est.equipeEscudoUrl != null &&
-                        est.equipeEscudoUrl!.isNotEmpty)
-                    ? NetworkImage(est.equipeEscudoUrl!)
-                    : null,
-            child: ((est.fotoUrl == null || est.fotoUrl!.isEmpty) &&
+                      est.equipeEscudoUrl!.isNotEmpty)
+                ? NetworkImage(est.equipeEscudoUrl!)
+                : null,
+            child:
+                ((est.fotoUrl == null || est.fotoUrl!.isEmpty) &&
                     (est.equipeEscudoUrl == null ||
                         est.equipeEscudoUrl!.isEmpty))
                 ? const Icon(Icons.person, size: 20, color: Colors.grey)
@@ -579,7 +528,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         Text(emoji, style: const TextStyle(fontSize: 12)),
         Text(
           value,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ],
     );
@@ -592,7 +545,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF110101),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -649,21 +606,21 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     );
   }
 
-  void _abrirDetalhe(PartidaApi p) {
-    final timeA = p.equipeANome ?? 'Time A';
-    final timeB = p.equipeBNome ?? 'Time B';
+  void _abrirDetalhe(Partida p) {
+    final timeA = p.equipeA?.nome ?? 'Time A';
+    final timeB = p.equipeB?.nome ?? 'Time B';
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => JogoDetalhesScreen(
           partidaId: p.id,
-          modalidadeId: p.modalidadeId ?? widget.modalidade.id,
+          modalidadeId: p.modalidadeId,
           timeA: timeA,
           timeB: timeB,
           // ✅ Escudos enriquecidos
-          EscudoTimeA: p.equipeAEscudo,
-          EscudoTimeB: p.equipeBEscudo,
+          EscudoTimeA: p.equipeA?.atleticaEscudoUrl,
+          EscudoTimeB: p.equipeB?.atleticaEscudoUrl,
           status: p.status,
           placarA: p.placarA.toString(),
           placarB: p.placarB.toString(),
@@ -674,24 +631,26 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 }
 
 class _PartidaTile extends StatelessWidget {
-  final PartidaApi partida;
+  final Partida partida;
   final VoidCallback onTap;
 
   const _PartidaTile({required this.partida, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final timeA = partida.equipeANome ?? 'Time A';
-    final timeB = partida.equipeBNome ?? 'Time B';
-    final escudoA = partida.equipeAEscudo ?? '';
-    final escudoB = partida.equipeBEscudo ?? '';
+    final timeA = partida.equipeA?.nome ?? 'Time A';
+    final timeB = partida.equipeB?.nome ?? 'Time B';
+    final escudoA = partida.equipeA?.atleticaEscudoUrl ?? '';
+    final escudoB = partida.equipeB?.atleticaEscudoUrl ?? '';
 
     final st = partida.status.toUpperCase();
-    final isFinalizada = partida.status.trim().toLowerCase() == 'finalizada';
+    final isFinalizada =
+        partida.status.trim().toLowerCase() == 'finalizada' ||
+        partida.status.trim().toLowerCase() == 'fechada';
     final isAoVivo =
         partida.status.trim().toLowerCase() != 'agendada' && !isFinalizada;
 
-    final dt = partida.iniciadaEm ?? partida.agendadoPara;
+    final dt = partida.iniciadaEm;
     final dtStr = dt != null
         ? DateFormat('dd/MM • HH:mm').format(dt.toLocal())
         : '';
@@ -841,6 +800,11 @@ class _PartidaTile extends StatelessWidget {
           radius: 24,
           backgroundColor: const Color(0xFF2A0808),
           backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
+          onBackgroundImageError: url.isNotEmpty
+              ? (error, stackTrace) {
+                  print('ERRO AO CARREGAR IMAGEM ($url): $error');
+                }
+              : null,
           child: url.isEmpty
               ? Text(
                   nome.isNotEmpty ? nome[0] : '?',

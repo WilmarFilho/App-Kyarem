@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
-  final String currentRoute;
+  final String? currentRoute;
+  final int? currentIndex;
+  final ValueChanged<int>? onTabSelected;
 
-  const BottomNavigationWidget({super.key, required this.currentRoute});
+  const BottomNavigationWidget({
+    super.key, 
+    this.currentRoute,
+    this.currentIndex,
+    this.onTabSelected,
+  });
 
   @override
   State<BottomNavigationWidget> createState() => _BottomNavigationWidgetState();
@@ -82,28 +89,36 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
     );
   }
 
-  // Widget padrão com os ícones
   Widget _buildStandardNav() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildNavItem(Icons.home_filled, '/home'),
-        _buildNavItem(Icons.emoji_events, '/modalidades'),
-        _buildNavItem(Icons.settings, '/configuracoes'),
+        _buildNavItem(Icons.home_filled, '/home', 0),
+        _buildNavItem(Icons.emoji_events, '/modalidades', 1),
+        _buildNavItem(Icons.settings, '/configuracoes', 2),
       ],
     );
   }
 
-  Widget _buildNavItem(IconData icon, String route) {
-    final isSelected = widget.currentRoute == route;
+  Widget _buildNavItem(IconData icon, String route, int index) {
+    final isSelected = widget.currentIndex != null
+        ? widget.currentIndex == index
+        : widget.currentRoute == route;
+
     return GestureDetector(
-      onTap: !isSelected
-          ? () => Navigator.pushNamedAndRemoveUntil(
+      onTap: () {
+        if (!isSelected) {
+          if (widget.onTabSelected != null) {
+            widget.onTabSelected!(index);
+          } else {
+            Navigator.pushNamedAndRemoveUntil(
               context,
               route,
               (route) => false,
-            )
-          : null,
+            );
+          }
+        }
+      },
       child: Icon(
         icon,
         color: isSelected

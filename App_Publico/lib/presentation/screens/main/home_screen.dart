@@ -1,8 +1,11 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kyarem_eventos_publico/services/atleta_service.dart';
+import 'package:kyarem_eventos_publico/services/modalidade_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kyarem_eventos_publico/models/partida_model.dart';
+import 'package:kyarem_eventos_publico/models/modalidade_model.dart';
 import '../../../services/partida_service.dart';
 import '../game/partida_screen.dart';
 
@@ -13,7 +16,9 @@ import '../../widgets/home/partida_list_item.dart';
 import '../../widgets/home/partida_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool isMainScreenChild;
+
+  const HomeScreen({super.key, this.isMainScreenChild = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,11 +27,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final SupabaseClient _supabase = Supabase.instance.client;
   final PartidaService _partidaService = PartidaService();
+  final ModalidadeService _modalidadeService = ModalidadeService();
+  final AtletaService _atletaService = AtletaService();
 
   List<Partida> _partidasDestaque = [];
   List<Partida> _historicoPartidas = [];
   bool _carregandoDados = true;
-  List<Map<String, dynamic>> _modalidades = [];
+  List<Modalidade> _modalidades = [];
 
   // Scroll-driven header animation
   final ScrollController _scrollController = ScrollController();
@@ -68,8 +75,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _carregarDestaques() async {
     try {
       final resultados = await Future.wait([
-        _partidaService.buscarTopAtletas('GOL'),
-        _partidaService.buscarTopAtletas('GOL'), // Ajustado para PONTO
+        _atletaService.getTopAthletes('GOL'),
+        _atletaService.getTopAthletes('GOL'), // Ajustado para PONTO
       ]);
 
       if (mounted) {
@@ -135,19 +142,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (!isRefresh) setState(() => _carregandoDados = true);
 
     try {
-      final campeonatoId = dotenv.get('CAMPEONATO_ID');
-
       final resultados = await Future.wait([
-        _partidaService.listarPartidasDestaque(),
-        _partidaService.listarHistoricoPartidas(),
-        _partidaService.listarModalidades(campeonatoId),
+        _partidaService.getActiveMatches(),
+        _partidaService.getFinishedMatches(),
+        _modalidadeService.getModalities(),
       ]);
 
       if (mounted) {
         setState(() {
           _partidasDestaque = resultados[0] as List<Partida>;
           _historicoPartidas = resultados[1] as List<Partida>;
-          _modalidades = resultados[2] as List<Map<String, dynamic>>;
+          _modalidades = resultados[2] as List<Modalidade>;
 
           if (!isRefresh) _initializeAnimations(_partidasDestaque.length);
           _carregandoDados = false;
@@ -245,8 +250,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // ── 4. MODALIDADES ──
                   _buildSectionTitle("MODALIDADES", const Color(0xFFF22F1D)),
                   _buildModalidadesSection(),
-                  // Espaço para o Bottom Nav
-                  const SizedBox(height: 120),
+                  // Espaço para o Bottom Nav apenas se não for filho do MainScreen
+                  if (!widget.isMainScreenChild) const SizedBox(height: 120)
+                  else const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -260,10 +266,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: HomeHeader(collapseProgress: _headerCollapseProgress),
           ),
 
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: BottomNavigationWidget(currentRoute: '/home'),
-          ),
+          if (!widget.isMainScreenChild)
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomNavigationWidget(currentRoute: '/home'),
+            ),
         ],
       ),
     );
@@ -418,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         itemBuilder: (context, index) {
           final mod = _modalidades[index];
           // Pegamos o nome e normalizamos para comparar
-          final nomeMod = mod['nome'].toString().toUpperCase();
+          final nomeMod = (mod.nome ?? '').toUpperCase();
 
           // 1. Definir ÍCONE baseado no NOME
           final IconData iconData = switch (nomeMod) {

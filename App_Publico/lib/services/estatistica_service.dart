@@ -32,7 +32,7 @@ class EstatisticaService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Busca as estatísticas dos atletas em uma modalidade agrupando as ocorrências dos eventos.
-  Future<List<EstatisticaAtleta>> buscarEstatisticasPorModalidade(
+  Future<List<EstatisticaAtleta>> getEstatisticsByModality(
     String modalidadeId,
   ) async {
     try {

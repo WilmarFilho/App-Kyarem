@@ -7,9 +7,8 @@ import 'services/firebase_messaging_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-// Imports das suas telas
 import 'models/campeonato_model.dart';
-import 'presentation/screens/main/home_screen.dart';
+import 'presentation/screens/main/main_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/reset_password_screen.dart';
 import 'presentation/screens/main/perfil_screen.dart';
@@ -82,12 +81,11 @@ class MyApp extends StatelessWidget {
         ),
         fontFamily: 'Poppins', // Define Poppins como padrão para o app
       ),
-      // Se tiver sessão vai para Home, se não, para Login
       initialRoute: session != null ? '/home' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const MainScreen(initialIndex: 0),
         '/reset-password': (context) => const ResetPasswordScreen(),
         '/perfil': (context) => const PerfilScreen(),
         '/modalidades': (context) => ModalidadesScreen(

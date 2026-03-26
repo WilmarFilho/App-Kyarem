@@ -6,7 +6,6 @@ import '../models/profile_model.dart';
 class ProfileService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Busca o perfil do usuário logado
   Future<Profile?> fetchProfile() async {
     try {
       final user = _supabase.auth.currentUser;
@@ -28,7 +27,6 @@ class ProfileService {
     }
   }
 
-  /// Atualiza campos editáveis do perfil
   Future<bool> updateProfile({
     required String nomeExibicao,
     String? telefone,
@@ -49,7 +47,6 @@ class ProfileService {
     }
   }
 
-  /// Faz upload da foto de perfil ao Supabase Storage e atualiza o campo foto_url
   Future<String?> uploadProfilePhoto(File imageFile) async {
     try {
       final user = _supabase.auth.currentUser;

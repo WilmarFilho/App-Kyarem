@@ -2,35 +2,32 @@ import 'package:flutter/material.dart';
 
 import '../../../models/campeonato_model.dart';
 import '../../../models/modalidade_model.dart';
-import '../../../services/competicao_service.dart';
+import '../../../services/modalidade_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import 'partidas_modalidade_screen.dart';
 
 class ModalidadesScreen extends StatefulWidget {
   final Campeonato campeonato;
 
-  const ModalidadesScreen({
-    super.key,
-    required this.campeonato,
-  });
+  const ModalidadesScreen({super.key, required this.campeonato});
 
   @override
   State<ModalidadesScreen> createState() => _ModalidadesScreenState();
 }
 
 class _ModalidadesScreenState extends State<ModalidadesScreen> {
-  final _service = CompeticaoService();
+  final _service = ModalidadeService();
   late Future<List<Modalidade>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.listarModalidadesPorCampeonato(widget.campeonato.id);
+    _future = _service.getModalities();
   }
 
   Future<void> _reload() async {
     setState(() {
-      _future = _service.listarModalidadesPorCampeonato(widget.campeonato.id);
+      _future = _service.getModalities();
     });
   }
 
@@ -47,7 +44,9 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
               Navigator.of(context).pop();
               return;
             }
-            Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (route) => false);
           },
         ),
         title: Text(
@@ -87,7 +86,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                         ElevatedButton(
                           onPressed: _reload,
                           child: const Text('Tentar novamente'),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -103,7 +102,9 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final m = modalidades[i];
-                    final titulo = (m.nome ?? 'Modalidade').trim().isNotEmpty ? m.nome! : 'Modalidade';
+                    final titulo = (m.nome ?? 'Modalidade').trim().isNotEmpty
+                        ? m.nome!
+                        : 'Modalidade';
                     final subtitulo = (m.esporteNome ?? '').trim();
 
                     return Material(
@@ -123,17 +124,25 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                           );
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 16,
+                          ),
                           child: Row(
                             children: [
                               Container(
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF85C39).withOpacity(0.12),
+                                  color: const Color(
+                                    0xFFF85C39,
+                                  ).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: const Icon(Icons.sports, color: Color(0xFFF85C39)),
+                                child: const Icon(
+                                  Icons.sports,
+                                  color: Color(0xFFF85C39),
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -144,19 +153,29 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                                       titulo,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                     if (subtitulo.isNotEmpty) ...[
                                       const SizedBox(height: 4),
                                       Text(
                                         subtitulo,
-                                        style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w600),
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ]
+                                    ],
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_right, color: Colors.black45),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.black45,
+                              ),
                             ],
                           ),
                         ),

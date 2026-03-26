@@ -48,7 +48,7 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
           .eq('id', widget.partidaId)
           .single();
 
-      final tipos = await EventoService().buscarTiposPorPartida(
+      final tipos = await EventoService().getEventTypesByModality(
         partidaData['modalidade_id'],
       );
 
