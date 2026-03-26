@@ -9,14 +9,16 @@ import '../../widgets/auth/auth_button.dart';
 import '../../widgets/auth/auth_feedback_message.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final AuthService? authService;
+
+  const RegisterScreen({super.key, this.authService});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final AuthService _authService = AuthService(); // Instância do Service
+  late final AuthService _authService = widget.authService ?? AuthService(); // Instância do Service
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();

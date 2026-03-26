@@ -4,9 +4,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final SupabaseClient _supabase = Supabase.instance.client;
 
 class AtletaService {
+  static final Map<String, List<Map<String, dynamic>>> _cachedTopAthletes = {};
+  static final Map<String, DateTime> _lastCacheTime = {};
+
   Future<List<Map<String, dynamic>>> getTopAthletes(
-    String nomeTipoEvento,
-  ) async {
+    String nomeTipoEvento, {
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedTopAthletes.containsKey(nomeTipoEvento) &&
+        _lastCacheTime.containsKey(nomeTipoEvento)) {
+      if (DateTime.now().difference(_lastCacheTime[nomeTipoEvento]!).inMinutes <
+          5) {
+        return _cachedTopAthletes[nomeTipoEvento]!;
+      }
+    }
+
     try {
       // 1. Busca o ID do tipo de evento
       final tipoEventoRes = await _supabase
@@ -26,7 +39,7 @@ class AtletaService {
           atleta:atletas!eventos_partida_atleta_id_fkey (
             nome,
             foto_url,
-            atleticas ( nome )
+            atleticas ( nome, escudo_url )
           )
         ''')
           .eq('tipo_evento_id', tipoId);
@@ -56,20 +69,29 @@ class AtletaService {
       final idLider = sortedKeys.first;
       final atleta = infoAtleta[idLider];
 
-      String modalidadeNome = "Geral";
+      String timeNome = "Geral";
+      String? timeEscudo;
       if (atleta['atleticas'] != null) {
-        modalidadeNome = atleta['atleticas']['nome'];
+        timeNome = atleta['atleticas']['nome'] ?? "Geral";
+        timeEscudo = atleta['atleticas']['escudo_url'];
       }
 
-      return [
+      final result = [
         {
+          'atleta_id': idLider,
           'nome': atleta['nome'] ?? 'Atleta',
-          'modalidade': modalidadeNome,
+          'modalidade': timeNome,
+          'time_escudo': timeEscudo,
           'valor': contagem[idLider].toString(),
           'label': nomeTipoEvento.toUpperCase() == 'GOL' ? 'GOL' : 'PONTO',
           'foto': atleta['foto_url'],
         },
       ];
+
+      _cachedTopAthletes[nomeTipoEvento] = result;
+      _lastCacheTime[nomeTipoEvento] = DateTime.now();
+
+      return result;
     } catch (e) {
       debugPrint('ERRO NO SERVICE: $e');
       return [];

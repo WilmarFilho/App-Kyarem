@@ -4,14 +4,14 @@ import '../../../../models/atleta_model.dart';
 import '../../../../services/evento_service.dart';
 
 class EstatisticaAtletaScreen extends StatefulWidget {
-  final String partidaId;
+  final String? partidaId; // Permite null para buscar estats gerais
   final Atleta atleta;
   final String timeNome;
   final String? escudoUrl;
 
   const EstatisticaAtletaScreen({
     super.key,
-    required this.partidaId,
+    this.partidaId,
     required this.atleta,
     required this.timeNome,
     this.escudoUrl,
@@ -41,31 +41,49 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
 
   Future<void> _carregarEstatisticas() async {
     try {
-      // 1. Busca modalidade e esporte para carregar os tipos de eventos
-      final partidaData = await _supabase
-          .from('partidas')
-          .select('modalidade_id')
-          .eq('id', widget.partidaId)
-          .single();
+      List<Map<String, dynamic>> tipos = [];
+      List<Map<String, dynamic>> eventosDocs = [];
 
-      final tipos = await EventoService().getEventTypesByModality(
-        partidaData['modalidade_id'],
-      );
+      if (widget.partidaId != null) {
+        // 1. Busca modalidade e esporte para carregar os tipos de eventos locais
+        final partidaData = await _supabase
+            .from('partidas')
+            .select('modalidade_id')
+            .eq('id', widget.partidaId!)
+            .single();
+
+        tipos = List<Map<String, dynamic>>.from(
+          await EventoService().getEventTypesByModality(
+            partidaData['modalidade_id'],
+          ),
+        );
+
+        // 2. Busca todos os eventos DESSA partida relacionados DSTE atleta
+        eventosDocs = List<Map<String, dynamic>>.from(
+          await _supabase
+              .from('eventos_partida')
+              .select('*')
+              .eq('partida_id', widget.partidaId!)
+              .or(
+                'atleta_id.eq.${widget.atleta.id},atleta_sai_id.eq.${widget.atleta.id}',
+              ),
+        );
+      } else {
+        // Busca geral (Todas as partidas do atleta no campeonato)
+        final tiposRes = await _supabase.from('tipos_eventos').select('*');
+        tipos = List<Map<String, dynamic>>.from(tiposRes);
+
+        final eventosRes = await _supabase
+            .from('eventos_partida')
+            .select('*')
+            .or(
+              'atleta_id.eq.${widget.atleta.id},atleta_sai_id.eq.${widget.atleta.id}',
+            );
+        eventosDocs = List<Map<String, dynamic>>.from(eventosRes);
+      }
 
       debugPrint('tipos: $tipos');
-
-      // 2. Busca todos os eventos DESSA partida relacionados DSTE atleta
-      // Ele é o 'atleta_id' (quem fez o evento) ou 'atleta_sai_id' (substituído)
-      final eventosDocs = await _supabase
-          .from('eventos_partida')
-          .select('*')
-          .eq('partida_id', widget.partidaId)
-          .or(
-            'atleta_id.eq.${widget.atleta.id},atleta_sai_id.eq.${widget.atleta.id}',
-          );
-
       debugPrint('eventosDocs: $eventosDocs');
-
       debugPrint('widget.atleta.id: ${widget.atleta.id}');
 
       // 3. Processa e calcula as estatísticas
@@ -99,7 +117,7 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
 
       if (mounted) {
         setState(() {
-          _eventos = List<Map<String, dynamic>>.from(eventosDocs);
+          _eventos = eventosDocs;
           _tiposEventos = tipos;
           gols = calcGols;
           faltas = calcFaltas;
@@ -140,11 +158,13 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
                   const SizedBox(height: 30),
                   _buildStatsGrid(),
                   const SizedBox(height: 30),
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "LANCES DESTA PARTIDA",
-                      style: TextStyle(
+                      widget.partidaId != null
+                          ? "LANCES DESTA PARTIDA"
+                          : "HISTÓRICO DE LANCES",
+                      style: const TextStyle(
                         fontFamily: 'Bebas Neue',
                         fontSize: 20,
                         color: Colors.black87,
@@ -301,10 +321,12 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
-            "Nenhum lance registrado para este atleta na partida.",
-            style: TextStyle(color: Colors.grey),
+            widget.partidaId != null
+                ? "Nenhum lance registrado para este atleta na partida."
+                : "Nenhum lance registrado para este atleta.",
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -326,6 +348,13 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
 
         // Tratamento de mensagens baseadas no tipo de evento
         String subtitulo = ev['tempo_cronometro'] ?? '--:--';
+        if (widget.partidaId == null && ev['criado_em'] != null) {
+          try {
+            final dt = DateTime.parse(ev['criado_em']).toLocal();
+            subtitulo =
+                "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+          } catch (_) {}
+        }
         if (friendlyName.contains("Substituição")) {
           if (ev['atleta_id'] == widget.atleta.id) {
             subtitulo += " - Entrou em campo";

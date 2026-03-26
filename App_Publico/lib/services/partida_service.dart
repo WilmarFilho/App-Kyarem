@@ -4,6 +4,9 @@ import 'package:kyarem_eventos_publico/models/partida_model.dart';
 class PartidaService {
   final _supabase = Supabase.instance.client;
 
+  static List<Partida>? _cachedFinishedMatches;
+  static DateTime? _lastFinishedMatchesTime;
+
   Future<List<Partida>> getMatchesByModalityAndStatus({
     required String modalityId,
     String status = 'all',
@@ -64,7 +67,15 @@ class PartidaService {
     }
   }
 
-  Future<List<Partida>> getFinishedMatches() async {
+  Future<List<Partida>> getFinishedMatches({bool forceRefresh = false}) async {
+    if (!forceRefresh &&
+        _cachedFinishedMatches != null &&
+        _lastFinishedMatchesTime != null) {
+      if (DateTime.now().difference(_lastFinishedMatchesTime!).inMinutes < 5) {
+        return _cachedFinishedMatches!;
+      }
+    }
+
     try {
       final response = await _supabase
           .from('partidas')
@@ -78,7 +89,12 @@ class PartidaService {
           .order('encerrada_em', ascending: false)
           .limit(4);
 
-      return (response as List).map((json) => Partida.fromMap(json)).toList();
+      _cachedFinishedMatches = (response as List)
+          .map((json) => Partida.fromMap(json))
+          .toList();
+      _lastFinishedMatchesTime = DateTime.now();
+
+      return _cachedFinishedMatches!;
     } catch (e) {
       // ignore: avoid_print
       print('Erro ao buscar histórico: $e');

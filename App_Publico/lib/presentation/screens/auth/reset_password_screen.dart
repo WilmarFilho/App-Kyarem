@@ -8,14 +8,16 @@ import '../../widgets/auth/auth_button.dart';
 import '../../widgets/auth/auth_feedback_message.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final AuthService? authService;
+
+  const ResetPasswordScreen({super.key, this.authService});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final AuthService _authService = AuthService(); // Instância do Service
+  late final AuthService _authService = widget.authService ?? AuthService(); // Instância do Service
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   

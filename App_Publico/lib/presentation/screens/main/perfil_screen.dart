@@ -482,55 +482,79 @@ class _PerfilScreenState extends State<PerfilScreen>
                   ),
                 ),
                 const SizedBox(height: 2),
-                editable
-                    ? TextField(
-                        controller: controller,
-                        keyboardType: keyboardType,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 4,
-                          ),
-                          hintText: placeholder,
-                          hintStyle: TextStyle(
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.05, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: editable
+                      ? TextField(
+                          key: ValueKey<String>('edit_$label'),
+                          controller: controller,
+                          keyboardType: keyboardType,
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 15,
-                            color: Colors.white30,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
                           ),
-                          border: InputBorder.none,
-                          enabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0xFFF22F1D),
-                              width: 1.5,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 4,
+                            ),
+                            hintText: placeholder,
+                            hintStyle: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15,
+                              color: Colors.white30,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Color(0xFFF22F1D),
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Color(0xFFF22F1D),
+                                width: 2,
+                              ),
                             ),
                           ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0xFFF22F1D),
-                              width: 2,
+                        )
+                      : Container(
+                          key: ValueKey<String>('read_$label'),
+                          width: double.infinity,
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            controller.text.isEmpty
+                                ? (placeholder ?? '---')
+                                : controller.text,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: controller.text.isEmpty
+                                  ? Colors.white30
+                                  : Colors.white,
                             ),
                           ),
                         ),
-                      )
-                    : Text(
-                        controller.text.isEmpty
-                            ? (placeholder ?? '---')
-                            : controller.text,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: controller.text.isEmpty
-                              ? Colors.white30
-                              : Colors.white,
-                        ),
-                      ),
+                ),
               ],
             ),
           ),

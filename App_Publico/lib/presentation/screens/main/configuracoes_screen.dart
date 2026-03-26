@@ -1,46 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos_publico/presentation/screens/main/search_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 
-class WaveClipper extends CustomClipper<Path> {
+class _WaveClipper extends CustomClipper<Path> {
+  final double waveHeight;
+  _WaveClipper({this.waveHeight = 30});
+
   @override
   Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 40); // Ponto inicial na esquerda
-
-    // Primeira curva da onda
-    var firstStart = Offset(size.width / 4, size.height);
-    var firstEnd = Offset(size.width / 2.25, size.height - 30);
+    final path = Path();
+    path.lineTo(0, size.height - waveHeight);
+    final firstControlPoint = Offset(size.width * 0.25, size.height);
+    final firstEndPoint = Offset(size.width * 0.5, size.height - waveHeight);
     path.quadraticBezierTo(
-      firstStart.dx,
-      firstStart.dy,
-      firstEnd.dx,
-      firstEnd.dy,
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
     );
-
-    // Segunda curva da onda
-    var secondStart = Offset(
-      size.width - (size.width / 3.25),
-      size.height - 65,
+    final secondControlPoint = Offset(
+      size.width * 0.75,
+      size.height - waveHeight * 2,
     );
-    var secondEnd = Offset(size.width, size.height - 20);
+    final secondEndPoint = Offset(size.width, size.height - waveHeight);
     path.quadraticBezierTo(
-      secondStart.dx,
-      secondStart.dy,
-      secondEnd.dx,
-      secondEnd.dy,
+      secondControlPoint.dx,
+      secondControlPoint.dy,
+      secondEndPoint.dx,
+      secondEndPoint.dy,
     );
-
-    path.lineTo(size.width, 0); // Sobe até o topo na direita
+    path.lineTo(size.width, 0);
     path.close();
     return path;
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  bool shouldReclip(_WaveClipper oldClipper) =>
+      oldClipper.waveHeight != waveHeight;
 }
 
 class ConfiguracoesScreen extends StatefulWidget {
@@ -67,6 +68,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
 
+  late ScrollController _scrollController;
+  double _headerCollapseProgress = 0.0;
+  String _userName = 'Usuário';
+
   @override
   void initState() {
     super.initState();
@@ -78,13 +83,50 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
       parent: _animController,
       curve: Curves.easeOut,
     );
+
+    _scrollController = ScrollController()
+      ..addListener(() {
+        if (_scrollController.hasClients) {
+          double offset = _scrollController.offset;
+          double newProgress = (offset / 100).clamp(0.0, 1.0);
+          if (newProgress != _headerCollapseProgress) {
+            setState(() {
+              _headerCollapseProgress = newProgress;
+            });
+          }
+        }
+      });
+
     _loadPreferences();
+    _fetchUserName();
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchUserName() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('nome_exibicao')
+            .eq('id', user.id)
+            .single();
+
+        if (profile['nome_exibicao'] != null && mounted) {
+          setState(() {
+            _userName = profile['nome_exibicao'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao buscar nome: $e');
+    }
   }
 
   Future<void> _loadPreferences() async {
@@ -306,10 +348,14 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
               : FadeTransition(
                   opacity: _fadeAnimation,
                   child: CustomScrollView(
+                    controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     slivers: [
-                      // Header sem SafeArea para colar no topo
-                      SliverToBoxAdapter(child: _buildHeader()),
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 170 + MediaQuery.of(context).padding.top,
+                        ),
+                      ),
 
                       // As demais seções
                       SliverToBoxAdapter(child: _buildNotificacoesSection()),
@@ -325,42 +371,126 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
               alignment: Alignment.bottomCenter,
               child: BottomNavigationWidget(currentRoute: '/configuracoes'),
             ),
+
+          if (!_loading)
+            Positioned(top: 0, left: 0, right: 0, child: _buildHeader()),
         ],
       ),
     );
   }
 
   Widget _buildHeader() {
-    // Recupera a altura da barra de status para empurrar apenas o texto para baixo
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    // 1. Interpolação de Cores
+    final backgroundColor = Color.lerp(
+      Colors.white,
+      Colors.black,
+      _headerCollapseProgress,
+    );
 
-    return Stack(
-      children: [
-        ClipPath(
-          clipper: WaveClipper(),
-          child: Container(
-            width: double.infinity,
-            // Aumentamos a altura levemente para compensar o avanço sobre a status bar
-            height: 130 + statusBarHeight,
-            color: Colors.white,
-            child: Padding(
-              // O padding top agora usa a altura da status bar + um respiro
-              padding: EdgeInsets.fromLTRB(22, statusBarHeight + 20, 22, 0),
-              child: const Text(
-                'CONFIGURAÇÕES',
-                style: TextStyle(
-                  fontFamily: 'Oswald',
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: Color(0xFF1A1A1A),
+    // 2. Cálculos de layout e opacidade
+    final contentOpacity = (1.0 - _headerCollapseProgress * 2.5).clamp(
+      0.0,
+      1.0,
+    );
+    final searchOpacity = ((_headerCollapseProgress - 0.6) / 0.4).clamp(
+      0.0,
+      1.0,
+    );
+    final waveHeight = 30.0 * (1.0 - _headerCollapseProgress);
+    final headerHeight = 150.0 + (waveHeight) - (_headerCollapseProgress * 50);
+
+    return ClipPath(
+      clipper: _WaveClipper(waveHeight: waveHeight),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        height: headerHeight.clamp(80.0, 200.0),
+        padding: EdgeInsets.only(
+          bottom: 30.0 * (1.0 - _headerCollapseProgress),
+        ),
+        decoration: BoxDecoration(color: backgroundColor),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // CONTEÚDO ORIGINAL
+                Opacity(
+                  opacity: contentOpacity,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ajuste suas configurações.',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15,
+                              color: Color(0xFF555555),
+                            ),
+                          ),
+                          Text(
+                            'CONFIGURAÇÕES',
+                            style: GoogleFonts.oswald(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF260404),
+                              height: 1.1,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.start,
-              ),
+
+                // BARRA DE BUSCA (Aparece no Header Preto)
+                if (searchOpacity > 0)
+                  Opacity(
+                    opacity: searchOpacity,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen())),
+                        child: Container(
+                          height: 45,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 15),
+                              const Icon(
+                                Icons.search,
+                                color: Colors.white70,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'O que você procura?',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
   // ── Seção Notificações ──────────────────────────────────────────────

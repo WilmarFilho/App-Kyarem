@@ -8,6 +8,9 @@ import 'package:kyarem_eventos_publico/models/partida_model.dart';
 import 'package:kyarem_eventos_publico/models/modalidade_model.dart';
 import '../../../services/partida_service.dart';
 import '../game/partida_screen.dart';
+import '../game/estatistica_atleta_screen.dart';
+import '../../screens/modalidade/partidas_modalidade_screen.dart';
+import '../../../../models/atleta_model.dart';
 
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -141,18 +144,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (!mounted) return;
     if (!isRefresh) setState(() => _carregandoDados = true);
 
+    // Buscas que possuem cache local (retornam quase instantaneamente)
+    _partidaService.getFinishedMatches().then<void>((historico) {
+      if (mounted) setState(() => _historicoPartidas = historico);
+    }).catchError((e) {
+      debugPrint("Erro histórico: \$e");
+    });
+
+    _modalidadeService.getModalities().then<void>((mods) {
+      if (mounted) setState(() => _modalidades = mods);
+    }).catchError((e) {
+      debugPrint("Erro modalidades: \$e");
+    });
+
+    // O request de Partidas Ao Vivo não possui cache (pois é realtime)
+    // Logo, ele ditará o fim do "_carregandoDados" geral.
     try {
-      final resultados = await Future.wait([
-        _partidaService.getActiveMatches(),
-        _partidaService.getFinishedMatches(),
-        _modalidadeService.getModalities(),
-      ]);
+      final destaques = await _partidaService.getActiveMatches();
 
       if (mounted) {
         setState(() {
-          _partidasDestaque = resultados[0] as List<Partida>;
-          _historicoPartidas = resultados[1] as List<Partida>;
-          _modalidades = resultados[2] as List<Modalidade>;
+          _partidasDestaque = destaques;
 
           if (!isRefresh) _initializeAnimations(_partidasDestaque.length);
           _carregandoDados = false;
@@ -160,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         if (!isRefresh) _animationController.forward();
       }
     } catch (e) {
-      debugPrint("Erro ao carregar dados: $e");
+      debugPrint("Erro ao carregar dados ao vivo: \$e");
       if (mounted) setState(() => _carregandoDados = false);
     }
   }
@@ -251,8 +263,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   _buildSectionTitle("MODALIDADES", const Color(0xFFF22F1D)),
                   _buildModalidadesSection(),
                   // Espaço para o Bottom Nav apenas se não for filho do MainScreen
-                  if (!widget.isMainScreenChild) const SizedBox(height: 120)
-                  else const SizedBox(height: 80),
+                  if (!widget.isMainScreenChild)
+                    const SizedBox(height: 120)
+                  else
+                    const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -459,7 +473,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           };
 
           return GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/modalidades'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PartidasModalidadeScreen(
+                    modalidade: mod,
+                    campeonatoNome: dotenv.env['APP_NAME'] ?? 'Campeonato',
+                  ),
+                ),
+              );
+            },
             child: Container(
               width: 130,
               margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -505,139 +529,192 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white, // Fundo branco solicitado
-        borderRadius: BorderRadius.circular(32),
+        // === GRADIENTE ASSINATURA DO PARTIDA CARD ===
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFF2561D),
+            Color(0xFFF22F1D),
+          ], // Laranja para Vermelho
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        // === BORDA ARREDONDADA ===
+        borderRadius: BorderRadius.circular(
+          28,
+        ), // Combinando com o estilo premium
+        // === SOMBRA COLORIDA DISSIPADA ===
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: const Color(
+              0xFFF22F1D,
+            ).withValues(alpha: 0.35), // Sombra vermelha
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         children: destaques.map((atleta) {
           final bool isLast = destaques.last == atleta;
-          final Color primaryColor = atleta['label'].toString().contains('GOL')
-              ? const Color(0xFFF22F1D)
-              : const Color(0xFFF2561D);
 
-          return Container(
-            width: double.infinity,
-            margin: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: isLast ? 0 : 20,
-            ),
-            height: 140,
-            decoration: BoxDecoration(
-              color: const Color(
-                0xFFF8F8F8,
-              ), // Cinza muito claro para o card interno
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.black12),
-            ),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      // Foto do Atleta ou Placeholder
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          image: atleta['foto'] != null
-                              ? DecorationImage(
-                                  image: NetworkImage(atleta['foto']),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                          border: Border.all(
-                            color: primaryColor.withValues(alpha: 0.2),
-                            width: 2,
+          // Mantemos o primaryColor (vermelho principal) para elementos internos
+          const Color primaryColor = Color(0xFFF22F1D);
+
+          return GestureDetector(
+            onTap: () {
+              if (atleta['atleta_id'] == null) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EstatisticaAtletaScreen(
+                    atleta: Atleta(
+                      id: atleta['atleta_id'].toString(),
+                      atleticaId: '',
+                      nome: atleta['nome'] ?? 'Atleta',
+                      fotoUrl: atleta['foto'],
+                    ),
+                    timeNome: atleta['modalidade'] ?? 'Equipe',
+                    escudoUrl: atleta['time_escudo'],
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              margin: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top:
+                    5, // Adicionado um recuo no topo para o primeiro card não colar no header
+                bottom: isLast ? 5 : 16, // Espaçamento entre os cards (16px)
+              ),
+              height: 115, // Mais compacto e elegante
+              decoration: BoxDecoration(
+                // === FUNDO DO CARD INTERNO (TRANSPARÊNCIA SOBRE GRADIENTE) ===
+                // Usamos branco opaco para criar um "vidro" sobre o gradiente vermelho
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                // Borda sutil para definir o limite do card
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Foto do Atleta ou Placeholder
+                    Container(
+                      width: 75,
+                      height: 75,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        // Sombra suave para o avatar se destacar
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
                           ),
-                        ),
-                        child: atleta['foto'] == null
-                            ? Icon(
-                                Icons.person,
-                                size: 40,
-                                color: primaryColor.withValues(alpha: 0.3),
+                        ],
+                        image: atleta['foto'] != null
+                            ? DecorationImage(
+                                image: NetworkImage(atleta['foto']),
+                                fit: BoxFit.cover,
                               )
                             : null,
+                        // Borda sutil no avatar
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 2,
+                        ),
                       ),
-                      const SizedBox(width: 16),
+                      child: atleta['foto'] == null
+                          ? Icon(
+                              Icons.person,
+                              size: 35,
+                              color: Colors.black.withValues(
+                                alpha: 0.2,
+                              ), // Ícone escuro suave
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 16),
 
-                      // Informações
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Label + Valor juntos no Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: primaryColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    atleta['valor'] ?? '0',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                    // Informações
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        // Garante que a coluna ocupe apenas o espaço necessário
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Label + Valor juntos no Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  atleta['valor'] ?? '0',
+                                  style: const TextStyle(
+                                    color: primaryColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    // Tradução: Pega o label, e se o valor convertido para int for > 1, adiciona 'S'
-                                    "${atleta['label']}${int.tryParse(atleta['valor'].toString()) != null && int.parse(atleta['valor'].toString()) > 1 ? 'S' : ''}",
+                                ),
+                                const SizedBox(width: 6),
+                                // Flexible previne overflow se o texto do label for muito longo
+                                Flexible(
+                                  child: Text(
+                                    "${atleta['label']}${int.tryParse(atleta['valor'].toString()) != null && int.parse(atleta['valor'].toString()) > 1 ? 'S' : ''}"
+                                        .toUpperCase(),
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: primaryColor,
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1,
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              atleta['nome']?.toUpperCase() ?? '',
-                              style: GoogleFonts.oswald(
-                                color: const Color(0xFF1A0202),
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(
+                            height: 4,
+                          ), // Reduzi de 8 para 4 para ganhar espaço vertical
+                          Text(
+                            atleta['nome']?.toUpperCase() ?? '',
+                            style: GoogleFonts.oswald(
+                              color: Colors.white,
+                              fontSize: 18, // Reduzi levemente de 19 para 18
+                              fontWeight: FontWeight.bold,
                             ),
-                            Text(
-                              atleta['modalidade'] ?? '',
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            atleta['modalidade'] ?? '',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 11, // Reduzi levemente de 12 para 11
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
-                        ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         }).toList(),

@@ -6,7 +6,7 @@ class BottomNavigationWidget extends StatefulWidget {
   final ValueChanged<int>? onTabSelected;
 
   const BottomNavigationWidget({
-    super.key, 
+    super.key,
     this.currentRoute,
     this.currentIndex,
     this.onTabSelected,
@@ -17,74 +17,37 @@ class BottomNavigationWidget extends StatefulWidget {
 }
 
 class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
-  bool _menuAdicionarAberto = false;
+  // Cor principal extraída do seu card para manter a harmonia
+  final Color brandRed = const Color(0xFFF22F1D);
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        if (_menuAdicionarAberto)
-          GestureDetector(
-            onTap: () => setState(() => _menuAdicionarAberto = false),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              color: Colors.black.withOpacity(0.4),
-            ),
-          ),
-        _buildBottomNavigation(),
-      ],
-    );
-  }
-
-  Widget _buildBottomNavigation() {
-    // Verifica se estamos na tela de perfil
-    final isPerfil = widget.currentRoute == '/perfil';
+    final double bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Positioned(
-      bottom:
-          0, // Subi um pouco para não colar na borda do sistema (estilo flutuante)
+      bottom: 0,
       left: 0,
       right: 0,
       child: Container(
-        height: 65,
+        height: 65 + bottomPadding,
+        padding: EdgeInsets.only(bottom: bottomPadding * 0.5),
         decoration: BoxDecoration(
-          color: const Color(0xFFF22F1D),
-          borderRadius: BorderRadius.circular(40),
+          color: Colors.white, // Fundo limpo
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFF22F1D).withValues(alpha: 0.3),
+              color: Colors.black.withOpacity(0.08),
               blurRadius: 20,
-              offset: const Offset(0, 10),
+              offset: const Offset(0, -10),
             ),
           ],
         ),
-        child: isPerfil ? _buildBackButton() : _buildStandardNav(),
-      ),
-    );
-  }
-
-  // Widget para quando estiver no Perfil
-  Widget _buildBackButton() {
-    return InkWell(
-      onTap: () =>
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false),
-      borderRadius: BorderRadius.circular(40),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-          SizedBox(width: 10),
-          Text(
-            'VOLTAR PARA O INÍCIO',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-              fontSize: 14,
-            ),
-          ),
-        ],
+        child: widget.currentRoute == '/perfil'
+            ? _buildBackButton()
+            : _buildStandardNav(),
       ),
     );
   }
@@ -93,14 +56,19 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildNavItem(Icons.home_filled, '/home', 0),
-        _buildNavItem(Icons.emoji_events, '/modalidades', 1),
-        _buildNavItem(Icons.settings, '/configuracoes', 2),
+        _buildNavItem(Icons.home_max_rounded, 'Início', '/home', 0),
+        _buildNavItem(Icons.sports_soccer_rounded, 'Jogos', '/modalidades', 1),
+        _buildNavItem(
+          Icons.settings_rounded,
+          'Configurações',
+          '/configuracoes',
+          2,
+        ),
       ],
     );
   }
 
-  Widget _buildNavItem(IconData icon, String route, int index) {
+  Widget _buildNavItem(IconData icon, String label, String route, int index) {
     final isSelected = widget.currentIndex != null
         ? widget.currentIndex == index
         : widget.currentRoute == route;
@@ -111,20 +79,70 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           if (widget.onTabSelected != null) {
             widget.onTabSelected!(index);
           } else {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              route,
-              (route) => false,
-            );
+            Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
           }
         }
       },
-      child: Icon(
-        icon,
-        color: isSelected
-            ? Colors.white
-            : const Color.fromARGB(255, 255, 255, 255).withOpacity(0.5),
-        size: 28,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 85,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Container da pílula de destaque
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              decoration: BoxDecoration(
+                // Se selecionado, fundo vermelho clarinho (opaco)
+                color: isSelected
+                    ? brandRed.withOpacity(0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                size: 26,
+                // Ícone vermelho se selecionado, cinza se inativo
+                color: isSelected ? brandRed : Colors.black38,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? brandRed : Colors.black38,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return InkWell(
+      onTap: () =>
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.arrow_back_ios_new_rounded, color: brandRed, size: 16),
+          const SizedBox(width: 12),
+          Text(
+            'VOLTAR',
+            style: TextStyle(
+              color: brandRed,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
       ),
     );
   }
