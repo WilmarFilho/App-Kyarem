@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../models/campeonato_model.dart';
 import '../../../models/modalidade_model.dart';
-import '../../../services/modalidade_service.dart';
+import 'package:kyarem_eventos_publico/services/estatistica_service.dart';
+import 'package:kyarem_eventos_publico/services/modalidade_service.dart';
+import 'package:kyarem_eventos_publico/services/partida_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
@@ -11,12 +13,16 @@ class ModalidadesScreen extends StatefulWidget {
   final Campeonato campeonato;
   final bool isMainScreenChild;
   final ModalidadeService? modalidadeService;
+  final PartidaService? partidaService;
+  final EstatisticaService? estatisticaService;
 
   const ModalidadesScreen({
     super.key,
     required this.campeonato,
     this.isMainScreenChild = false,
     this.modalidadeService,
+    this.partidaService,
+    this.estatisticaService,
   });
 
   @override
@@ -143,7 +149,11 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  PartidasModalidadeScreen(modalidade: m),
+                                  PartidasModalidadeScreen(
+                                    modalidade: m,
+                                    partidaService: widget.partidaService,
+                                    estatisticaService: widget.estatisticaService,
+                                  ),
                             ),
                           );
                         },

@@ -2,18 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:kyarem_eventos_publico/presentation/screens/main/modalidades_screen.dart';
+import 'package:kyarem_eventos_publico/presentation/screens/modalidade/partidas_modalidade_screen.dart';
 import 'package:kyarem_eventos_publico/services/modalidade_service.dart';
+import 'package:kyarem_eventos_publico/services/partida_service.dart';
+import 'package:kyarem_eventos_publico/services/estatistica_service.dart';
 import 'package:kyarem_eventos_publico/models/campeonato_model.dart';
 import 'package:kyarem_eventos_publico/models/modalidade_model.dart';
 
 class MockModalidadeService extends Mock implements ModalidadeService {}
+class MockPartidaService extends Mock implements PartidaService {}
+class MockEstatisticaService extends Mock implements EstatisticaService {}
 
 void main() {
   late MockModalidadeService mockService;
+  late MockPartidaService mockPartidaService;
+  late MockEstatisticaService mockEstatisticaService;
   final dummyCampeonato = Campeonato(id: '1', nome: 'Campeonato Teste');
 
   setUp(() {
     mockService = MockModalidadeService();
+    mockPartidaService = MockPartidaService();
+    mockEstatisticaService = MockEstatisticaService();
+    
+    when(() => mockPartidaService.getMatchesByModalityAndStatus(
+      modalityId: any(named: 'modalityId'), 
+      status: any(named: 'status')
+    )).thenAnswer((_) async => []);
+    
+    when(() => mockEstatisticaService.getEstatisticsByModality(any()))
+      .thenAnswer((_) async => []);
   });
 
   Widget createWidgetUnderTest() {
@@ -21,6 +38,8 @@ void main() {
       home: ModalidadesScreen(
         campeonato: dummyCampeonato,
         modalidadeService: mockService,
+        partidaService: mockPartidaService,
+        estatisticaService: mockEstatisticaService,
       ),
     );
   }
@@ -86,6 +105,27 @@ void main() {
       expect(find.text('Vôlei Feminino'), findsOneWidget);
       expect(find.text('Futsal'), findsOneWidget);
       expect(find.text('Vôlei'), findsOneWidget);
+    });
+
+    testWidgets('Navega para a tela de PartidasModalidade ao clicar em uma modalidade', (tester) async {
+      when(() => mockService.getModalities()).thenAnswer(
+        (_) async => [
+          Modalidade(
+            id: '1',
+            esporteId: '1',
+            nome: 'Futsal Masculino',
+            esporteNome: 'Futsal',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Futsal Masculino'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PartidasModalidadeScreen), findsOneWidget);
     });
   });
 }

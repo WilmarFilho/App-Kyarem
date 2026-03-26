@@ -11,8 +11,15 @@ import '../game/partida_screen.dart';
 
 class PartidasModalidadeScreen extends StatefulWidget {
   final Modalidade modalidade;
+  final PartidaService? partidaService;
+  final EstatisticaService? estatisticaService;
 
-  const PartidasModalidadeScreen({super.key, required this.modalidade});
+  const PartidasModalidadeScreen({
+    super.key, 
+    required this.modalidade,
+    this.partidaService,
+    this.estatisticaService,
+  });
 
   @override
   State<PartidasModalidadeScreen> createState() =>
@@ -22,8 +29,8 @@ class PartidasModalidadeScreen extends StatefulWidget {
 enum _FiltroStatus { todas, agendadas, emAndamento, finalizadas }
 
 class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
-  final _partidaService = PartidaService();
-  final _estatisticaService = EstatisticaService();
+  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
+  late final EstatisticaService _estatisticaService = widget.estatisticaService ?? EstatisticaService();
 
   bool _loading = true;
   bool _loadingStats = true;
