@@ -630,23 +630,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     );
   }
 
-  Widget _buildStatMiniBadge(String emoji, String value, bool visible) {
-    if (!visible) return const SizedBox.shrink();
-    return Column(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 12)),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ],
-    );
-  }
-
   void _abrirDetalhe(Partida p) {
     final timeA = p.equipeA?.nome ?? 'Time A';
     final timeB = p.equipeB?.nome ?? 'Time B';
