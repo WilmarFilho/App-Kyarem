@@ -5,7 +5,7 @@ class GameService {
   final SupabaseClient _supabase;
 
   GameService({SupabaseClient? supabaseClient})
-      : _supabase = supabaseClient ?? Supabase.instance.client;
+    : _supabase = supabaseClient ?? Supabase.instance.client;
 
   /// Busca os IDs das equipes de uma partida.
   Future<Map<String, dynamic>> getPartidaEquipes(String partidaId) async {
@@ -17,7 +17,9 @@ class GameService {
   }
 
   /// Busca atletas inscritos de uma equipe, separados em titulares e reservas.
-  Future<List<Map<String, dynamic>>> getAtletasInscritos(String equipeId) async {
+  Future<List<Map<String, dynamic>>> getAtletasInscritos(
+    String equipeId,
+  ) async {
     return List<Map<String, dynamic>>.from(
       await _supabase
           .from('equipe_atlet_inscritos')
@@ -63,7 +65,9 @@ class GameService {
     return List<Map<String, dynamic>>.from(
       await _supabase
           .from('eventos_partida')
-          .select('*, atletas!eventos_partida_atleta_id_fkey(atletica_id,nome)')
+          .select(
+            '*, atletas!eventos_partida_atleta_id_fkey(atletica_id,nome,foto_url)',
+          )
           .eq('partida_id', partidaId),
     );
   }
@@ -83,7 +87,9 @@ class GameService {
   }
 
   /// Busca geral de eventos de um atleta (sem filtro de partida).
-  Future<List<Map<String, dynamic>>> getEventosAtletaGeral(String atletaId) async {
+  Future<List<Map<String, dynamic>>> getEventosAtletaGeral(
+    String atletaId,
+  ) async {
     return List<Map<String, dynamic>>.from(
       await _supabase
           .from('eventos_partida')

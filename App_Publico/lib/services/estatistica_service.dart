@@ -69,7 +69,6 @@ class EstatisticaService {
 
         // Extrai informações do atleta
         final atletaInfo = evento['atletas'];
-        debugPrint('atletaInfo: $atletaInfo');
         final nomeAtleta = atletaInfo?['nome'] ?? 'Desconhecido';
         final fotoUrl = atletaInfo?['foto_url'];
 

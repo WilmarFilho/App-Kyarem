@@ -101,8 +101,8 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
-      expect(find.text('Futsal Masculino'), findsOneWidget);
-      expect(find.text('Vôlei Feminino'), findsOneWidget);
+      expect(find.text('FUTSAL MASCULINO'), findsOneWidget);
+      expect(find.text('VÔLEI FEMININO'), findsOneWidget);
       expect(find.text('Futsal'), findsOneWidget);
       expect(find.text('Vôlei'), findsOneWidget);
     });
@@ -122,7 +122,7 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Futsal Masculino'));
+      await tester.tap(find.text('FUTSAL MASCULINO'));
       await tester.pumpAndSettle();
 
       expect(find.byType(PartidasModalidadeScreen), findsOneWidget);

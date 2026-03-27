@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
+import 'package:kyarem_eventos_publico/presentation/widgets/layout/gradient_background.dart';
 import '../../../../models/atleta_model.dart';
 import '../../../../services/evento_service.dart';
 import '../../../../services/game_service.dart';
@@ -29,7 +31,8 @@ class EstatisticaAtletaScreen extends StatefulWidget {
 
 class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
   late final GameService _gameService = widget.gameService ?? GameService();
-  late final EventoService _eventoService = widget.eventoService ?? EventoService();
+  late final EventoService _eventoService =
+      widget.eventoService ?? EventoService();
   List<Map<String, dynamic>> _eventos = [];
   List<Map<String, dynamic>> _tiposEventos = [];
   bool _isLoading = true;
@@ -51,9 +54,14 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
       List<Map<String, dynamic>> eventosDocs = [];
 
       if (widget.partidaId != null) {
-        final partidaData = await _gameService.getPartidaEquipes(widget.partidaId!);
-        final modalidadeId = partidaData['modalidade_id'] ??
-            (await _gameService.getPartidaComEquipes(widget.partidaId!))['modalidade_id'];
+        final partidaData = await _gameService.getPartidaEquipes(
+          widget.partidaId!,
+        );
+        final modalidadeId =
+            partidaData['modalidade_id'] ??
+            (await _gameService.getPartidaComEquipes(
+              widget.partidaId!,
+            ))['modalidade_id'];
 
         tipos = List<Map<String, dynamic>>.from(
           await _eventoService.getEventTypesByModality(modalidadeId),
@@ -65,7 +73,9 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
         );
       } else {
         tipos = await _gameService.getTodosTiposEventos();
-        eventosDocs = await _gameService.getEventosAtletaGeral(widget.atleta.id);
+        eventosDocs = await _gameService.getEventosAtletaGeral(
+          widget.atleta.id,
+        );
       }
 
       int calcGols = 0;
@@ -115,47 +125,90 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          "ESTATÍSTICAS DO ATLETA",
-          style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 24),
-        ),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildProfileHeader(),
-                  const SizedBox(height: 30),
-                  _buildStatsGrid(),
-                  const SizedBox(height: 30),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      widget.partidaId != null
-                          ? "LANCES DESTA PARTIDA"
-                          : "HISTÓRICO DE LANCES",
-                      style: const TextStyle(
-                        fontFamily: 'Bebas Neue',
-                        fontSize: 20,
-                        color: Colors.black87,
-                      ),
+      backgroundColor: const Color(0xFF110101),
+      body: Stack(
+        children: [
+          const GradientBackground(), // Seu widget de fundo
+          CustomScrollView(
+            slivers: [
+              // HEADER ESTÁTICO COM GRADIENTE E SETA VOLTAR
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 120,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.orange, AppColors.primary],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  _buildTimeline(),
-                ],
+                  child: SafeArea(
+                    bottom: false,
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            padding: const EdgeInsets.only(left: 16),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        Center(
+                          child: Text(
+                            "ESTATÍSTICAS DO ATLETA",
+                            style: GoogleFonts.oswald(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+
+              // CONTEÚDO
+              SliverToBoxAdapter(
+                child: _isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.only(top: 100),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            _buildProfileHeader(),
+                            const SizedBox(height: 30),
+                            _buildStatsGrid(),
+                            const SizedBox(height: 40),
+                            _buildSectionTitle(),
+                            const SizedBox(height: 20),
+                            _buildTimeline(),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -163,27 +216,27 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: const Color(0xFFF5F5F5),
-            backgroundImage: widget.atleta.fotoUrl != null
-                ? NetworkImage(widget.atleta.fotoUrl!)
-                : null,
-            child: widget.atleta.fotoUrl == null
-                ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                : null,
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.black,
+              backgroundImage: widget.atleta.fotoUrl != null
+                  ? NetworkImage(widget.atleta.fotoUrl!)
+                  : null,
+              child: widget.atleta.fotoUrl == null
+                  ? const Icon(Icons.person, size: 40, color: Colors.white24)
+                  : null,
+            ),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -191,16 +244,29 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.atleta.nome,
-                  style: const TextStyle(
-                    fontSize: 22,
+                  widget.atleta.nome.toUpperCase(),
+                  style: GoogleFonts.oswald(
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  widget.timeNome,
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                Row(
+                  children: [
+                    if (widget.escudoUrl != null) ...[
+                      Image.network(widget.escudoUrl!, height: 18),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      widget.timeNome,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -255,37 +321,72 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -10,
+            top: -10,
+            child: Icon(icon, color: color.withValues(alpha: 0.05), size: 60),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: GoogleFonts.oswald(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  title.toUpperCase(),
+                  style: GoogleFonts.oswald(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 30),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              height: 1.0,
-            ),
+          Icon(
+            Icons.history,
+            color: Colors.white.withValues(alpha: 0.2),
+            size: 40,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
-            title,
+            widget.partidaId != null
+                ? "Nenhum lance registrado nesta partida."
+                : "Nenhum histórico de lances encontrado.",
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 14,
             ),
           ),
         ],
@@ -294,101 +395,133 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
   }
 
   Widget _buildTimeline() {
-    if (_eventos.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Center(
-          child: Text(
-            widget.partidaId != null
-                ? "Nenhum lance registrado para este atleta na partida."
-                : "Nenhum lance registrado para este atleta.",
-            style: const TextStyle(color: Colors.grey),
-          ),
-        ),
-      );
-    }
+    if (_eventos.isEmpty) return _buildEmptyState();
 
-    return ListView.separated(
+    return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _eventos.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final ev = _eventos[index];
-        final tipoId = ev['tipo_evento_id'];
         final tipo = _tiposEventos.firstWhere(
-          (t) => t['id'] == tipoId,
+          (t) => t['id'] == ev['tipo_evento_id'],
           orElse: () => {'nome': 'Evento'},
         );
-        final friendlyName = EventoService.friendly(tipo['nome']?.toString());
+        final name = EventoService.friendly(tipo['nome']);
 
-        String subtitulo = ev['tempo_cronometro'] ?? '--:--';
-        if (widget.partidaId == null && ev['criado_em'] != null) {
-          try {
-            final dt = DateTime.parse(ev['criado_em']).toLocal();
-            subtitulo =
-                "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
-          } catch (_) {}
-        }
-        if (friendlyName.contains("Substituição")) {
-          if (ev['atleta_id'] == widget.atleta.id) {
-            subtitulo += " - Entrou em campo";
-          } else if (ev['atleta_sai_id'] == widget.atleta.id) {
-            subtitulo += " - Saiu de campo";
-          }
-        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // LINHA DO TEMPO (INDICADOR VISUAL)
+            Column(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  margin: const EdgeInsets.only(
+                    top: 20,
+                  ), // Alinha com o centro do card
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary,
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+                if (index != _eventos.length - 1)
+                  Container(
+                    width: 2,
+                    height: 60, // Aumentado para compensar o padding do card
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 15),
 
-        return Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
+            // CONTEÚDO DO LANCE COM BACKGROUND VISÍVEL (GLASSMORPHISM)
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(
+                    alpha: 0.05,
+                  ), // Fundo levemente visível
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1), // Borda sutil
+                  ),
                 ),
-                child: const Icon(
-                  Icons.history,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      friendlyName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          name.toUpperCase(),
+                          style: GoogleFonts.oswald(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white24,
+                          size: 18,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitulo,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
-                      ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: AppColors.primary.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          ev['tempo_cronometro'] ?? "Tempo não definido",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildSectionTitle() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        widget.partidaId != null
+            ? "LANCES DESTA PARTIDA"
+            : "HISTÓRICO DE LANCES",
+        style: GoogleFonts.oswald(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          letterSpacing: 1,
+        ),
+      ),
     );
   }
 }

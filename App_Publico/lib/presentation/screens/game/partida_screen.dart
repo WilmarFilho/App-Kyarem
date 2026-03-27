@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../services/evento_service.dart';
 import '../../../services/firebase_messaging_service.dart';
 import 'atletas_partida_screen.dart';
 import 'resumo_estatistica_partida_screen.dart';
+import '../modalidade/partidas_modalidade_screen.dart';
+import '../../../models/modalidade_model.dart';
+import '../../../services/modalidade_service.dart';
 
 class JogoDetalhesScreen extends StatefulWidget {
   final String partidaId;
@@ -58,12 +62,15 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   DateTime? _timestampAncora;
   // ────────────────────────────────────────────────────────────────────
 
-  late final SupabaseClient supabase = widget.supabaseClient ?? Supabase.instance.client;
-  late final EventoService _eventoService = widget.eventoService ?? EventoService();
+  late final SupabaseClient supabase =
+      widget.supabaseClient ?? Supabase.instance.client;
+  late final EventoService _eventoService =
+      widget.eventoService ?? EventoService();
 
   late final Stream<List<Map<String, dynamic>>> _eventosStream;
   late final Stream<Map<String, dynamic>> _partidaStream;
   late Future<List<Map<String, dynamic>>> _futureTipos;
+  Modalidade? _modalidadeObject;
   List<Map<String, dynamic>> _tiposEventosCache = [];
 
   final Map<String, String> _atletaNomeCache = {};
@@ -105,6 +112,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       FirebaseMessagingService().subscribeToPartidaTopic(widget.partidaId);
     }
 
+    _loadModalidade();
+
     // Escuta eventos para atualizar âncora do cronômetro
     _eventosStream.listen((eventos) {
       if (!mounted) return;
@@ -117,6 +126,21 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       if (!mounted) return;
       _atualizarEstadoCronometro(dados['status']?.toString() ?? '');
     });
+  }
+
+  Future<void> _loadModalidade() async {
+    try {
+      final mods = await ModalidadeService().getModalities();
+      if (mounted) {
+        setState(() {
+          _modalidadeObject = mods.firstWhere(
+            (m) => m.id == widget.modalidadeId,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint("Erro ao carregar modalidade: $e");
+    }
   }
 
   @override
@@ -324,12 +348,26 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "DETALHES DO JOGO",
-          style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 24),
+          style: GoogleFonts.oswald(
+            fontSize: 22,
+            color: Colors.white,
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.orange, AppColors.primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -369,55 +407,103 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
           ),
         ],
       ),
-      floatingActionButton: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: "btn_atletas",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AtletasPartidaScreen(
-                    partidaId: widget.partidaId,
-                    timeA: widget.timeA,
-                    timeB: widget.timeB,
-                    escudoA: widget.EscudoTimeA,
-                    escudoB: widget.EscudoTimeB,
-                  ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+        ), // Espaçamento nas laterais da tela
+        child: Row(
+          children: [
+            // BOTÃO 1: ATLETAS
+            Expanded(
+              child: FloatingActionButton.extended(
+                heroTag: "btn_atletas",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AtletasPartidaScreen(
+                        partidaId: widget.partidaId,
+                        timeA: widget.timeA,
+                        timeB: widget.timeB,
+                        escudoA: widget.EscudoTimeA,
+                        escudoB: widget.EscudoTimeB,
+                      ),
+                    ),
+                  );
+                },
+                backgroundColor: const Color(0xFFF2561D), // Laranja padronizado
+                foregroundColor: Colors.white,
+                elevation: 4,
+                icon: const Icon(Icons.group_outlined, size: 20),
+                label: const Text(
+                  'Atletas',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
-              );
-            },
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.primary,
-            elevation: 4,
-            icon: const Icon(Icons.group_outlined),
-            label: const Text('Atletas'),
-          ),
-          const SizedBox(width: 12),
-          FloatingActionButton.extended(
-            heroTag: "btn_estatisticas",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ResumoEstatisticaPartidaScreen(
-                    partidaId: widget.partidaId,
-                    timeA: widget.timeA,
-                    timeB: widget.timeB,
-                    escudoA: widget.EscudoTimeA,
-                    escudoB: widget.EscudoTimeB,
-                  ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // BOTÃO 2: RESUMO
+            Expanded(
+              child: FloatingActionButton.extended(
+                heroTag: "btn_estatisticas",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ResumoEstatisticaPartidaScreen(
+                        partidaId: widget.partidaId,
+                        timeA: widget.timeA,
+                        timeB: widget.timeB,
+                        escudoA: widget.EscudoTimeA,
+                        escudoB: widget.EscudoTimeB,
+                      ),
+                    ),
+                  );
+                },
+                backgroundColor: const Color(0xFFF2561D),
+                foregroundColor: Colors.white,
+                elevation: 4,
+                icon: const Icon(Icons.analytics_outlined, size: 20),
+                label: const Text(
+                  'Resumo',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
-              );
-            },
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            icon: const Icon(Icons.analytics_outlined),
-            label: const Text('Resumo'),
-          ),
-        ],
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // BOTÃO 3: MAIS PARTIDAS
+            Expanded(
+              child: FloatingActionButton.extended(
+                heroTag: "btn_mais_partidas",
+                onPressed: () {
+                  if (_modalidadeObject != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PartidasModalidadeScreen(
+                          modalidade: _modalidadeObject!,
+                        ),
+                      ),
+                    );
+                  } else {
+                    Navigator.pop(context);
+                  }
+                },
+                backgroundColor: const Color(0xFFF2561D),
+                foregroundColor: Colors.white,
+                elevation: 4,
+                icon: const Icon(Icons.sports_soccer, size: 20),
+                label: const Text(
+                  '+ Jogos',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -429,7 +515,13 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-      decoration: const BoxDecoration(color: AppColors.primary),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.orange, AppColors.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
