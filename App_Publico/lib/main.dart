@@ -15,12 +15,17 @@ import 'presentation/screens/main/perfil_screen.dart';
 import 'presentation/screens/main/modalidades_screen.dart';
 import 'presentation/screens/main/configuracoes_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
+import 'presentation/screens/main/splash_screen.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   // 1. Garante a inicialização dos bindings do Flutter
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  // Preserva a splash nativa até o app estar pronto
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // 2. Carrega variáveis do .env (ex: CAMPEONATO_ID)
   await dotenv.load(fileName: '.env');
@@ -60,11 +65,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Verifica se existe uma sessão ativa para decidir a tela inicial
-    final session = Supabase.instance.client.auth.currentSession;
+    // Removemos a preservação da splash nativa aqui, para que o Flutter Splash apareça
+    FlutterNativeSplash.remove();
 
     return MaterialApp(
-      title: 'Kyarem Eventos Público',
+      title: 'Intermeds',
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -81,8 +86,9 @@ class MyApp extends StatelessWidget {
         ),
         fontFamily: 'Poppins', // Define Poppins como padrão para o app
       ),
-      initialRoute: session != null ? '/home' : '/login',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const MainScreen(initialIndex: 0),

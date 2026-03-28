@@ -89,15 +89,24 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 
   Future<void> _carregarEstatisticas() async {
     setState(() => _loadingStats = true);
-    final stats = await _estatisticaService.getEstatisticsByModality(
-      widget.modalidade.id,
-    );
-    if (!mounted) return;
-    setState(() {
-      _estatisticas = stats;
-      _ordenarEstatisticas();
-      _loadingStats = false;
-    });
+    try {
+      final stats = await _estatisticaService.getEstatisticsByModality(
+        widget.modalidade.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _estatisticas = stats;
+        _ordenarEstatisticas();
+        _loadingStats = false;
+      });
+    } catch (e) {
+      debugPrint('Erro ao carregar estatísticas: $e');
+      if (!mounted) return;
+      setState(() {
+        _estatisticas = [];
+        _loadingStats = false;
+      });
+    }
   }
 
   void _ordenarEstatisticas() {
@@ -141,33 +150,42 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   Future<void> _carregar() async {
     setState(() => _loading = true);
 
-    // 1) Partidas (Supabase)
-    final statusSupabase = _statusParaApi(_filtro);
-    var partidas = await _partidaService.getMatchesByModalityAndStatus(
-      modalityId: widget.modalidade.id,
-      status: statusSupabase ?? 'all',
-    );
+    try {
+      // 1) Partidas (Supabase)
+      final statusSupabase = _statusParaApi(_filtro);
+      var partidas = await _partidaService.getMatchesByModalityAndStatus(
+        modalityId: widget.modalidade.id,
+        status: statusSupabase ?? 'all',
+      );
 
-    // 2) Filtro "Em andamento"
-    if (_filtro == _FiltroStatus.emAndamento) {
-      partidas = partidas.where((p) {
-        final st = p.status.trim().toLowerCase();
-        return st != 'agendada' && st != 'finalizada' && st != 'fechada';
-      }).toList();
+      // 2) Filtro "Em andamento"
+      if (_filtro == _FiltroStatus.emAndamento) {
+        partidas = partidas.where((p) {
+          final st = p.status.trim().toLowerCase();
+          return st != 'agendada' && st != 'finalizada' && st != 'fechada';
+        }).toList();
+      }
+
+      // 3) Ordenação
+      partidas.sort((a, b) {
+        final da = a.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final db = b.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return db.compareTo(da);
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _partidas = partidas;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('Erro ao carregar partidas: $e');
+      if (!mounted) return;
+      setState(() {
+        _partidas = [];
+        _loading = false;
+      });
     }
-
-    // 3) Ordenação
-    partidas.sort((a, b) {
-      final da = a.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final db = b.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return db.compareTo(da);
-    });
-
-    if (!mounted) return;
-    setState(() {
-      _partidas = partidas;
-      _loading = false;
-    });
   }
 
   String? _statusParaApi(_FiltroStatus filtro) {
@@ -219,8 +237,8 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                     child: Container(
                       height: 50,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(
-                          0.05,
+                        color: Colors.white.withValues(
+                          alpha: 0.05,
                         ), // Efeito Glass inativo
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -232,7 +250,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
+                              color: AppColors.primary.withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -269,10 +287,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             ),
 
             // 4. Navigation no topo da Stack
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: BottomNavigationWidget(currentRoute: '/modalidades'),
-            ),
+            const BottomNavigationWidget(currentRoute: '/modalidades'),
           ],
         ),
       ),
@@ -493,7 +508,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 blurRadius: 12,
                 spreadRadius: 2,
               ),
@@ -505,9 +520,23 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             child: CircleAvatar(
               radius: isFirst ? 31 : 25,
               backgroundColor: AppColors.bgCard,
-              backgroundImage: NetworkImage(
-                est.fotoUrl ?? est.equipeEscudoUrl ?? '',
-              ),
+              backgroundImage:
+                  (est.fotoUrl ?? est.equipeEscudoUrl) != null &&
+                      (est.fotoUrl ?? est.equipeEscudoUrl)!.isNotEmpty
+                  ? NetworkImage(est.fotoUrl ?? est.equipeEscudoUrl!)
+                  : null,
+              child:
+                  (est.fotoUrl ?? est.equipeEscudoUrl) == null ||
+                      (est.fotoUrl ?? est.equipeEscudoUrl)!.isEmpty
+                  ? Text(
+                      est.nomeAtleta.isNotEmpty ? est.nomeAtleta[0] : '?',
+                      style: TextStyle(
+                        fontSize: isFirst ? 18 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    )
+                  : null,
             ),
           ),
         ),
@@ -530,7 +559,10 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [color.withOpacity(0.9), color.withOpacity(0.3)],
+              colors: [
+                color.withValues(alpha: 0.9),
+                color.withValues(alpha: 0.3),
+              ],
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
@@ -566,7 +598,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05), // Efeito Glass
+        color: Colors.white.withValues(alpha: 0.05), // Efeito Glass
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white12),
       ),
@@ -584,9 +616,24 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           const SizedBox(width: 15),
           CircleAvatar(
             radius: 22,
-            backgroundImage: NetworkImage(
-              est.fotoUrl ?? est.equipeEscudoUrl ?? '',
-            ),
+            backgroundColor: AppColors.bgDeep,
+            backgroundImage:
+                (est.fotoUrl ?? est.equipeEscudoUrl) != null &&
+                    (est.fotoUrl ?? est.equipeEscudoUrl)!.isNotEmpty
+                ? NetworkImage(est.fotoUrl ?? est.equipeEscudoUrl!)
+                : null,
+            child:
+                (est.fotoUrl ?? est.equipeEscudoUrl) == null ||
+                    (est.fotoUrl ?? est.equipeEscudoUrl)!.isEmpty
+                ? Text(
+                    est.nomeAtleta.isNotEmpty ? est.nomeAtleta[0] : '?',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -612,7 +659,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(

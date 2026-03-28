@@ -5,20 +5,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 /// Exibe o logo e nome da aplicação
 class AuthHeader extends StatelessWidget {
   final bool isSmall;
-  
-  const AuthHeader({
-    super.key,
-    this.isSmall = false,
-  });
+
+  const AuthHeader({super.key, this.isSmall = false});
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          vertical: isSmall ? 25 : 40,
-        ),
+        padding: EdgeInsets.symmetric(vertical: isSmall ? 25 : 40),
         child: Column(
           children: [
             SvgPicture.asset(

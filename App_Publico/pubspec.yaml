@@ -30,6 +30,7 @@ dependencies:
   firebase_messaging: ^16.1.2
   image_picker: ^1.0.7
   google_fonts: ^8.0.2
+  flutter_native_splash: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -37,7 +38,6 @@ dev_dependencies:
   mocktail: ^1.0.3
   flutter_lints: ^3.0.0
   flutter_launcher_icons: "^0.13.1"
-  flutter_native_splash: ^2.4.0
 
 # Configuração do Ícone (Fora do dev_dependencies)
 flutter_launcher_icons:
@@ -48,10 +48,13 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/images/icon.png"
 
 flutter_native_splash:
-  color: "#FFFFFF" # Cor do fundo da tela
-  image: assets/images/splash.png # Sua logo de 1024x1024
+  color: "#260404" # Cor de fundo sólida (sem ícone/círculo)
+  image: assets/images/transparent.png # Se tiver um PNG transparente
+  fullscreen: true
   android_12:
-    image: assets/images/splash.png # Versão para Android novo (geralmente redonda)
+    color: "#260404"
+    image: assets/images/transparent.png # Se tiver um PNG transparente
+    icon_background_color: "#260404" # Garante que o fundo do ícone seja idêntico
 
 flutter:
   uses-material-design: true
