@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import '../../../services/admin_api_service.dart';
-import '../../widgets/layout/gradient_background.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class AtleticaFormScreen extends StatefulWidget {
   final Atletica? atletica;
@@ -21,8 +21,8 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
   
   late TextEditingController _nomeController;
   late TextEditingController _siglaController;
-  late TextEditingController _corPrincipalController;
 
+  Color _currentColor = const Color(0xFF2563EB); // Cor padrão
   bool _isSaving = false;
   bool _isUploading = false;
 
@@ -34,8 +34,41 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
     super.initState();
     _nomeController = TextEditingController(text: widget.atletica?.nome ?? '');
     _siglaController = TextEditingController(text: widget.atletica?.sigla ?? '');
-    _corPrincipalController = TextEditingController(text: widget.atletica?.corPrincipal ?? '');
     _currentEscudoUrl = widget.atletica?.escudoUrl;
+
+    if (widget.atletica != null && widget.atletica!.corPrincipal != null && widget.atletica!.corPrincipal!.isNotEmpty) {
+      String hex = widget.atletica!.corPrincipal!.replaceAll('#', '');
+      if (hex.length == 6) hex = 'FF$hex';
+      _currentColor = Color(int.tryParse('0x$hex') ?? 0xFF2563EB);
+    }
+  }
+
+  void _pickColor() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Escolha uma cor', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: BlockPicker(
+              pickerColor: _currentColor,
+              onColorChanged: (color) {
+                setState(() => _currentColor = color);
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Confirmar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _pickImage() async {
@@ -79,7 +112,7 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
     final data = {
       'nome': _nomeController.text,
       'sigla': _siglaController.text,
-      'corPrincipal': _corPrincipalController.text.isNotEmpty ? _corPrincipalController.text : null,
+      'corPrincipal': '#${_currentColor.value.toRadixString(16).substring(2).toUpperCase()}',
       'escudoUrl': escudoUrl ?? '',
       // presidenteId opcional por enquanto
     };
@@ -191,20 +224,51 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.atletica == null ? 'Nova Atlética' : 'Editar Atlética';
+    final title = widget.atletica == null ? 'NOVA ATLÉTICA' : 'EDITAR ATLÉTICA';
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        toolbarHeight: 100,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Bebas Neue',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
+            ),
+            const Text(
+              'Gerenciamento',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
+      body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(22.0),
               child: Container(
@@ -231,9 +295,42 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                         decoration: const InputDecoration(labelText: 'Sigla (ex: AAAC)'),
                       ),
                       const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _corPrincipalController,
-                        decoration: const InputDecoration(labelText: 'Cor Principal (ex: #FF0000)'),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Cor Principal',
+                          style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: _pickColor,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.grey[400]!),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '#${_currentColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: _currentColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 20),
                       _buildImagePicker(),
@@ -272,8 +369,6 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
+      );
   }
 }

@@ -247,8 +247,10 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
         title: Text(
           title,
           style: const TextStyle(
+            fontFamily: 'Bebas Neue',
+            fontSize: 22,
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
           ),
         ),
         flexibleSpace: Container(

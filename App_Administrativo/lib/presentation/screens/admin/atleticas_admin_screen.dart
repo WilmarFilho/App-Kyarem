@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import '../../../services/admin_api_service.dart';
-import '../../widgets/layout/gradient_background.dart';
 import 'atletica_form_screen.dart';
 
 class AtleticasAdminScreen extends StatefulWidget {
@@ -12,10 +11,7 @@ class AtleticasAdminScreen extends StatefulWidget {
   /// - Pode editar
   final String? minhaAtleticaId;
 
-  const AtleticasAdminScreen({
-    super.key,
-    this.minhaAtleticaId,
-  });
+  const AtleticasAdminScreen({super.key, this.minhaAtleticaId});
 
   @override
   State<AtleticasAdminScreen> createState() => _AtleticasAdminScreenState();
@@ -52,7 +48,9 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     List<Atletica> lista;
     if (_modoPresidente) {
       // Busca somente a atlética do presidente
-      final atletica = await _apiService.buscarAtletica(widget.minhaAtleticaId!);
+      final atletica = await _apiService.buscarAtletica(
+        widget.minhaAtleticaId!,
+      );
       lista = atletica != null ? [atletica] : [];
     } else {
       lista = await _apiService.listarAtleticas();
@@ -71,10 +69,13 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Excluir Atlética?',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Excluir Atlética?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Text(
-            'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.'),
+          'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -85,7 +86,8 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade600,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Excluir', style: TextStyle(color: Colors.white)),
           ),
@@ -96,13 +98,16 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     if (confirmar == true) {
       final sucesso = await _apiService.excluirAtletica(id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(sucesso ? 'Atlética excluída!' : 'Erro ao excluir.'),
-          backgroundColor: sucesso ? Colors.green : Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(sucesso ? 'Atlética excluída!' : 'Erro ao excluir.'),
+            backgroundColor: sucesso ? Colors.green : Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
         if (sucesso) _carregarAtleticas();
       }
     }
@@ -111,8 +116,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
   void _abrirFormulario({Atletica? atletica}) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-          builder: (_) => AtleticaFormScreen(atletica: atletica)),
+      MaterialPageRoute(builder: (_) => AtleticaFormScreen(atletica: atletica)),
     );
     if (result == true) _carregarAtleticas();
   }
@@ -120,10 +124,20 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
+        toolbarHeight: 100,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -134,32 +148,37 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
             Text(
               _modoPresidente ? 'MINHA ATLÉTICA' : 'ATLÉTICAS',
               style: const TextStyle(
-                  fontFamily: 'Bebas Neue',
-                  fontSize: 22,
-                  color: Colors.white,
-                  letterSpacing: 1),
+                fontFamily: 'Bebas Neue',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
             ),
             Row(
               children: [
                 Text(
                   _modoPresidente ? 'Edição permitida' : 'Gerenciamento',
                   style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.normal),
+                    fontSize: 12,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
                 if (_modoPresidente) ...[
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text('✏️ Sua atlética',
-                        style:
-                            TextStyle(fontSize: 10, color: Colors.white)),
+                    child: const Text(
+                      '✏️ Sua atlética',
+                      style: TextStyle(fontSize: 10, color: Colors.white),
+                    ),
                   ),
                 ],
               ],
@@ -180,58 +199,56 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
               onPressed: () => _abrirFormulario(),
               backgroundColor: const Color(0xFFF85C39),
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Nova',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Nova',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
-            child: _isLoading
-                ? const Center(
-                    child:
-                        CircularProgressIndicator(color: Colors.white))
-                : _atleticas.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                        itemCount: _atleticas.length,
-                        itemBuilder: (context, index) {
-                          final delay = index * 0.08;
-                          final animation = CurvedAnimation(
-                            parent: _animController,
-                            curve: Interval(
-                              delay.clamp(0.0, 0.9),
-                              (delay + 0.5).clamp(0.1, 1.0),
-                              curve: Curves.easeOutCubic,
-                            ),
-                          );
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.2),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child:
-                                  _buildAtleticaCard(_atleticas[index]),
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+              )
+            : _atleticas.isEmpty
+            ? _buildEmptyState()
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                itemCount: _atleticas.length,
+                itemBuilder: (context, index) {
+                  final delay = index * 0.08;
+                  final animation = CurvedAnimation(
+                    parent: _animController,
+                    curve: Interval(
+                      delay.clamp(0.0, 0.9),
+                      (delay + 0.5).clamp(0.1, 1.0),
+                      curve: Curves.easeOutCubic,
+                    ),
+                  );
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.2),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: _buildAtleticaCard(_atleticas[index]),
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }
 
   Widget _buildAtleticaCard(Atletica a) {
     final cor = a.corPrincipal != null
-        ? Color(int.tryParse(
-                '0xFF${a.corPrincipal!.replaceAll('#', '')}') ??
-            0xFF2563EB)
+        ? Color(
+            int.tryParse('0xFF${a.corPrincipal!.replaceAll('#', '')}') ??
+                0xFF2563EB,
+          )
         : const Color(0xFF2563EB);
 
     return Container(
@@ -265,11 +282,14 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                     color: cor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: cor.withValues(alpha: 0.3), width: 1.5),
+                      color: cor.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
                     image: a.escudoUrl != null && a.escudoUrl!.isNotEmpty
                         ? DecorationImage(
                             image: NetworkImage(a.escudoUrl!),
-                            fit: BoxFit.cover)
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                   child: a.escudoUrl == null || a.escudoUrl!.isEmpty
@@ -281,16 +301,22 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(a.nome,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 17)),
+                      Text(
+                        a.nome,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           if (a.sigla != null && a.sigla!.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: cor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
@@ -298,9 +324,10 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                               child: Text(
                                 a.sigla!,
                                 style: TextStyle(
-                                    fontSize: 12,
-                                    color: cor,
-                                    fontWeight: FontWeight.bold),
+                                  fontSize: 12,
+                                  color: cor,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           if (a.corPrincipal != null &&
@@ -312,8 +339,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                               decoration: BoxDecoration(
                                 color: cor,
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: Colors.grey.shade300),
+                                border: Border.all(color: Colors.grey.shade300),
                               ),
                             ),
                           ],
@@ -326,8 +352,11 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                   children: [
                     // Editar: disponível para todos (admin e presidente)
                     IconButton(
-                      icon: Icon(Icons.edit_rounded,
-                          color: Colors.blue.shade400, size: 22),
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        color: Colors.blue.shade400,
+                        size: 22,
+                      ),
                       onPressed: () => _abrirFormulario(atletica: a),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -336,8 +365,11 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                     if (!_modoPresidente) ...[
                       const SizedBox(height: 8),
                       IconButton(
-                        icon: Icon(Icons.delete_rounded,
-                            color: Colors.red.shade400, size: 22),
+                        icon: Icon(
+                          Icons.delete_rounded,
+                          color: Colors.red.shade400,
+                          size: 22,
+                        ),
                         onPressed: () => _deletarAtletica(a.id, a.nome),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -360,19 +392,20 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.shield_outlined,
-                size: 72, color: Colors.white.withValues(alpha: 0.7)),
+            Icon(Icons.shield_outlined, size: 72, color: Colors.black38),
             const SizedBox(height: 16),
-            const Text('Atlética não encontrada',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(
-              'Seu perfil ainda não está vinculado\na uma atlética. Contate o administrador.',
+            const Text(
+              'Atlética não encontrada',
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                color: Colors.black87,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Seu perfil ainda não está vinculado\na uma atlética. Contate o administrador.',
+              style: TextStyle(color: Colors.black54, fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -384,18 +417,21 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shield_outlined,
-              size: 72, color: Colors.white.withValues(alpha: 0.7)),
+          Icon(Icons.shield_outlined, size: 72, color: Colors.black38),
           const SizedBox(height: 16),
-          const Text('Nenhuma Atlética',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'Nenhuma Atlética',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('Toque em "Nova" para cadastrar',
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
+          const Text(
+            'Toque em "Nova" para cadastrar',
+            style: TextStyle(color: Colors.black54, fontSize: 14),
+          ),
         ],
       ),
     );

@@ -98,7 +98,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                   children: [
                     _buildAddOptionItem(
                       Icons.sports_soccer,
-                      'Jogo',
+                      'Partida',
                       const Color(0xFF2E9E56),
                       onTap: () => _navegar(const PartidaFormScreen()),
                     ),

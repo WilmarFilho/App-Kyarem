@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import '../../../services/admin_api_service.dart';
-import '../../widgets/layout/gradient_background.dart';
 import 'atleta_form_screen.dart';
 
 class InscritosEquipeScreen extends StatefulWidget {
@@ -82,12 +81,31 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text('Inscritos: ${widget.equipe.nome}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        toolbarHeight: 100,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('INSCRITOS', style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 22, color: Colors.white, letterSpacing: 1)),
+            Text(widget.equipe.nome, style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal)),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _abrirInscricaoLote,
@@ -95,29 +113,32 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
         icon: const Icon(Icons.person_add, color: Colors.white),
         label: const Text('Vincular Atletas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : _inscritos.isEmpty
-                    ? const Center(child: Text("Nenhum atleta inscrito nesta equipe.", style: TextStyle(color: Colors.white)))
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFFF85C39)))
+            : _inscritos.isEmpty
+                ? const Center(child: Text("Nenhum atleta inscrito nesta equipe.", style: TextStyle(color: Colors.black87)))
                     : ListView.builder(
                         padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
                         itemCount: _inscritos.length,
                         itemBuilder: (context, index) {
                           final i = _inscritos[index];
                           final nome = i['atletaNome'] ?? 'Desconhecido';
+                          final fotoUrl = i['atletaFotoUrl']?.toString();
                           final numCamisa = i['numeroCamisa'];
                           return Card(
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.purple.shade100,
-                                child: Text(numCamisa != null ? numCamisa.toString() : '?', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
-                              ),
+                              leading: fotoUrl != null && fotoUrl.isNotEmpty
+                                ? CircleAvatar(
+                                    backgroundImage: NetworkImage(fotoUrl),
+                                    backgroundColor: Colors.transparent,
+                                  )
+                                : CircleAvatar(
+                                    backgroundColor: Colors.purple.shade100,
+                                    child: Text(numCamisa != null ? numCamisa.toString() : '?', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
+                                  ),
                               title: Text(nome, style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Row(
                                 children: [
@@ -144,8 +165,6 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
                           );
                         },
                       ),
-          ),
-        ],
       ),
     );
   }
@@ -274,7 +293,15 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
                         }
                       });
                     },
-                    secondary: CircleAvatar(backgroundColor: Colors.purple.shade50, child: const Icon(Icons.person, color: Colors.purple)),
+                    secondary: a.fotoUrl != null && a.fotoUrl!.isNotEmpty
+                        ? CircleAvatar(
+                            backgroundImage: NetworkImage(a.fotoUrl!),
+                            backgroundColor: Colors.transparent,
+                          )
+                        : CircleAvatar(
+                            backgroundColor: Colors.purple.shade50,
+                            child: const Icon(Icons.person, color: Colors.purple),
+                          ),
                   );
                 },
               ),

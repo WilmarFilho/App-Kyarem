@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../widgets/layout/gradient_background.dart';
 import '../../../services/admin_api_service.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
@@ -227,133 +226,157 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.atleta == null ? 'Novo Atleta' : 'Editar Atleta';
+    final title = widget.atleta == null ? 'NOVO ATLETA' : 'EDITAR ATLETA';
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        toolbarHeight: 100,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Bebas Neue',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
+            ),
+            const Text(
+              'Gerenciamento',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(22.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10,
-                            offset: Offset(0, 5),
-                          ),
-                        ],
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(22.0),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
                       ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _nomeController,
-                              decoration: const InputDecoration(
-                                labelText: 'Nome Completo',
-                                prefixIcon: Icon(Icons.person),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nomeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome Completo',
+                            prefixIcon: Icon(Icons.person),
+                          ),
+                          validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                        ),
+                        const SizedBox(height: 15),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Vínculo (Atlética)',
+                            prefixIcon: Icon(Icons.shield),
+                          ),
+                          initialValue: _selectedAtleticaId,
+                          items: _atleticas.map((a) {
+                            return DropdownMenuItem(
+                              value: a.id,
+                              child: Text(
+                                a.nome,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              validator: (v) =>
-                                  v!.isEmpty ? 'Obrigatório' : null,
-                            ),
-                            const SizedBox(height: 15),
-                            DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                labelText: 'Vínculo (Atlética)',
-                                prefixIcon: Icon(Icons.shield),
-                              ),
-                              value: _selectedAtleticaId,
-                              items: _atleticas.map((a) {
-                                return DropdownMenuItem(
-                                  value: a.id,
-                                  child: Text(a.nome),
-                                );
-                              }).toList(),
-                              onChanged: (v) =>
-                                  setState(() => _selectedAtleticaId = v),
-                              validator: (v) =>
-                                  v == null ? 'Obrigatório' : null,
-                            ),
-                            const SizedBox(height: 15),
+                            );
+                          }).toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedAtleticaId = v),
+                          validator: (v) => v == null ? 'Obrigatório' : null,
+                        ),
+                        const SizedBox(height: 15),
 
-                            _buildImagePicker(),
-                            const SizedBox(height: 30),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: _isSaving ? null : _salvar,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF85C39),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                ),
-                                child: _isSaving
-                                    ? Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            _isUploading
-                                                ? 'Enviando foto...'
-                                                : 'Salvando...',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : const Text(
-                                        'Salvar',
-                                        style: TextStyle(
+                        _buildImagePicker(),
+                        const SizedBox(height: 30),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _salvar,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF85C39),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ),
+                            child: _isSaving
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
                                           color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          strokeWidth: 2,
                                         ),
                                       ),
-                              ),
-                            ),
-                          ],
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        _isUploading
+                                            ? 'Enviando foto...'
+                                            : 'Salvando...',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const Text(
+                                    'Salvar',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-          ),
-        ],
+                ),
+              ),
       ),
     );
   }

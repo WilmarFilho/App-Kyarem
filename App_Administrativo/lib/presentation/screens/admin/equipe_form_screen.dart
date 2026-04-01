@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import '../../../services/admin_api_service.dart';
-import '../../widgets/layout/gradient_background.dart';
 
 class EquipeFormScreen extends StatefulWidget {
   final Equipe? equipe;
@@ -28,6 +27,7 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
   String? _selectedModalidadeId;
 
   bool _isLoading = true;
+  bool _isLoadingModalidades = false;
   bool _isSaving = false;
 
   @override
@@ -56,7 +56,9 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
 
     if (_selectedCampeonatoId != null) {
       await _carregarModalidades(_selectedCampeonatoId!);
-    } else {
+    } 
+
+    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
@@ -72,7 +74,7 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
           _selectedModalidadeId = null;
         }
 
-        _isLoading = false;
+        _isLoadingModalidades = false;
       });
     }
   }
@@ -82,12 +84,12 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
       _selectedCampeonatoId = newId;
       _selectedModalidadeId = null; 
       _modalidades = [];
-      _isLoading = true;
+      _isLoadingModalidades = true;
     });
     if (newId != null) {
       _carregarModalidades(newId);
     } else {
-      setState(() => _isLoading = false);
+      setState(() => _isLoadingModalidades = false);
     }
   }
 
@@ -129,23 +131,54 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.equipe == null ? 'Novo Time' : 'Editar Time';
+    final title = widget.equipe == null ? 'NOVO TIME' : 'EDITAR TIME';
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        toolbarHeight: 100,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Bebas Neue',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
+            ),
+            const Text(
+              'Gerenciamento',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: Colors.white))
-              : SingleChildScrollView(
+      body: SafeArea(
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF85C39)))
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(22.0),
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -162,16 +195,23 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
                     children: [
                       TextFormField(
                         controller: _nomeController,
-                        decoration: const InputDecoration(labelText: 'Nome do Time/Equipe'),
+                        decoration: const InputDecoration(
+                          labelText: 'Nome do Time/Equipe',
+                          prefixIcon: Icon(Icons.group),
+                        ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                       ),
                       const SizedBox(height: 15),
 
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(labelText: 'Atlética'),
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Atlética',
+                          prefixIcon: Icon(Icons.shield),
+                        ),
                         value: _selectedAtleticaId,
                         items: _atleticas.map((a) {
-                          return DropdownMenuItem(value: a.id, child: Text(a.nome));
+                          return DropdownMenuItem(value: a.id, child: Text(a.nome, overflow: TextOverflow.ellipsis));
                         }).toList(),
                         onChanged: (v) => setState(() => _selectedAtleticaId = v),
                         validator: (v) => v == null ? 'Obrigatório' : null,
@@ -179,7 +219,10 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
                       const SizedBox(height: 15),
 
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(labelText: 'Campeonato'),
+                        decoration: const InputDecoration(
+                          labelText: 'Campeonato',
+                          prefixIcon: Icon(Icons.emoji_events),
+                        ),
                         value: _selectedCampeonatoId,
                         items: _campeonatos.map((c) {
                           return DropdownMenuItem(value: c.id, child: Text(c.nome));
@@ -190,14 +233,21 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
                       const SizedBox(height: 15),
 
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(labelText: 'Modalidade'),
+                        decoration: const InputDecoration(
+                          labelText: 'Modalidade',
+                          prefixIcon: Icon(Icons.sports),
+                        ),
                         value: _selectedModalidadeId,
                         items: _modalidades.map((m) {
                           return DropdownMenuItem<String>(value: m['id'], child: Text(m['nome']));
                         }).toList(),
-                        onChanged: (v) => setState(() => _selectedModalidadeId = v),
+                        onChanged: _isLoadingModalidades ? null : (v) => setState(() => _selectedModalidadeId = v),
                         validator: (v) => v == null ? 'Obrigatório' : null,
-                        hint: Text(_campeonatos.isEmpty || _selectedCampeonatoId == null ? 'Selecione o Campeonato primeiro' : 'Selecione a Modalidade'),
+                        hint: Text(_isLoadingModalidades 
+                                     ? 'Carregando modalidades...' 
+                                     : (_campeonatos.isEmpty || _selectedCampeonatoId == null 
+                                         ? 'Selecione o Campeonato primeiro' 
+                                         : 'Selecione a Modalidade')),
                       ),
 
                       const SizedBox(height: 30),
@@ -220,8 +270,6 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
                 ),
               ),
             ),
-          ),
-        ],
       ),
     );
   }
