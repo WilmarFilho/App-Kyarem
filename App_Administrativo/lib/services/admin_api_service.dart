@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
@@ -9,7 +11,7 @@ import 'package:kyarem_eventos/models/arbitro_model.dart';
 class AdminApiService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.100.9:8080/api/v1',
+      baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
       connectTimeout: const Duration(seconds: 10),
     ),
   );
@@ -64,7 +66,10 @@ class AdminApiService {
     }
   }
 
-  Future<Campeonato?> atualizarCampeonato(String id, Map<String, dynamic> data) async {
+  Future<Campeonato?> atualizarCampeonato(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final res = await _dio.put('/campeonatos/$id', data: data);
       return Campeonato.fromMap(res.data);
@@ -103,7 +108,8 @@ class AdminApiService {
       final list = res.data as List;
       for (final item in list) {
         final presidenteId =
-            item['presidenteId']?.toString() ?? item['presidente_id']?.toString();
+            item['presidenteId']?.toString() ??
+            item['presidente_id']?.toString();
         if (presidenteId == userId) {
           return item['id']?.toString();
         }
@@ -135,7 +141,10 @@ class AdminApiService {
     }
   }
 
-  Future<Atletica?> atualizarAtletica(String id, Map<String, dynamic> data) async {
+  Future<Atletica?> atualizarAtletica(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final res = await _dio.put('/atleticas/$id', data: data);
       return Atletica.fromMap(res.data);
@@ -156,7 +165,11 @@ class AdminApiService {
   }
 
   // ============== EQUIPES ==============
-  Future<List<Equipe>> listarEquipes({String? campeonatoId, String? modalidadeId, String? atleticaId}) async {
+  Future<List<Equipe>> listarEquipes({
+    String? campeonatoId,
+    String? modalidadeId,
+    String? atleticaId,
+  }) async {
     try {
       final params = <String, dynamic>{};
       if (campeonatoId != null) params['campeonatoId'] = campeonatoId;
@@ -204,7 +217,10 @@ class AdminApiService {
   // ============== ATLETAS ==============
   Future<List<Atleta>> listarAtletas(String atleticaId) async {
     try {
-      final res = await _dio.get('/atletas', queryParameters: {'atleticaId': atleticaId});
+      final res = await _dio.get(
+        '/atletas',
+        queryParameters: {'atleticaId': atleticaId},
+      );
       return (res.data as List).map((e) => Atleta.fromMap(e)).toList();
     } catch (e) {
       debugPrint("Erro listarAtletas: $e");
@@ -243,7 +259,10 @@ class AdminApiService {
     }
   }
 
-  Future<bool> adicionarInscritos(String equipeId, List<Map<String, dynamic>> inscritos) async {
+  Future<bool> adicionarInscritos(
+    String equipeId,
+    List<Map<String, dynamic>> inscritos,
+  ) async {
     try {
       await _dio.post('/equipes/$equipeId/inscritos', data: inscritos);
       return true;
@@ -275,7 +294,9 @@ class AdminApiService {
   }
 
   Future<Map<String, dynamic>?> atualizarPartida(
-      String id, Map<String, dynamic> data) async {
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final res = await _dio.put('/partidas/$id', data: data);
       return res.data as Map<String, dynamic>;
@@ -334,7 +355,9 @@ class AdminApiService {
 
   /// GET /api/v1/arbitros/{arbitroId}/partidas
   /// Retorna todas as partidas (ativas e encerradas) vinculadas ao árbitro.
-  Future<List<PartidaDoArbitro>> listarPartidasDoArbitro(String arbitroId) async {
+  Future<List<PartidaDoArbitro>> listarPartidasDoArbitro(
+    String arbitroId,
+  ) async {
     try {
       final res = await _dio.get('/arbitros/$arbitroId/partidas');
       return (res.data as List)
@@ -348,7 +371,11 @@ class AdminApiService {
 
   /// POST /api/v1/partidas/{partidaId}/arbitros
   /// Vincula um árbitro a uma partida com a função informada.
-  Future<bool> vincularArbitro(String partidaId, String arbitroId, String funcao) async {
+  Future<bool> vincularArbitro(
+    String partidaId,
+    String arbitroId,
+    String funcao,
+  ) async {
     try {
       await _dio.post(
         '/partidas/$partidaId/arbitros',
@@ -370,6 +397,44 @@ class AdminApiService {
     } catch (e) {
       debugPrint("Erro desvincularArbitro: $e");
       return false;
+    }
+  }
+
+  // ============== UPLOAD DE IMAGENS ==============
+
+  /// Faz upload do escudo do campeonato via multipart.
+  /// Retorna a URL pública da imagem ou null em caso de erro.
+  Future<String?> uploadEscudoCampeonato(File imageFile) async {
+    try {
+      final fileName = p.basename(imageFile.path);
+      final multipart = await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+      );
+      final formData = FormData.fromMap({'file': multipart});
+      final res = await _dio.post('/campeonatos/upload-escudo', data: formData);
+      return res.data['url'] as String?;
+    } catch (e) {
+      debugPrint("Erro uploadEscudoCampeonato: $e");
+      return null;
+    }
+  }
+
+  /// Faz upload da foto do atleta via multipart.
+  /// Retorna a URL pública da imagem ou null em caso de erro.
+  Future<String?> uploadFotoAtleta(File imageFile) async {
+    try {
+      final fileName = p.basename(imageFile.path);
+      final multipart = await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+      );
+      final formData = FormData.fromMap({'file': multipart});
+      final res = await _dio.post('/atletas/upload-foto', data: formData);
+      return res.data['url'] as String?;
+    } catch (e) {
+      debugPrint("Erro uploadFotoAtleta: $e");
+      return null;
     }
   }
 }

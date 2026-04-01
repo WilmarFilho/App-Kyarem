@@ -4,6 +4,7 @@ import com.nkw.backapisumula.competicao.Campeonato;
 import com.nkw.backapisumula.competicao.repo.CampeonatoRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +29,7 @@ public class CampeonatoService {
         c.setNome(c.getNome().trim());
         if (c.getNivelCampeonato() != null) c.setNivelCampeonato(c.getNivelCampeonato().trim());
         if (c.getEscudoUrl() != null) c.setEscudoUrl(c.getEscudoUrl().trim());
+        c.setCriadoEm(OffsetDateTime.now());
         return repo.save(c);
     }
 

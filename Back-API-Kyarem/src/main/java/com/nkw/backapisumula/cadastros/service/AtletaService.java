@@ -5,6 +5,7 @@ import com.nkw.backapisumula.cadastros.Atletica;
 import com.nkw.backapisumula.cadastros.repo.AtletaRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,10 +26,12 @@ public class AtletaService {
         return repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Atleta não encontrado."));
     }
 
-    public Atleta create(Atletica atletica, String nome) {
+    public Atleta create(Atletica atletica, String nome, String fotoUrl) {
         Atleta a = new Atleta();
         a.setAtletica(atletica);
         a.setNome(nome.trim());
+        if (fotoUrl != null && !fotoUrl.isBlank()) a.setFotoUrl(fotoUrl.trim());
+        a.setCriadoEm(OffsetDateTime.now());
         return repo.save(a);
     }
 
@@ -42,3 +45,4 @@ public class AtletaService {
         repo.deleteById(id);
     }
 }
+

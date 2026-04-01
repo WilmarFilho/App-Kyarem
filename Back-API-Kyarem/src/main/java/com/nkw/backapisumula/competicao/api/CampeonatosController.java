@@ -2,14 +2,18 @@ package com.nkw.backapisumula.competicao.api;
 
 import com.nkw.backapisumula.competicao.Campeonato;
 import com.nkw.backapisumula.competicao.service.CampeonatoService;
+import com.nkw.backapisumula.storage.SupabaseImageUploadService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -17,9 +21,11 @@ import java.util.UUID;
 public class CampeonatosController {
 
     private final CampeonatoService service;
+    private final SupabaseImageUploadService imageUploadService;
 
-    public CampeonatosController(CampeonatoService service) {
+    public CampeonatosController(CampeonatoService service, SupabaseImageUploadService imageUploadService) {
         this.service = service;
+        this.imageUploadService = imageUploadService;
     }
 
     @GetMapping
@@ -64,6 +70,22 @@ public class CampeonatosController {
         service.delete(id);
     }
 
+    @PostMapping("/upload-escudo")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    public Map<String, String> uploadEscudo(@RequestParam("file") MultipartFile file) throws IOException {
+        String originalName = file.getOriginalFilename();
+        String ext = (originalName != null && originalName.contains("."))
+                ? originalName.substring(originalName.lastIndexOf('.'))
+                : ".jpg";
+        String path = "campeonatos/" + UUID.randomUUID() + ext;
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+
+        imageUploadService.uploadImage("avatars", path, file.getBytes(), contentType);
+        String publicUrl = imageUploadService.getPublicUrl("avatars", path);
+
+        return Map.of("url", publicUrl);
+    }
+
     public record CreateCampeonatoRequest(
             @NotBlank String nome,
             String nivelCampeonato,
@@ -100,3 +122,4 @@ public class CampeonatosController {
         }
     }
 }
+

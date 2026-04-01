@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -15,23 +17,34 @@ class CampeonatoFormScreen extends StatefulWidget {
 class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final AdminApiService _apiService = AdminApiService();
-  
+  final ImagePicker _picker = ImagePicker();
+
   late TextEditingController _nomeController;
   late TextEditingController _nivelController;
   late TextEditingController _dataInicioController;
   late TextEditingController _dataFimController;
-  late TextEditingController _escudoUrlController;
 
+  File? _selectedImage;
+  String? _currentEscudoUrl;
   bool _isSaving = false;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    _nomeController = TextEditingController(text: widget.campeonato?.nome ?? '');
-    _nivelController = TextEditingController(text: widget.campeonato?.nivel ?? '');
-    _dataInicioController = TextEditingController(text: _formatDate(widget.campeonato?.dataInicio));
-    _dataFimController = TextEditingController(text: _formatDate(widget.campeonato?.dataFim));
-    _escudoUrlController = TextEditingController(text: widget.campeonato?.escudoUrl ?? '');
+    _nomeController = TextEditingController(
+      text: widget.campeonato?.nome ?? '',
+    );
+    _nivelController = TextEditingController(
+      text: widget.campeonato?.nivel ?? '',
+    );
+    _dataInicioController = TextEditingController(
+      text: _formatDate(widget.campeonato?.dataInicio),
+    );
+    _dataFimController = TextEditingController(
+      text: _formatDate(widget.campeonato?.dataFim),
+    );
+    _currentEscudoUrl = widget.campeonato?.escudoUrl;
   }
 
   String _formatDate(DateTime? dt) {
@@ -39,17 +52,54 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
 
+    String? escudoUrl = _currentEscudoUrl;
+
+    // Se selecionou uma nova imagem, faz upload primeiro
+    if (_selectedImage != null) {
+      setState(() => _isUploading = true);
+      escudoUrl = await _apiService.uploadEscudoCampeonato(_selectedImage!);
+      setState(() => _isUploading = false);
+
+      if (escudoUrl == null) {
+        setState(() => _isSaving = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao fazer upload da imagem.')),
+          );
+        }
+        return;
+      }
+    }
+
     final data = {
       'nome': _nomeController.text,
       'nivelCampeonato': _nivelController.text,
-      'dataInicio': _dataInicioController.text.isNotEmpty ? _dataInicioController.text : null,
-      'dataFim': _dataFimController.text.isNotEmpty ? _dataFimController.text : null,
-      'escudoUrl': _escudoUrlController.text,
+      'dataInicio': _dataInicioController.text.isNotEmpty
+          ? _dataInicioController.text
+          : null,
+      'dataFim': _dataFimController.text.isNotEmpty
+          ? _dataFimController.text
+          : null,
+      'escudoUrl': escudoUrl ?? '',
     };
 
     bool sucesso = false;
@@ -57,7 +107,10 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
       final res = await _apiService.criarCampeonato(data);
       sucesso = res != null;
     } else {
-      final res = await _apiService.atualizarCampeonato(widget.campeonato!.id, data);
+      final res = await _apiService.atualizarCampeonato(
+        widget.campeonato!.id,
+        data,
+      );
       sucesso = res != null;
     }
 
@@ -67,7 +120,9 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
       if (mounted) Navigator.pop(context, true);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao salvar.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Erro ao salvar.')));
       }
     }
   }
@@ -85,14 +140,117 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
     }
   }
 
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Logo / Escudo',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            width: double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+            ),
+            child: _buildImageContent(),
+          ),
+        ),
+        if (_selectedImage != null || _currentEscudoUrl != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedImage = null;
+                  _currentEscudoUrl = null;
+                });
+              },
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 18,
+              ),
+              label: const Text('Remover', style: TextStyle(color: Colors.red)),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildImageContent() {
+    if (_selectedImage != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Image.file(
+          _selectedImage!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 160,
+        ),
+      );
+    }
+
+    if (_currentEscudoUrl != null && _currentEscudoUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Image.network(
+          _currentEscudoUrl!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 160,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+        ),
+      );
+    }
+
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 48,
+          color: Colors.grey[400],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Toque para selecionar uma imagem',
+          style: TextStyle(color: Colors.grey[500], fontSize: 13),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title = widget.campeonato == null ? 'Novo Campeonato' : 'Editar Campeonato';
+    final title = widget.campeonato == null
+        ? 'Novo Campeonato'
+        : 'Editar Campeonato';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -109,7 +267,11 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5)),
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
                   ],
                 ),
                 child: Form(
@@ -118,13 +280,17 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                     children: [
                       TextFormField(
                         controller: _nomeController,
-                        decoration: const InputDecoration(labelText: 'Nome do Campeonato'),
+                        decoration: const InputDecoration(
+                          labelText: 'Nome do Campeonato',
+                        ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                       ),
                       const SizedBox(height: 15),
                       TextFormField(
                         controller: _nivelController,
-                        decoration: const InputDecoration(labelText: 'Nível (ex: Ouro, A, etc)'),
+                        decoration: const InputDecoration(
+                          labelText: 'Nível (ex: Estadual, Nacional, etc)',
+                        ),
                       ),
                       const SizedBox(height: 15),
                       TextFormField(
@@ -146,11 +312,8 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                         readOnly: true,
                         onTap: () => _selecionarData(_dataFimController),
                       ),
-                      const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _escudoUrlController,
-                        decoration: const InputDecoration(labelText: 'URL do Logo/Escudo (HTTPS)'),
-                      ),
+                      const SizedBox(height: 20),
+                      _buildImagePicker(),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
@@ -159,13 +322,44 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                           onPressed: _isSaving ? null : _salvar,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFF85C39),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
                           ),
                           child: _isSaving
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text('Salvar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      _isUploading
+                                          ? 'Enviando imagem...'
+                                          : 'Salvando...',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : const Text(
+                                  'Salvar',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),

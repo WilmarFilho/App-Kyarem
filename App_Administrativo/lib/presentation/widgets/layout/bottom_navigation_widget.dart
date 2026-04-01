@@ -25,9 +25,6 @@ class BottomNavigationWidget extends StatefulWidget {
 class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
   bool _menuAdicionarAberto = false;
 
-  bool get _hasAnyAdminAccess =>
-      widget.isAdmin || widget.isPresidenteAtletica || widget.isArbitro;
-
   void _navegar(Widget screen) {
     setState(() => _menuAdicionarAberto = false);
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
@@ -72,7 +69,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                 color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -94,59 +91,53 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
               // Árbitro: não pode criar nada
               if (widget.isArbitro)
                 _buildReadOnlyMessage()
-
               // Admin/Delegado: criação completa
               else if (widget.isAdmin)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildAddOptionItem(
-                      Icons.sports_soccer, 'Jogo',
+                      Icons.sports_soccer,
+                      'Jogo',
                       const Color(0xFF2E9E56),
                       onTap: () => _navegar(const PartidaFormScreen()),
                     ),
                     _buildAddOptionItem(
-                      Icons.emoji_events, 'Campeonato',
+                      Icons.emoji_events,
+                      'Campeonato',
                       const Color(0xFFE6A817),
                       onTap: () => _navegar(const CampeonatoFormScreen()),
                     ),
                     _buildAddOptionItem(
-                      Icons.shield, 'Atlética',
+                      Icons.shield,
+                      'Atlética',
                       const Color(0xFF2563EB),
                       onTap: () => _navegar(const AtleticaFormScreen()),
                     ),
                     _buildAddOptionItem(
-                      Icons.groups, 'Time',
+                      Icons.groups,
+                      'Time',
                       const Color(0xFF7C3AED),
                       onTap: () => _navegar(const EquipeFormScreen()),
                     ),
                   ],
                 )
-
               // Presidente: apenas Times
               else if (widget.isPresidenteAtletica)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildAddOptionItem(
-                      Icons.groups, 'Time',
+                      Icons.groups,
+                      'Time',
                       const Color(0xFF7C3AED),
                       onTap: () => _navegar(const EquipeFormScreen()),
                     ),
                   ],
                 )
-
               // Usuário comum: sem permissão
               else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildAddOptionItem(Icons.sports_soccer, 'Jogo', Colors.grey),
-                    _buildAddOptionItem(Icons.emoji_events, 'Campeonato', Colors.grey),
-                    _buildAddOptionItem(Icons.gavel, 'Árbitro', Colors.grey),
-                  ],
-                ),
-
+                _buildReadOnlyMessage(),
             ],
           ),
         ),
@@ -168,7 +159,11 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           const SizedBox(width: 10),
           Text(
             'Você tem acesso somente\nleitura ao sistema.',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.5),
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+              height: 1.5,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -235,7 +230,10 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             GestureDetector(
               onTap: widget.currentRoute != '/home'
                   ? () => Navigator.pushNamedAndRemoveUntil(
-                      context, '/home', (route) => false)
+                      context,
+                      '/home',
+                      (route) => false,
+                    )
                   : null,
               child: Icon(
                 Icons.home_filled,
@@ -245,25 +243,13 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                 size: 28,
               ),
             ),
-            GestureDetector(
-              onTap: widget.currentRoute != '/arbitros'
-                  ? () => Navigator.pushNamedAndRemoveUntil(
-                      context, '/arbitros', (route) => false)
-                  : null,
-              child: Icon(
-                Icons.gavel,
-                color: widget.currentRoute == '/arbitros'
-                    ? const Color(0xFFF85C39)
-                    : Colors.white,
-                size: 28,
-              ),
-            ),
 
             // Botão + central
             GestureDetector(
-              onTap: () => setState(() => _menuAdicionarAberto = !_menuAdicionarAberto),
+              onTap: () =>
+                  setState(() => _menuAdicionarAberto = !_menuAdicionarAberto),
               child: Transform.translate(
-                offset: const Offset(0, -5),
+                offset: const Offset(0, 0),
                 child: AnimatedRotation(
                   turns: _menuAdicionarAberto ? 0.375 : 0,
                   duration: const Duration(milliseconds: 300),
@@ -287,22 +273,12 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             ),
 
             GestureDetector(
-              onTap: widget.currentRoute != '/campeonatos'
-                  ? () => Navigator.pushNamedAndRemoveUntil(
-                      context, '/campeonatos', (route) => false)
-                  : null,
-              child: Icon(
-                Icons.emoji_events,
-                color: widget.currentRoute == '/campeonatos'
-                    ? const Color(0xFFF85C39)
-                    : Colors.white,
-                size: 28,
-              ),
-            ),
-            GestureDetector(
               onTap: widget.currentRoute != '/configuracoes'
                   ? () => Navigator.pushNamedAndRemoveUntil(
-                      context, '/configuracoes', (route) => false)
+                      context,
+                      '/configuracoes',
+                      (route) => false,
+                    )
                   : null,
               child: Icon(
                 Icons.settings,

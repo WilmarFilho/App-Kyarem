@@ -15,8 +15,6 @@ class PartidaCard extends StatelessWidget {
     this.onTap,
   });
 
-  
-
   @override
   Widget build(BuildContext context) {
     return SlideTransition(
@@ -109,7 +107,6 @@ class PartidaCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    
 
                     _buildTeamInfo(
                       partida.equipeB?.nome ?? "Time B",
@@ -128,9 +125,10 @@ class PartidaCard extends StatelessWidget {
   }
 
   Widget _buildTeamInfo(String nome, String? logoUrl) {
-    final sanitizedUrl =
-        (logoUrl != null && logoUrl.trim().isNotEmpty) ? logoUrl.trim() : null;
-    debugPrint('logoUrl: $sanitizedUrl');
+    final sanitizedUrl = (logoUrl != null && logoUrl.trim().isNotEmpty)
+        ? logoUrl.trim()
+        : null;
+
     return SizedBox(
       width: 80, // Aumentado levemente de 75 para 80 para dar mais margem
       child: Column(

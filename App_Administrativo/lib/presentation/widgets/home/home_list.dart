@@ -14,12 +14,16 @@ class HomeListItem extends StatelessWidget {
 
     if (type == 'Jogos') {
       titulo = '${item.equipeA?.nome} vs ${item.equipeB?.nome}';
-      subTitulo = item.status == 'em_andamento' ? 'Ao Vivo' : 'Agendado';
+      subTitulo = item.status.isNotEmpty
+          ? '${item.status[0].toUpperCase()}${item.status.substring(1).toLowerCase()}'
+          : item.status;
       leading = const Icon(Icons.sports_soccer, color: Color(0xFFF85C39));
     } else if (type == 'Árbitros') {
       titulo = item.nome;
       leading = CircleAvatar(
-        backgroundImage: item.fotoUrl != null ? NetworkImage(item.fotoUrl!) : null,
+        backgroundImage: item.fotoUrl != null
+            ? NetworkImage(item.fotoUrl!)
+            : null,
         child: item.fotoUrl == null ? const Icon(Icons.person) : null,
       );
     } else {
@@ -36,10 +40,15 @@ class HomeListItem extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         leading: leading,
-        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          titulo,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: subTitulo != null ? Text(subTitulo) : null,
         trailing: const Icon(Icons.chevron_right, size: 18),
-        onTap: () { /* Navegação específica */ },
+        onTap: () {
+          /* Navegação específica */
+        },
       ),
     );
   }

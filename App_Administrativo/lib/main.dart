@@ -7,8 +7,6 @@ import 'presentation/screens/main/home_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/reset_password_screen.dart';
 import 'presentation/screens/main/perfil_screen.dart';
-import 'presentation/screens/main/arbitros_screen.dart';
-import 'presentation/screens/main/campeonatos_screen.dart';
 import 'presentation/screens/main/configuracoes_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -80,8 +78,6 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/reset-password': (context) => const ResetPasswordScreen(),
         '/perfil': (context) => const PerfilScreen(),
-        '/arbitros': (context) => const ArbitrosScreen(),
-        '/campeonatos': (context) => const CampeonatosScreen(),
         '/configuracoes': (context) => const ConfiguracoesScreen(),
       },
     );
