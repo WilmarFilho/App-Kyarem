@@ -65,13 +65,20 @@ public class AtleticasController {
         service.delete(id);
     }
 
-    @PostMapping(value = "/upload-escudo", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/upload-escudo")
     @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
-    public java.util.Map<String, String> uploadEscudo(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestHeader(value = "x-upsert", defaultValue = "false") boolean upsert) {
-        String url = imageUploadService.uploadImage("avatars", "atleticas", file, upsert);
-        return java.util.Map.of("url", url);
+    public java.util.Map<String, String> uploadEscudo(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        String originalName = file.getOriginalFilename();
+        String ext = (originalName != null && originalName.contains("."))
+                ? originalName.substring(originalName.lastIndexOf('.'))
+                : ".jpg";
+        String path = "atleticas/" + java.util.UUID.randomUUID() + ext;
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+
+        imageUploadService.uploadImage("avatars", path, file.getBytes(), contentType);
+        String publicUrl = imageUploadService.getPublicUrl("avatars", path);
+
+        return java.util.Map.of("url", publicUrl);
     }
 
     public record CreateAtleticaRequest(

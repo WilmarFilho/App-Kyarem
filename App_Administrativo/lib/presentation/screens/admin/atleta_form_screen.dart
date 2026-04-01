@@ -22,8 +22,6 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
   final ImagePicker _picker = ImagePicker();
 
   late TextEditingController _nomeController;
-  late TextEditingController _documentoController;
-  late TextEditingController _cursoController;
 
   String? _selectedAtleticaId;
   List<Atletica> _atleticas = [];
@@ -38,10 +36,6 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
   void initState() {
     super.initState();
     _nomeController = TextEditingController(text: widget.atleta?.nome ?? '');
-    _documentoController = TextEditingController(
-      text: widget.atleta?.documentoIdentificacao ?? '',
-    );
-    _cursoController = TextEditingController(text: widget.atleta?.curso ?? '');
 
     _currentFotoUrl = widget.atleta?.fotoUrl;
     _selectedAtleticaId =
