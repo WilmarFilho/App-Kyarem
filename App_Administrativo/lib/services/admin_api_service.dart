@@ -437,4 +437,22 @@ class AdminApiService {
       return null;
     }
   }
+
+  /// Faz upload do escudo da atlética via multipart.
+  /// Retorna a URL pública da imagem ou null em caso de erro.
+  Future<String?> uploadEscudoAtletica(File imageFile) async {
+    try {
+      final fileName = p.basename(imageFile.path);
+      final multipart = await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+      );
+      final formData = FormData.fromMap({'file': multipart});
+      final res = await _dio.post('/atleticas/upload-escudo', data: formData);
+      return res.data['url'] as String?;
+    } catch (e) {
+      debugPrint("Erro uploadEscudoAtletica: $e");
+      return null;
+    }
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import '../../../services/admin_api_service.dart';
-import '../../widgets/layout/gradient_background.dart';
 import 'campeonato_form_screen.dart';
 
 class CampeonatosAdminScreen extends StatefulWidget {
@@ -50,8 +49,13 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Excluir Campeonato?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.'),
+        title: const Text(
+          'Excluir Campeonato?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -61,7 +65,9 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade600,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Excluir', style: TextStyle(color: Colors.white)),
           ),
@@ -72,12 +78,18 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
     if (confirmar == true) {
       final sucesso = await _apiService.excluirCampeonato(id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(sucesso ? 'Campeonato excluído!' : 'Erro ao excluir.'),
-          backgroundColor: sucesso ? Colors.green : Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              sucesso ? 'Campeonato excluído!' : 'Erro ao excluir.',
+            ),
+            backgroundColor: sucesso ? Colors.green : Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
         if (sucesso) _carregarCampeonatos();
       }
     }
@@ -86,7 +98,9 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
   void _abrirFormulario({Campeonato? campeonato}) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => CampeonatoFormScreen(campeonato: campeonato)),
+      MaterialPageRoute(
+        builder: (_) => CampeonatoFormScreen(campeonato: campeonato),
+      ),
     );
     if (result == true) _carregarCampeonatos();
   }
@@ -94,8 +108,18 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
+        toolbarHeight: 100,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -105,8 +129,23 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('CAMPEONATOS', style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 22, color: Colors.white, letterSpacing: 1)),
-            Text('Gerenciamento', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal)),
+            Text(
+              'CAMPEONATOS',
+              style: TextStyle(
+                fontFamily: 'Bebas Neue',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
+            ),
+            Text(
+              'Gerenciamento',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -120,37 +159,42 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         onPressed: () => _abrirFormulario(),
         backgroundColor: const Color(0xFFF85C39),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Novo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Novo',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : _campeonatos.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                        itemCount: _campeonatos.length,
-                        itemBuilder: (context, index) {
-                          final delay = index * 0.08;
-                          final animation = CurvedAnimation(
-                            parent: _animController,
-                            curve: Interval(delay.clamp(0.0, 0.9), (delay + 0.5).clamp(0.1, 1.0), curve: Curves.easeOutCubic),
-                          );
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(animation),
-                              child: _buildCampeonatoCard(_campeonatos[index]),
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+            )
+          : _campeonatos.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: _campeonatos.length,
+              itemBuilder: (context, index) {
+                final delay = index * 0.08;
+                final animation = CurvedAnimation(
+                  parent: _animController,
+                  curve: Interval(
+                    delay.clamp(0.0, 0.9),
+                    (delay + 0.5).clamp(0.1, 1.0),
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.2),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: _buildCampeonatoCard(_campeonatos[index]),
+                  ),
+                );
+              },
+            ),
     );
   }
 
@@ -185,13 +229,23 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
                   decoration: BoxDecoration(
                     color: Colors.amber.shade50,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.amber.shade200, width: 1.5),
+                    border: Border.all(
+                      color: Colors.amber.shade200,
+                      width: 1.5,
+                    ),
                     image: c.escudoUrl != null && c.escudoUrl!.isNotEmpty
-                        ? DecorationImage(image: NetworkImage(c.escudoUrl!), fit: BoxFit.cover)
+                        ? DecorationImage(
+                            image: NetworkImage(c.escudoUrl!),
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                   child: c.escudoUrl == null || c.escudoUrl!.isEmpty
-                      ? Icon(Icons.emoji_events, color: Colors.amber.shade700, size: 28)
+                      ? Icon(
+                          Icons.emoji_events,
+                          color: Colors.amber.shade700,
+                          size: 28,
+                        )
                       : null,
                 ),
                 const SizedBox(width: 14),
@@ -199,25 +253,44 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(c.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(
+                        c.nome,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           if (c.nivel != null && c.nivel!.isNotEmpty) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber.shade100,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text(c.nivel!, style: TextStyle(fontSize: 11, color: Colors.amber.shade800, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                c.nivel!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.amber.shade800,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 8),
                           ],
                           if (c.dataInicio != null)
                             Text(
                               '${c.dataInicio!.day.toString().padLeft(2, '0')}/${c.dataInicio!.month.toString().padLeft(2, '0')}/${c.dataInicio!.year}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
                         ],
                       ),
@@ -227,14 +300,22 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
                 Column(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.edit_rounded, color: Colors.blue.shade400, size: 22),
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        color: Colors.blue.shade400,
+                        size: 22,
+                      ),
                       onPressed: () => _abrirFormulario(campeonato: c),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                     const SizedBox(height: 8),
                     IconButton(
-                      icon: Icon(Icons.delete_rounded, color: Colors.red.shade400, size: 22),
+                      icon: Icon(
+                        Icons.delete_rounded,
+                        color: Colors.red.shade400,
+                        size: 22,
+                      ),
                       onPressed: () => _deletarCampeonato(c.id, c.nome),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -254,11 +335,21 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.emoji_events_outlined, size: 72, color: Colors.white.withValues(alpha: 0.7)),
+          Icon(Icons.emoji_events_outlined, size: 72, color: Colors.black26),
           const SizedBox(height: 16),
-          const Text('Nenhum campeonato', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Nenhum campeonato',
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('Toque em "Novo" para criar o primeiro', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
+          const Text(
+            'Toque em "Novo" para criar o primeiro',
+            style: TextStyle(color: Colors.black38, fontSize: 14),
+          ),
         ],
       ),
     );

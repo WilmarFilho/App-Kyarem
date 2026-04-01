@@ -27,6 +27,7 @@ public class AtleticaService {
     public Atletica create(Atletica atletica) {
         atletica.setNome(atletica.getNome().trim());
         if (atletica.getSigla() != null) atletica.setSigla(atletica.getSigla().trim());
+        atletica.setCriadoEm(java.time.OffsetDateTime.now());
         return repo.save(atletica);
     }
 

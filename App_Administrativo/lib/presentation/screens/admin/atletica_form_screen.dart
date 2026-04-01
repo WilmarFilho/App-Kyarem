@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -15,13 +17,17 @@ class AtleticaFormScreen extends StatefulWidget {
 class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final AdminApiService _apiService = AdminApiService();
+  final ImagePicker _picker = ImagePicker();
   
   late TextEditingController _nomeController;
   late TextEditingController _siglaController;
   late TextEditingController _corPrincipalController;
-  late TextEditingController _escudoUrlController;
 
   bool _isSaving = false;
+  bool _isUploading = false;
+
+  File? _selectedImage;
+  String? _currentEscudoUrl;
 
   @override
   void initState() {
@@ -29,7 +35,21 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
     _nomeController = TextEditingController(text: widget.atletica?.nome ?? '');
     _siglaController = TextEditingController(text: widget.atletica?.sigla ?? '');
     _corPrincipalController = TextEditingController(text: widget.atletica?.corPrincipal ?? '');
-    _escudoUrlController = TextEditingController(text: widget.atletica?.escudoUrl ?? '');
+    _currentEscudoUrl = widget.atletica?.escudoUrl;
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
   }
 
   Future<void> _salvar() async {
@@ -37,11 +57,30 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
 
     setState(() => _isSaving = true);
 
+    String? escudoUrl = _currentEscudoUrl;
+
+    // Se selecionou uma nova imagem, faz upload primeiro
+    if (_selectedImage != null) {
+      setState(() => _isUploading = true);
+      escudoUrl = await _apiService.uploadEscudoAtletica(_selectedImage!);
+      setState(() => _isUploading = false);
+
+      if (escudoUrl == null) {
+        setState(() => _isSaving = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao fazer upload do escudo.')),
+          );
+        }
+        return;
+      }
+    }
+
     final data = {
       'nome': _nomeController.text,
       'sigla': _siglaController.text,
       'corPrincipal': _corPrincipalController.text.isNotEmpty ? _corPrincipalController.text : null,
-      'escudoUrl': _escudoUrlController.text,
+      'escudoUrl': escudoUrl ?? '',
       // presidenteId opcional por enquanto
     };
 
@@ -60,9 +99,94 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
       if (mounted) Navigator.pop(context, true);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao salvar Atlética.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar Atlética.')),
+        );
       }
     }
+  }
+
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Escudo da Atlética',
+          style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            width: double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+            ),
+            child: _buildImageContent(),
+          ),
+        ),
+        if (_selectedImage != null || _currentEscudoUrl != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedImage = null;
+                  _currentEscudoUrl = null;
+                });
+              },
+              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+              label: const Text('Remover', style: TextStyle(color: Colors.red)),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildImageContent() {
+    if (_selectedImage != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Image.file(
+          _selectedImage!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 160,
+        ),
+      );
+    }
+
+    if (_currentEscudoUrl != null && _currentEscudoUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Image.network(
+          _currentEscudoUrl!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 160,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+        ),
+      );
+    }
+
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate_outlined, size: 48, color: Colors.grey[400]),
+        const SizedBox(height: 8),
+        Text(
+          'Toque para selecionar imagem',
+          style: TextStyle(color: Colors.grey[500], fontSize: 13),
+        ),
+      ],
+    );
   }
 
   @override
@@ -111,11 +235,8 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                         controller: _corPrincipalController,
                         decoration: const InputDecoration(labelText: 'Cor Principal (ex: #FF0000)'),
                       ),
-                      const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _escudoUrlController,
-                        decoration: const InputDecoration(labelText: 'URL do Logo/Escudo (HTTPS)'),
-                      ),
+                      const SizedBox(height: 20),
+                      _buildImagePicker(),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
@@ -127,7 +248,21 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           child: _isSaving
-                              ? const CircularProgressIndicator(color: Colors.white)
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      _isUploading ? 'Enviando imagem...' : 'Salvando...',
+                                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                                    ),
+                                  ],
+                                )
                               : const Text('Salvar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       )

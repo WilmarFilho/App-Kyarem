@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import '../../../services/admin_api_service.dart';
-import '../../widgets/layout/gradient_background.dart';
 
 class CampeonatoFormScreen extends StatefulWidget {
   final Campeonato? campeonato;
@@ -242,8 +241,9 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
         : 'Editar Campeonato';
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
+        toolbarHeight: 100,
         title: Text(
           title,
           style: const TextStyle(
@@ -251,122 +251,124 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Stack(
-        children: [
-          const GradientBackground(),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(22.0),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(22.0),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _nomeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do Campeonato',
+                  ),
+                  validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                 ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _nomeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nome do Campeonato',
-                        ),
-                        validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
-                      ),
-                      const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _nivelController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nível (ex: Estadual, Nacional, etc)',
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _dataInicioController,
-                        decoration: const InputDecoration(
-                          labelText: 'Data de Início (YYYY-MM-DD)',
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        readOnly: true,
-                        onTap: () => _selecionarData(_dataInicioController),
-                      ),
-                      const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _dataFimController,
-                        decoration: const InputDecoration(
-                          labelText: 'Data de Fim (YYYY-MM-DD)',
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        readOnly: true,
-                        onTap: () => _selecionarData(_dataFimController),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildImagePicker(),
-                      const SizedBox(height: 30),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isSaving ? null : _salvar,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF85C39),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          child: _isSaving
-                              ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      _isUploading
-                                          ? 'Enviando imagem...'
-                                          : 'Salvando...',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : const Text(
-                                  'Salvar',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _nivelController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nível (ex: Estadual, Nacional, etc)',
                   ),
                 ),
-              ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _dataInicioController,
+                  decoration: const InputDecoration(
+                    labelText: 'Data de Início (YYYY-MM-DD)',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  readOnly: true,
+                  onTap: () => _selecionarData(_dataInicioController),
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _dataFimController,
+                  decoration: const InputDecoration(
+                    labelText: 'Data de Fim (YYYY-MM-DD)',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  readOnly: true,
+                  onTap: () => _selecionarData(_dataFimController),
+                ),
+                const SizedBox(height: 20),
+                _buildImagePicker(),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _salvar,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF85C39),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: _isSaving
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _isUploading
+                                    ? 'Enviando imagem...'
+                                    : 'Salvando...',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Text(
+                            'Salvar',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

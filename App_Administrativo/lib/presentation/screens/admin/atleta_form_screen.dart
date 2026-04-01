@@ -82,9 +82,9 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedAtleticaId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione uma Atlética.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecione uma Atlética.')));
       return;
     }
 
@@ -112,8 +112,6 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
     final data = {
       'atleticaId': _selectedAtleticaId,
       'nome': _nomeController.text,
-      'documentoIdentificacao': _documentoController.text,
-      'curso': _cursoController.text.isNotEmpty ? _cursoController.text : null,
       'fotoUrl': fotoUrl ?? '',
     };
 
@@ -123,9 +121,7 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
       sucesso = res != null;
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Edição de atleta ainda não disponível.'),
-        ),
+        const SnackBar(content: Text('Edição de atleta ainda não disponível.')),
       );
       setState(() => _isSaving = false);
       return;
@@ -137,9 +133,9 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
       if (mounted) Navigator.pop(context, true);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao salvar Atleta.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Erro ao salvar Atleta.')));
       }
     }
   }
@@ -185,10 +181,7 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
                 color: Colors.red,
                 size: 18,
               ),
-              label: const Text(
-                'Remover',
-                style: TextStyle(color: Colors.red),
-              ),
+              label: const Text('Remover', style: TextStyle(color: Colors.red)),
             ),
           ),
       ],
@@ -228,11 +221,7 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          Icons.add_a_photo_outlined,
-          size: 48,
-          color: Colors.grey[400],
-        ),
+        Icon(Icons.add_a_photo_outlined, size: 48, color: Colors.grey[400]),
         const SizedBox(height: 8),
         Text(
           'Toque para selecionar uma foto',
@@ -297,16 +286,6 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
                                   v!.isEmpty ? 'Obrigatório' : null,
                             ),
                             const SizedBox(height: 15),
-                            TextFormField(
-                              controller: _documentoController,
-                              decoration: const InputDecoration(
-                                labelText: 'Documento (RG/RA/CPF)',
-                                prefixIcon: Icon(Icons.badge),
-                              ),
-                              validator: (v) =>
-                                  v!.isEmpty ? 'Obrigatório' : null,
-                            ),
-                            const SizedBox(height: 15),
                             DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
                                 labelText: 'Vínculo (Atlética)',
@@ -325,14 +304,7 @@ class _AtletaFormScreenState extends State<AtletaFormScreen> {
                                   v == null ? 'Obrigatório' : null,
                             ),
                             const SizedBox(height: 15),
-                            TextFormField(
-                              controller: _cursoController,
-                              decoration: const InputDecoration(
-                                labelText: 'Curso (Opcional)',
-                                prefixIcon: Icon(Icons.school),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
+
                             _buildImagePicker(),
                             const SizedBox(height: 30),
                             SizedBox(

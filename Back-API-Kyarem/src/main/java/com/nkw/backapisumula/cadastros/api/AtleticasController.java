@@ -16,9 +16,11 @@ import java.util.UUID;
 public class AtleticasController {
 
     private final AtleticaService service;
+    private final com.nkw.backapisumula.storage.SupabaseImageUploadService imageUploadService;
 
-    public AtleticasController(AtleticaService service) {
+    public AtleticasController(AtleticaService service, com.nkw.backapisumula.storage.SupabaseImageUploadService imageUploadService) {
         this.service = service;
+        this.imageUploadService = imageUploadService;
     }
 
     @GetMapping
@@ -61,6 +63,15 @@ public class AtleticasController {
     @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
     public void delete(@PathVariable UUID id) {
         service.delete(id);
+    }
+
+    @PostMapping(value = "/upload-escudo", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    public java.util.Map<String, String> uploadEscudo(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestHeader(value = "x-upsert", defaultValue = "false") boolean upsert) {
+        String url = imageUploadService.uploadImage("avatars", "atleticas", file, upsert);
+        return java.util.Map.of("url", url);
     }
 
     public record CreateAtleticaRequest(
