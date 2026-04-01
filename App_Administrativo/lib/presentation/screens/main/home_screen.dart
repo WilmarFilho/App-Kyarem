@@ -15,6 +15,7 @@ import '../admin/atleticas_admin_screen.dart';
 import '../admin/equipes_admin_screen.dart';
 import '../admin/partidas_admin_screen.dart';
 import '../../../services/auth_service.dart';
+import 'arbitros_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -257,8 +258,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             OptionButton(
               icon: Icons.gavel,
               label: 'Árbitros',
-              isSelected: _abaSelecionada == 'Árbitros',
-              onTap: () => _mudarAba('Árbitros'),
+              isSelected: false,
+              onTap: () => _navegarAdmin(
+                ArbitrosScreen(canEdit: _isAdminRole),
+              ),
             ),
             if (_hasAdminAccess)
               OptionButton(

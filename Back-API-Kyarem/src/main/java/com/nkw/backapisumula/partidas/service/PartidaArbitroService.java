@@ -28,6 +28,14 @@ public class PartidaArbitroService {
         return repo.findByPartida_Id(partidaId);
     }
 
+    /**
+     * Retorna todos os vínculos de um árbitro específico,
+     * com os dados completos da partida (equipeA, equipeB, modalidade).
+     */
+    public List<PartidaArbitro> listByArbitro(UUID arbitroId) {
+        return repo.findByArbitro_Id(arbitroId);
+    }
+
     public PartidaArbitro add(UUID partidaId, UUID arbitroId, String funcao) {
         if (repo.existsByPartida_IdAndArbitro_Id(partidaId, arbitroId)) {
             throw new IllegalStateException("Árbitro já atribuído a esta partida.");

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
+import 'package:kyarem_eventos/models/arbitro_model.dart';
 
 class AdminApiService {
   final Dio _dio = Dio(
@@ -315,6 +316,60 @@ class AdminApiService {
     } catch (e) {
       debugPrint("Erro buscarModalidade: $e");
       return null;
+    }
+  }
+
+  // ============== ÁRBITROS ==============
+
+  /// GET /api/v1/arbitros — lista todos os árbitros (role='arbitro').
+  Future<List<Arbitro>> listarArbitros() async {
+    try {
+      final res = await _dio.get('/arbitros');
+      return (res.data as List).map((e) => Arbitro.fromMap(e)).toList();
+    } catch (e) {
+      debugPrint("Erro listarArbitros: $e");
+      return [];
+    }
+  }
+
+  /// GET /api/v1/arbitros/{arbitroId}/partidas
+  /// Retorna todas as partidas (ativas e encerradas) vinculadas ao árbitro.
+  Future<List<PartidaDoArbitro>> listarPartidasDoArbitro(String arbitroId) async {
+    try {
+      final res = await _dio.get('/arbitros/$arbitroId/partidas');
+      return (res.data as List)
+          .map((e) => PartidaDoArbitro.fromMap(e))
+          .toList();
+    } catch (e) {
+      debugPrint("Erro listarPartidasDoArbitro: $e");
+      return [];
+    }
+  }
+
+  /// POST /api/v1/partidas/{partidaId}/arbitros
+  /// Vincula um árbitro a uma partida com a função informada.
+  Future<bool> vincularArbitro(String partidaId, String arbitroId, String funcao) async {
+    try {
+      await _dio.post(
+        '/partidas/$partidaId/arbitros',
+        data: {'arbitroId': arbitroId, 'funcao': funcao},
+      );
+      return true;
+    } catch (e) {
+      debugPrint("Erro vincularArbitro: $e");
+      return false;
+    }
+  }
+
+  /// DELETE /api/v1/partidas/{partidaId}/arbitros/{vinculoId}
+  /// Remove o vínculo de árbitro de uma partida.
+  Future<bool> desvincularArbitro(String partidaId, String vinculoId) async {
+    try {
+      await _dio.delete('/partidas/$partidaId/arbitros/$vinculoId');
+      return true;
+    } catch (e) {
+      debugPrint("Erro desvincularArbitro: $e");
+      return false;
     }
   }
 }

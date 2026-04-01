@@ -110,21 +110,61 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
     if (result == true) _carregarPartidas();
   }
 
+  /// Só partidas com status 'agendada' podem ser editadas/excluídas.
+  bool _podeEditar(Partida p) => p.status.toLowerCase() == 'agendada';
+
+  /// Mensagem explicativa quando a edição não é permitida.
+  String _motivoBloqueio(Partida p) {
+    final s = p.status.toLowerCase();
+    if (s == 'finalizada' || s == 'fechada') return 'Partida encerrada não pode ser editada.';
+    if (s == 'agendada') return '';
+    return 'Partida em andamento não pode ser editada.';
+  }
+
+  void _tentarEditar(Partida p) {
+    if (_podeEditar(p)) {
+      _abrirFormulario(partida: p);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.lock_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(_motivoBloqueio(p))),
+          ],
+        ),
+        backgroundColor: Colors.grey.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+      ));
+    }
+  }
+
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'em_andamento':
-      case 'em andamento': return Colors.green;
-      case 'encerrada': return Colors.grey;
+      case '1° tempo':
+      case '2° tempo':
+      case 'intervalo':
+      case 'prorrogação':
+      case 'acréscimo': return Colors.green;
+      case 'finalizada': return Colors.grey;
+      case 'fechada': return Colors.blueGrey;
       case 'pausada': return Colors.orange;
-      default: return const Color(0xFF2563EB);
+      default: return const Color(0xFF2563EB); // agendada
     }
   }
 
   String _statusLabel(String status) {
     switch (status.toLowerCase()) {
-      case 'em_andamento': return 'Ao vivo';
-      case 'encerrada': return 'Encerrada';
+      case '1° tempo': return '1° Tempo';
+      case '2° tempo': return '2° Tempo';
+      case 'intervalo': return 'Intervalo';
+      case 'prorrogação': return 'Prorrogação';
+      case 'acréscimo': return 'Acréscimo';
       case 'pausada': return 'Pausada';
+      case 'finalizada': return 'Finalizada';
+      case 'fechada': return 'Fechada';
       case 'agendada': return 'Agendada';
       default: return status;
     }
@@ -244,7 +284,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           // Em modo edição: abre formulário. Em leitura: expansão de detalhes (TODO futuro)
-          onTap: widget.canEdit ? () => _abrirFormulario(partida: p) : null,
+          onTap: widget.canEdit ? () => _tentarEditar(p) : null,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -278,18 +318,38 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                     const Spacer(),
                     // Ações só visíveis para quem pode editar
                     if (widget.canEdit) ...[
-                      IconButton(
-                        icon: Icon(Icons.edit_rounded, color: Colors.blue.shade400, size: 20),
-                        onPressed: () => _abrirFormulario(partida: p),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      // Editar — só se agendada
+                      Tooltip(
+                        message: _podeEditar(p) ? 'Editar partida' : _motivoBloqueio(p),
+                        child: IconButton(
+                          icon: Icon(
+                            _podeEditar(p) ? Icons.edit_rounded : Icons.lock_outline,
+                            color: _podeEditar(p)
+                                ? Colors.blue.shade400
+                                : Colors.grey.shade400,
+                            size: 20,
+                          ),
+                          onPressed: () => _tentarEditar(p),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      IconButton(
-                        icon: Icon(Icons.delete_rounded, color: Colors.red.shade400, size: 20),
-                        onPressed: () => _deletarPartida(p.id),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      // Excluir — só se agendada
+                      Tooltip(
+                        message: _podeEditar(p) ? 'Excluir partida' : 'Só partidas agendadas podem ser excluídas',
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.delete_rounded,
+                            color: _podeEditar(p)
+                                ? Colors.red.shade400
+                                : Colors.grey.shade300,
+                            size: 20,
+                          ),
+                          onPressed: _podeEditar(p) ? () => _deletarPartida(p.id) : null,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
                       ),
                     ],
                   ],
