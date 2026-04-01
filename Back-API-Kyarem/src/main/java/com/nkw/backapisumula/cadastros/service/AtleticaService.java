@@ -39,4 +39,9 @@ public class AtleticaService {
         if (patch.getPresidenteId() != null) a.setPresidenteId(patch.getPresidenteId());
         return repo.save(a);
     }
+
+    public void delete(UUID id) {
+        Atletica a = getOrThrow(id);
+        repo.delete(a);
+    }
 }

@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../screens/admin/campeonato_form_screen.dart';
+import '../../screens/admin/atletica_form_screen.dart';
+import '../../screens/admin/equipe_form_screen.dart';
+import '../../screens/admin/partida_form_screen.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
   final String currentRoute;
+  final bool isAdmin;
+  final bool isPresidenteAtletica;
+  final bool isArbitro;
 
   const BottomNavigationWidget({
     super.key,
     required this.currentRoute,
+    this.isAdmin = false,
+    this.isPresidenteAtletica = false,
+    this.isArbitro = false,
   });
 
   @override
@@ -15,25 +25,28 @@ class BottomNavigationWidget extends StatefulWidget {
 class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
   bool _menuAdicionarAberto = false;
 
+  bool get _hasAnyAdminAccess =>
+      widget.isAdmin || widget.isPresidenteAtletica || widget.isArbitro;
+
+  void _navegar(Widget screen) {
+    setState(() => _menuAdicionarAberto = false);
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Overlay Escuro quando o menu está aberto
         if (_menuAdicionarAberto)
           GestureDetector(
             onTap: () => setState(() => _menuAdicionarAberto = false),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              // ignore: deprecated_member_use
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
             ),
           ),
 
-        // Menu de Adição Animado
         _buildAddMenuOverlay(),
-
-        // Barra de Navegação
         _buildBottomNavigation(),
       ],
     );
@@ -41,13 +54,13 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
 
   Widget _buildAddMenuOverlay() {
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.fastOutSlowIn,
-      bottom: _menuAdicionarAberto ? 110 : -200,
+      bottom: _menuAdicionarAberto ? 110 : -300,
       left: 22,
       right: 22,
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 350),
         opacity: _menuAdicionarAberto ? 1.0 : 0.0,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
@@ -56,8 +69,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             borderRadius: BorderRadius.circular(35),
             boxShadow: [
               BoxShadow(
-                // ignore: deprecated_member_use
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               )
@@ -65,24 +77,76 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'O QUE DESEJA ADICIONAR?',
-                style: TextStyle(
-                  fontFamily: 'Bebas Neue',
-                  fontSize: 22,
-                  letterSpacing: 1.2,
+              const Padding(
+                padding: EdgeInsets.only(left: 4.0, bottom: 20),
+                child: Text(
+                  'O QUE DESEJA ADICIONAR?',
+                  style: TextStyle(
+                    fontFamily: 'Bebas Neue',
+                    fontSize: 22,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
-              const SizedBox(height: 25),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildAddOptionItem(Icons.sports_soccer, 'Jogo'),
-                  _buildAddOptionItem(Icons.emoji_events, 'Campeonato'),
-                  _buildAddOptionItem(Icons.gavel, 'Árbitro'),
-                ],
-              ),
+
+              // Árbitro: não pode criar nada
+              if (widget.isArbitro)
+                _buildReadOnlyMessage()
+
+              // Admin/Delegado: criação completa
+              else if (widget.isAdmin)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildAddOptionItem(
+                      Icons.sports_soccer, 'Jogo',
+                      const Color(0xFF2E9E56),
+                      onTap: () => _navegar(const PartidaFormScreen()),
+                    ),
+                    _buildAddOptionItem(
+                      Icons.emoji_events, 'Campeonato',
+                      const Color(0xFFE6A817),
+                      onTap: () => _navegar(const CampeonatoFormScreen()),
+                    ),
+                    _buildAddOptionItem(
+                      Icons.shield, 'Atlética',
+                      const Color(0xFF2563EB),
+                      onTap: () => _navegar(const AtleticaFormScreen()),
+                    ),
+                    _buildAddOptionItem(
+                      Icons.groups, 'Time',
+                      const Color(0xFF7C3AED),
+                      onTap: () => _navegar(const EquipeFormScreen()),
+                    ),
+                  ],
+                )
+
+              // Presidente: apenas Times
+              else if (widget.isPresidenteAtletica)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildAddOptionItem(
+                      Icons.groups, 'Time',
+                      const Color(0xFF7C3AED),
+                      onTap: () => _navegar(const EquipeFormScreen()),
+                    ),
+                  ],
+                )
+
+              // Usuário comum: sem permissão
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildAddOptionItem(Icons.sports_soccer, 'Jogo', Colors.grey),
+                    _buildAddOptionItem(Icons.emoji_events, 'Campeonato', Colors.grey),
+                    _buildAddOptionItem(Icons.gavel, 'Árbitro', Colors.grey),
+                  ],
+                ),
+
             ],
           ),
         ),
@@ -90,27 +154,67 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
     );
   }
 
-  Widget _buildAddOptionItem(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F2),
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildReadOnlyMessage() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.lock_outline, color: Colors.grey.shade500, size: 22),
+          const SizedBox(width: 10),
+          Text(
+            'Você tem acesso somente\nleitura ao sistema.',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.5),
+            textAlign: TextAlign.center,
           ),
-          child: Icon(icon, color: const Color(0xFFF85C39), size: 28),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddOptionItem(
+    IconData icon,
+    String label,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: onTap != null
+                  ? color.withValues(alpha: 0.12)
+                  : const Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.circular(20),
+              border: onTap != null
+                  ? Border.all(color: color.withValues(alpha: 0.3), width: 1.5)
+                  : null,
+            ),
+            child: Icon(
+              icon,
+              color: onTap != null ? color : Colors.grey.shade400,
+              size: 28,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: onTap != null ? Colors.black87 : Colors.grey.shade400,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -129,27 +233,33 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             GestureDetector(
-              onTap: widget.currentRoute != '/home' 
-                  ? () => Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false)
+              onTap: widget.currentRoute != '/home'
+                  ? () => Navigator.pushNamedAndRemoveUntil(
+                      context, '/home', (route) => false)
                   : null,
               child: Icon(
                 Icons.home_filled,
-                color: widget.currentRoute == '/home' ? const Color(0xFFF85C39) : Colors.white,
+                color: widget.currentRoute == '/home'
+                    ? const Color(0xFFF85C39)
+                    : Colors.white,
                 size: 28,
               ),
             ),
             GestureDetector(
               onTap: widget.currentRoute != '/arbitros'
-                  ? () => Navigator.pushNamedAndRemoveUntil(context, '/arbitros', (route) => false)
+                  ? () => Navigator.pushNamedAndRemoveUntil(
+                      context, '/arbitros', (route) => false)
                   : null,
               child: Icon(
                 Icons.gavel,
-                color: widget.currentRoute == '/arbitros' ? const Color(0xFFF85C39) : Colors.white,
+                color: widget.currentRoute == '/arbitros'
+                    ? const Color(0xFFF85C39)
+                    : Colors.white,
                 size: 28,
               ),
             ),
-            
-            // Botão central com animação
+
+            // Botão + central
             GestureDetector(
               onTap: () => setState(() => _menuAdicionarAberto = !_menuAdicionarAberto),
               child: Transform.translate(
@@ -161,36 +271,44 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                     duration: const Duration(milliseconds: 300),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _menuAdicionarAberto ? const Color(0xFFF85C39) : Colors.white,
+                      color: _menuAdicionarAberto
+                          ? const Color(0xFFF85C39)
+                          : Colors.white,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.add, 
-                      color: _menuAdicionarAberto ? Colors.white : Colors.black, 
-                      size: 32
+                      Icons.add,
+                      color: _menuAdicionarAberto ? Colors.white : Colors.black,
+                      size: 32,
                     ),
                   ),
                 ),
               ),
             ),
-            
+
             GestureDetector(
               onTap: widget.currentRoute != '/campeonatos'
-                  ? () => Navigator.pushNamedAndRemoveUntil(context, '/campeonatos', (route) => false)
+                  ? () => Navigator.pushNamedAndRemoveUntil(
+                      context, '/campeonatos', (route) => false)
                   : null,
               child: Icon(
                 Icons.emoji_events,
-                color: widget.currentRoute == '/campeonatos' ? const Color(0xFFF85C39) : Colors.white,
+                color: widget.currentRoute == '/campeonatos'
+                    ? const Color(0xFFF85C39)
+                    : Colors.white,
                 size: 28,
               ),
             ),
             GestureDetector(
               onTap: widget.currentRoute != '/configuracoes'
-                  ? () => Navigator.pushNamedAndRemoveUntil(context, '/configuracoes', (route) => false)
+                  ? () => Navigator.pushNamedAndRemoveUntil(
+                      context, '/configuracoes', (route) => false)
                   : null,
               child: Icon(
                 Icons.settings,
-                color: widget.currentRoute == '/configuracoes' ? const Color(0xFFF85C39) : Colors.white,
+                color: widget.currentRoute == '/configuracoes'
+                    ? const Color(0xFFF85C39)
+                    : Colors.white,
                 size: 28,
               ),
             ),

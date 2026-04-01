@@ -57,6 +57,13 @@ public class CampeonatosController {
         return CampeonatoResponse.from(service.update(id, patch));
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    public void delete(@PathVariable UUID id) {
+        service.delete(id);
+    }
+
     public record CreateCampeonatoRequest(
             @NotBlank String nome,
             String nivelCampeonato,

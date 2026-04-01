@@ -4,6 +4,7 @@ class Campeonato {
   final String? nivel;
   final DateTime? dataInicio;
   final DateTime? dataFim;
+  final String? escudoUrl;
 
   Campeonato({
     required this.id,
@@ -11,6 +12,7 @@ class Campeonato {
     this.nivel,
     this.dataInicio,
     this.dataFim,
+    this.escudoUrl,
   });
 
   factory Campeonato.fromMap(Map<String, dynamic> map) {
@@ -26,6 +28,7 @@ class Campeonato {
       
       // Tratamento de data para 'dataFim' (API) ou 'data_fim' (Supabase)
       dataFim: _parseDate(map['dataFim'] ?? map['data_fim']),
+      escudoUrl: map['escudoUrl'] ?? map['escudo_url'],
     );
   }
 

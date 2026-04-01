@@ -413,7 +413,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       // 2. Injeta a cor fixa no objeto para uso posterior no feed/detalhes
       atleta.corTime = corFixa;
 
-      if (atleta.ativo) {
+      if (atleta.ativo == true) {
         titulares.add(atleta);
       } else {
         reservas.add(atleta);

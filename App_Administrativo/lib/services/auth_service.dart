@@ -8,6 +8,49 @@ class AuthService {
   Session? get currentSession => _supabase.auth.currentSession;
   User? get currentUser => _supabase.auth.currentUser;
 
+  // --- BUSCA DO ROLE DO USUÁRIO ---
+  Future<String> getUserRole() async {
+    final user = currentUser;
+    if (user == null) return 'aluno';
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (response != null && response['role'] != null) {
+        return response['role'] as String;
+      }
+    } catch (e) {
+      // Ignora erro e devolve o padrão
+    }
+    return 'aluno';
+  }
+
+  // --- BUSCA DO PERFIL COMPLETO (só role — atleticaId é resolvido via API do backend) ---
+  Future<Map<String, dynamic>> getUserProfile() async {
+    final user = currentUser;
+    if (user == null) return {'role': 'aluno', 'atleticaId': null};
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (response != null) {
+        return {
+          'role': (response['role'] as String?) ?? 'aluno',
+          'atleticaId': null,
+        };
+      }
+    } catch (e) {
+      // Ignora erro e devolve o padrão
+    }
+    return {'role': 'aluno', 'atleticaId': null};
+  }
+
   // --- LOGIN ---
   Future<User?> login({
     required String email,

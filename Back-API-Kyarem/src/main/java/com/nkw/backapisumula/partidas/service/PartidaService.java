@@ -504,4 +504,8 @@ public class PartidaService {
         }
     }
 
+    public void delete(UUID id) {
+        Partida p = getOrThrow(id);
+        repo.delete(p);
+    }
 }

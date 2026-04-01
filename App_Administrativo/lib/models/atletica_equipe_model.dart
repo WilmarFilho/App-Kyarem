@@ -1,3 +1,6 @@
+import 'campeonato_model.dart';
+import 'modalidade_model.dart';
+
 class Atletica {
   final String id;
   final String nome;
@@ -17,12 +20,12 @@ class Atletica {
 
   factory Atletica.fromMap(Map<String, dynamic> map) {
     return Atletica(
-      id: map['id'],
-      nome: map['nome'],
+      id: map['id'] ?? '',
+      nome: map['nome'] ?? '',
       sigla: map['sigla'],
-      escudoUrl: map['escudo_url'],
-      corPrincipal: map['cor_principal'],
-      presidenteId: map['presidente_id'],
+      escudoUrl: map['escudo_url'] ?? map['escudoUrl'],
+      corPrincipal: map['cor_principal'] ?? map['corPrincipal'],
+      presidenteId: map['presidente_id'] ?? map['presidenteId'],
     );
   }
 }
@@ -32,8 +35,9 @@ class Equipe {
   final String nome;
   final String? atleticaEscudoUrl;
   final String atleticaId;
-  final Atletica?
-  atletica; // Relacionamento para facilitar o acesso ao escudo/cor
+  final Atletica? atletica;
+  final Modalidade? modalidade;
+  final Campeonato? campeonato;
 
   Equipe({
     required this.id,
@@ -41,6 +45,8 @@ class Equipe {
     this.atleticaEscudoUrl,
     required this.atleticaId,
     this.atletica,
+    this.modalidade,
+    this.campeonato,
   });
 
   factory Equipe.fromMap(Map<String, dynamic> map) {
@@ -55,13 +61,15 @@ class Equipe {
                 nestedAtleticaMap?['atleticaId'] ??
                 nestedAtleticaMap?['atletica_id'])
             ?.toString() ??
-            '';
+        '';
+
     final atleticaNome =
         (map['atleticaNome'] ??
                 map['atletica_nome'] ??
                 nestedAtleticaMap?['nome'] ??
                 nestedAtleticaMap?['atleticaNome'])
             ?.toString();
+
     final escudo = (map['atleticaEscudoUrl'] ??
             map['atletica_escudo_url'] ??
             map['escudo_url'] ??
@@ -69,9 +77,27 @@ class Equipe {
             nestedAtleticaMap?['escudo_url'])
         ?.toString();
 
+    Modalidade? modObj;
+    if (map['modalidadeId'] != null || map['modalidadeNome'] != null) {
+      modObj = Modalidade(
+        id: map['modalidadeId']?.toString() ?? '',
+        campeonatoId: map['campeonatoId']?.toString() ?? '',
+        esporteId: '',
+        genero: '',
+        esporteNome: map['modalidadeNome']?.toString(),
+      );
+    }
+
+    Campeonato? campObj;
+    if (map['campeonatoId'] != null || map['campeonatoNome'] != null) {
+      campObj = Campeonato(
+        id: map['campeonatoId']?.toString() ?? '',
+        nome: map['campeonatoNome']?.toString() ?? '',
+      );
+    }
+
     return Equipe(
       id: map['id'] ?? '',
-      // Aceita payloads camelCase (API) e snake_case (DB/Supabase)
       nome: (map['nomeEquipe'] ?? map['nome'] ?? map['nome_equipe'])?.toString() ??
           'Time Desconhecido',
       atleticaEscudoUrl: escudo,
@@ -85,6 +111,8 @@ class Equipe {
               nome: atleticaNome ?? '',
               escudoUrl: escudo,
             ),
+      modalidade: modObj,
+      campeonato: campObj,
     );
   }
 }

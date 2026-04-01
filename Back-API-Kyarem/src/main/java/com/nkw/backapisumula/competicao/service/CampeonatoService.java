@@ -40,4 +40,9 @@ public class CampeonatoService {
         if (patch.getEscudoUrl() != null) c.setEscudoUrl(patch.getEscudoUrl().trim());
         return repo.save(c);
     }
+
+    public void delete(UUID id) {
+        Campeonato c = getOrThrow(id);
+        repo.delete(c);
+    }
 }

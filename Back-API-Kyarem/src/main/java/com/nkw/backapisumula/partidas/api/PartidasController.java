@@ -119,6 +119,13 @@ public class PartidasController {
         return PartidaResponse.from(p);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('admin','delegado')")
+    public void delete(@PathVariable UUID id) {
+        service.delete(id);
+    }
+
     private boolean isArbitroOnly(Authentication authentication) {
         boolean isAdminOrDelegado = authentication.getAuthorities().stream().anyMatch(a ->
                 a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_delegado"));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
 import '../../../services/partida_service.dart';
+import '../../../services/admin_api_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/home/home_header.dart';
@@ -8,6 +9,12 @@ import '../../widgets/home/partida_card.dart';
 import '../../widgets/home/option_button.dart';
 import '../../widgets/home/home_list.dart';
 import '../game/partida_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
+import '../admin/campeonatos_admin_screen.dart';
+import '../admin/atleticas_admin_screen.dart';
+import '../admin/equipes_admin_screen.dart';
+import '../admin/partidas_admin_screen.dart';
+import '../../../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,18 +25,33 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PartidaService _partidaService = PartidaService();
+  final AuthService _authService = AuthService();
+  final AdminApiService _adminApiService = AdminApiService();
 
   List<Partida> _partidasDestaque = [];
   List<dynamic> _itensListaInferior = [];
-
   bool _carregandoDestaques = false;
   bool _carregandoListaAba = false;
 
-  // Controladores separados para evitar que o topo reanime ao trocar de aba
-  late AnimationController _mainController; // Controla Header e Cards
-  late AnimationController
-  _listController; // Controla apenas a lista dinâmica inferior
+  // Perfil do usuário carregado via getUserProfile()
+  String _userRole = 'aluno';
+  String? _atleticaId; // Disponível apenas para presidente_atletica
 
+  // ---- Getters de role ----
+  bool get _isAdminRole =>
+      _userRole == 'admin' ||
+      _userRole == 'super_admin' ||
+      _userRole == 'delegado';
+
+  bool get _isPresidenteAtletica => _userRole == 'presidente_atletica';
+  bool get _isArbitro => _userRole == 'arbitro';
+
+  // Qualquer acesso ao painel (admin, delegado, presidente, árbitro)
+  bool get _hasAdminAccess =>
+      _isAdminRole || _isPresidenteAtletica || _isArbitro;
+
+  late AnimationController _mainController;
+  late AnimationController _listController;
   late List<Animation<double>> _fadeAnimations;
   late List<Animation<Offset>> _slideAnimations;
 
@@ -39,52 +61,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
-    // Inicializa o controller principal (topo)
     _mainController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-
-    // Inicializa o controller da lista (abas)
+        duration: const Duration(milliseconds: 1000), vsync: this);
     _listController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-
+        duration: const Duration(milliseconds: 500), vsync: this);
     _initializeAnimations();
     _carregarTudo();
   }
 
   void _initializeAnimations() {
-    // As animações de entrada do topo agora são vinculadas ao _mainController
     _fadeAnimations = List.generate(
       3,
-      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _mainController,
-          curve: Interval(
-            index * 0.2,
-            (index * 0.2) + 0.8,
-            curve: Curves.easeOutCubic,
-          ),
-        ),
-      ),
+      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+        parent: _mainController,
+        curve: Interval(index * 0.2, (index * 0.2) + 0.8,
+            curve: Curves.easeOutCubic),
+      )),
     );
-
     _slideAnimations = List.generate(
       3,
-      (index) => Tween<Offset>(begin: const Offset(0.0, 0.4), end: Offset.zero)
-          .animate(
-            CurvedAnimation(
-              parent: _mainController,
-              curve: Interval(
-                index * 0.2,
-                (index * 0.2) + 0.8,
-                curve: Curves.easeOutCubic,
-              ),
-            ),
-          ),
+      (index) =>
+          Tween<Offset>(begin: const Offset(0.0, 0.4), end: Offset.zero)
+              .animate(CurvedAnimation(
+        parent: _mainController,
+        curve: Interval(index * 0.2, (index * 0.2) + 0.8,
+            curve: Curves.easeOutCubic),
+      )),
     );
   }
 
@@ -96,13 +98,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _carregarTudo() async {
+    final profile = await _authService.getUserProfile();
+    final role = profile['role'] as String? ?? 'aluno';
+    String? atleticaId;
+
+    debugPrint('🔑 [HOME] role="$role"');
+
+    // atleticaId é sempre resolvido via API do backend (nunca vem do Supabase)
+    if (role == 'presidente_atletica') {
+      final userId = _authService.currentUser?.id;
+      if (userId != null) {
+        atleticaId = await _adminApiService.buscarAtleticaDoPresidente(userId);
+        debugPrint('🔑 [HOME] atleticaId via API: "$atleticaId"');
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _userRole = role;
+        _atleticaId = atleticaId;
+      });
+    }
+    debugPrint('🔑 [HOME] isAdmin=$_isAdminRole | isPresidente=$_isPresidenteAtletica | isArbitro=$_isArbitro');
+
+
+
     await Future.wait([
       _buscarPartidasDestaque(),
-      _buscarDadosAba(
-        isFirstLoad: true,
-      ), // Passamos flag para não resetar animação agora
+      _buscarDadosAba(isFirstLoad: true),
     ]);
-    // Dispara a animação do topo apenas na carga inicial
     _mainController.forward();
     _listController.forward();
   }
@@ -111,14 +135,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (mounted) setState(() => _carregandoDestaques = true);
     try {
       final partidas = await _partidaService.listarPartidasMinhas();
-
-      debugPrint('partidas: ${partidas}');
-      for (var partida in partidas) {
-        debugPrint('partida TESTE: ${partida.equipeA?.atleticaEscudoUrl}');
-        debugPrint('partida TESTE: ${partida.equipeB?.atleticaEscudoUrl}');
-        //ESTA PRINTANDO CERTO
-      }
-
       if (mounted) {
         setState(() {
           _partidasDestaque = partidas;
@@ -139,8 +155,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _itensListaInferior = dados;
           _carregandoListaAba = false;
         });
-
-        // Se não for a carga inicial da tela, resetamos apenas o controller da lista
         if (!isFirstLoad) {
           _listController.reset();
           _listController.forward();
@@ -160,6 +174,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _buscarDadosAba();
   }
 
+  void _navegarAdmin(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen))
+        .then((_) => _carregarTudo());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                // HomeHeader agora está fixo ou pode ser envolvido em FadeTransition se desejar
                 const HomeHeader(),
                 _buildCardsSection(),
                 const SizedBox(height: 20),
@@ -179,7 +197,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
-          const BottomNavigationWidget(currentRoute: '/home'),
+          BottomNavigationWidget(
+            currentRoute: '/home',
+            isAdmin: _isAdminRole,
+            isPresidenteAtletica: _isPresidenteAtletica,
+            isArbitro: _isArbitro,
+          ),
         ],
       ),
     );
@@ -189,42 +212,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return SizedBox(
       height: 155,
       child: _carregandoDestaques && _partidasDestaque.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : _partidasDestaque.isEmpty
           ? const Center(
-              child: Text(
-                "Nenhuma partida em destaque",
-                style: TextStyle(color: Colors.white),
-              ),
-            )
-          : ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              physics: const BouncingScrollPhysics(),
-              itemCount: _partidasDestaque.length,
-              itemBuilder: (context, index) {
-                final partida = _partidasDestaque[index];
-                final animationIndex = index.clamp(0, 2);
-
-                return PartidaCard(
-                  partida: partida,
-                  fadeAnimation: _fadeAnimations[animationIndex],
-                  slideAnimation: _slideAnimations[animationIndex],
-                  onTap: () => _navegarParaPartida(partida),
-                );
-              },
-            ),
+              child: CircularProgressIndicator(color: Colors.white))
+          : _partidasDestaque.isEmpty
+              ? const Center(
+                  child: Text("Nenhuma partida em destaque",
+                      style: TextStyle(color: Colors.white)))
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _partidasDestaque.length,
+                  itemBuilder: (context, index) {
+                    final partida = _partidasDestaque[index];
+                    final animIdx = index.clamp(0, 2);
+                    return PartidaCard(
+                      partida: partida,
+                      fadeAnimation: _fadeAnimations[animIdx],
+                      slideAnimation: _slideAnimations[animIdx],
+                      onTap: () => _navegarParaPartida(partida),
+                    );
+                  },
+                ),
     );
   }
 
   Widget _buildWhatDoYouWantSection() {
     return Column(
       children: [
-        const Text(
-          'O QUE VOCÊ QUER VER?',
-          style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 28),
-        ),
+        const Text('O QUE VOCÊ QUER VER?',
+            style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 28)),
         const SizedBox(height: 15),
+
+        // ── Linha 1: Jogos + Árbitros + (Painel Admin se tiver acesso) ──
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -240,16 +260,166 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               isSelected: _abaSelecionada == 'Árbitros',
               onTap: () => _mudarAba('Árbitros'),
             ),
-            OptionButton(
-              icon: Icons.emoji_events,
-              label: 'Campeonatos',
-              isSelected: _abaSelecionada == 'Campeonatos',
-              onTap: () => _mudarAba('Campeonatos'),
-            ),
+            if (_hasAdminAccess)
+              OptionButton(
+                icon: Icons.admin_panel_settings,
+                label: 'Painel Admin',
+                isSelected: false,
+                onTap: () => _navegarAdmin(const AdminDashboardScreen()),
+              ),
           ],
         ),
+
+        // ── Linha 2: Atalhos de gerenciamento (condicional por role) ──
+        if (_hasAdminAccess) ...[
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                // Admin/delegado: CRUD completo de Campeonatos
+                if (_isAdminRole) ...[
+                  _buildAdminShortcut(
+                    icon: Icons.emoji_events,
+                    label: 'Campeonatos',
+                    color: const Color(0xFFE6A817),
+                    onTap: () =>
+                        _navegarAdmin(const CampeonatosAdminScreen()),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.sports_soccer,
+                    label: 'Partidas',
+                    color: const Color(0xFF2E9E56),
+                    onTap: () => _navegarAdmin(
+                        const PartidasAdminScreen(canEdit: true)),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.shield,
+                    label: 'Atléticas',
+                    color: const Color(0xFF2563EB),
+                    onTap: () =>
+                        _navegarAdmin(const AtleticasAdminScreen()),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.groups,
+                    label: 'Times',
+                    color: const Color(0xFF7C3AED),
+                    onTap: () => _navegarAdmin(const EquipesAdminScreen()),
+                  ),
+                ],
+
+                // Árbitro: ver partidas (somente leitura)
+                if (_isArbitro) ...[
+                  _buildAdminShortcut(
+                    icon: Icons.sports_soccer,
+                    label: 'Partidas',
+                    color: const Color(0xFF2E9E56),
+                    badge: 'Leitura',
+                    onTap: () => _navegarAdmin(
+                        const PartidasAdminScreen(canEdit: false)),
+                  ),
+                ],
+
+                // Presidente: CRUD de Times + ver Partidas (somente leitura) + Minha Atlética
+                if (_isPresidenteAtletica) ...[
+                  _buildAdminShortcut(
+                    icon: Icons.sports_soccer,
+                    label: 'Partidas',
+                    color: const Color(0xFF2E9E56),
+                    badge: 'Leitura',
+                    onTap: () => _navegarAdmin(PartidasAdminScreen(
+                      canEdit: false,
+                      atleticaId: _atleticaId,
+                    )),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.shield,
+                    label: 'Minha Atlética',
+                    color: const Color(0xFF2563EB),
+                    onTap: () => _atleticaId != null
+                        ? _navegarAdmin(AtleticasAdminScreen(
+                            minhaAtleticaId: _atleticaId))
+                        : ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                  'Perfil não vinculado a uma atlética.'),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.groups,
+                    label: 'Times',
+                    color: const Color(0xFF7C3AED),
+                    onTap: () => _navegarAdmin(const EquipesAdminScreen()),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+
         const SizedBox(height: 15),
       ],
+    );
+  }
+
+  Widget _buildAdminShortcut({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    String? badge,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border:
+              Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    fontFamily: 'Poppins')),
+            if (badge != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(badge,
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: color,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -260,11 +430,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))
         ],
       ),
       child: Column(
@@ -274,21 +440,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  _abaSelecionada,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                // MUDANÇA 1: Só exibe se a aba selecionada for "Jogos"
+                Text(_abaSelecionada,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold)),
                 if (_abaSelecionada == 'Jogos')
                   GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _verMeus = !_verMeus;
-                      });
-                    },
+                    onTap: () => setState(() => _verMeus = !_verMeus),
                     child: Text(
                       _verMeus ? 'Ver Tudo' : 'Ver Meus',
                       style: TextStyle(
@@ -309,42 +466,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     opacity: _listController,
                     child: SlideTransition(
                       position: _listController.drive(
-                        Tween<Offset>(
-                          begin: const Offset(0.0, 0.05),
-                          end: Offset.zero,
-                        ),
-                      ),
-                      child: Builder(
-                        builder: (context) {
-                          // MUDANÇA 2: Define qual lista usar
-                          // Se for "Jogos" e "Ver Meus" estiver ativo, usa os destaques (minhas partidas)
-                          final bool mostrarMeusJogos = _abaSelecionada == 'Jogos' && _verMeus;
-                          final listaParaExibir = mostrarMeusJogos 
-                              ? _partidasDestaque 
-                              : _itensListaInferior;
+                          Tween<Offset>(
+                              begin: const Offset(0.0, 0.05),
+                              end: Offset.zero)),
+                      child: Builder(builder: (context) {
+                        final bool mostrarMeus =
+                            _abaSelecionada == 'Jogos' && _verMeus;
+                        final lista = mostrarMeus
+                            ? _partidasDestaque
+                            : _itensListaInferior;
 
-                          if (listaParaExibir.isEmpty) {
-                            return Center(
-                              child: Text(
-                                "Nenhum registro encontrado",
-                                style: TextStyle(color: Colors.grey[400]),
-                              ),
-                            );
-                          }
-
-                          return ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(22, 0, 22, 120),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: listaParaExibir.length,
-                            itemBuilder: (context, index) {
-                              return HomeListItem(
-                                item: listaParaExibir[index],
-                                type: _abaSelecionada,
-                              );
-                            },
+                        if (lista.isEmpty) {
+                          return Center(
+                            child: Text("Nenhum registro encontrado",
+                                style:
+                                    TextStyle(color: Colors.grey[400])),
                           );
-                        },
-                      ),
+                        }
+                        return ListView.builder(
+                          padding:
+                              const EdgeInsets.fromLTRB(22, 0, 22, 120),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: lista.length,
+                          itemBuilder: (context, index) => HomeListItem(
+                              item: lista[index], type: _abaSelecionada),
+                        );
+                      }),
                     ),
                   ),
           ),
@@ -354,9 +501,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _navegarParaPartida(Partida partida) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => PartidaRunningScreen(partida: partida)),
-    ).then((_) => _carregarTudo());
+    Navigator.push(context,
+            MaterialPageRoute(
+                builder: (_) => PartidaRunningScreen(partida: partida)))
+        .then((_) => _carregarTudo());
   }
 }

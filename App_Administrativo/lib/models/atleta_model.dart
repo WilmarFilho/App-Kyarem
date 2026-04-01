@@ -6,9 +6,13 @@ class Atleta {
   final String? equipeId;
   final String? atleticaId;
   final String nome;
-  final int numero;
-  final bool ativo;
-  
+  final int? numero;
+  final bool? ativo;
+  final String? documentoIdentificacao;
+  final String? curso;
+  final String? fotoUrl;
+  final dynamic atletica; // Tipagem frouxa ou Atletica para evitar complicação de import circular
+
   // Campos que não vem da API
   Offset? posicao;
   Color? corTime;
@@ -19,8 +23,12 @@ class Atleta {
     this.equipeId,
     this.atleticaId,
     required this.nome,
-    required this.numero,
-    required this.ativo,
+    this.numero,
+    this.ativo,
+    this.documentoIdentificacao,
+    this.curso,
+    this.fotoUrl,
+    this.atletica,
     this.posicao,
     this.corTime,
   });
@@ -29,11 +37,14 @@ class Atleta {
     return Atleta(
       id: map['id'] ?? '',
       equipeId: map['equipeId'],
-      atletaId: map['atletaId'] ?? '',
+      atletaId: map['atletaId'] ?? map['id'] ?? '',
       atleticaId: map['atleticaId'],
-      nome: map['atletaNome'] ?? 'Sem Nome',
-      numero: map['numeroCamisa'] ?? 0,
-      ativo: map['ativo'] ?? false,
+      nome: map['atletaNome'] ?? map['nome'] ?? 'Sem Nome',
+      numero: map['numeroCamisa'],
+      ativo: map['ativo'],
+      documentoIdentificacao: map['documentoIdentificacao'],
+      curso: map['curso'],
+      fotoUrl: map['fotoUrl'],
     );
   }
 }

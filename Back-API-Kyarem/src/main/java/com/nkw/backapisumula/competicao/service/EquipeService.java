@@ -87,4 +87,9 @@ public class EquipeService {
 
         return repo.save(e);
     }
+
+    public void delete(UUID id) {
+        Equipe e = getOrThrow(id);
+        repo.delete(e);
+    }
 }

@@ -4,6 +4,8 @@ class Modalidade {
   final String esporteId;
   final String genero; // 'M' ou 'F'
   final String? esporteNome; // Join com a tabela 'esportes'
+  
+  String get nome => esporteNome ?? '';
 
   Modalidade({
     required this.id,

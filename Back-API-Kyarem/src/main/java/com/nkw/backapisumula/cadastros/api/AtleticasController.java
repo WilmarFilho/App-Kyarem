@@ -56,6 +56,13 @@ public class AtleticasController {
         return AtleticaResponse.from(service.update(id, patch));
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    public void delete(@PathVariable UUID id) {
+        service.delete(id);
+    }
+
     public record CreateAtleticaRequest(
             @NotBlank String nome,
             String sigla,

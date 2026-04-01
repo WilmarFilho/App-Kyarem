@@ -17,7 +17,7 @@ import '../models/tipo_evento_model.dart';
 class PartidaService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
+      baseUrl: 'http://192.168.100.9:8080/api/v1',
       connectTimeout: const Duration(seconds: 5),
     ),
   );
