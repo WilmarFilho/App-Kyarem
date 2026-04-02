@@ -56,14 +56,20 @@ class _AuthHeaderState extends State<AuthHeader> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting &&
                 _cachedCampeonato == null) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+              return SizedBox(
+                height: widget.isSmall ? 130 : 170,
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
               );
             }
 
             if (snapshot.hasError || !snapshot.hasData) {
-              return const Center(
-                child: Icon(Icons.error_outline, color: Colors.white),
+              return SizedBox(
+                height: widget.isSmall ? 130 : 170,
+                child: const Center(
+                  child: Icon(Icons.error_outline, color: Colors.white),
+                ),
               );
             }
 
@@ -103,7 +109,6 @@ class _AuthHeaderState extends State<AuthHeader> {
                 Text(
                   'Área Pública',
                   style: TextStyle(
-
                     fontSize: widget.isSmall ? 14 : 16,
                     color: Colors.white70,
                   ),

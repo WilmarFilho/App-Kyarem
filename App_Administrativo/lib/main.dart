@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Importado
-import 'presentation/screens/main/home_screen.dart';
+import 'presentation/screens/main/main_screen.dart';
+
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/reset_password_screen.dart';
 import 'presentation/screens/main/perfil_screen.dart';
@@ -75,7 +76,7 @@ class MyApp extends StatelessWidget {
       initialRoute: session != null ? '/home' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const MainScreen(initialIndex: 0),
         '/reset-password': (context) => const ResetPasswordScreen(),
         '/perfil': (context) => const PerfilScreen(),
         '/configuracoes': (context) => const ConfiguracoesScreen(),

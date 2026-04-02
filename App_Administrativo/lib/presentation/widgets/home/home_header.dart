@@ -37,36 +37,38 @@ class HomeHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // FutureBuilder para carregar o nome do banco de dados
-          FutureBuilder<String>(
-            future: _fetchUserName(),
-            builder: (context, snapshot) {
-              // Enquanto carrega, podemos mostrar um placeholder ou o nome padrão
-              final displayUserName = snapshot.data ?? '...';
-              
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Olá $displayUserName,',
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 20,
-                      color: Color(0xFF1B1B1B),
+          Expanded(
+            child: FutureBuilder<String>(
+              future: _fetchUserName(),
+              builder: (context, snapshot) {
+                final displayUserName = snapshot.data ?? '...';
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Olá $displayUserName,',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 20,
+                        color: Color(0xFF1B1B1B),
+                      ),
                     ),
-                  ),
-                  const Text(
-                    'Seja bem vindo!',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1B1B1B),
+                    const Text(
+                      'Seja bem vindo!',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1B1B1B),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
           Row(
             children: [
@@ -86,7 +88,11 @@ class HomeHeader extends StatelessWidget {
                 child: const CircleAvatar(
                   radius: 25,
                   backgroundColor: Color(0xFF555555),
-                  child: Icon(Icons.person_outline, color: Colors.white, size: 22),
+                  child: Icon(
+                    Icons.person_outline,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
               ),
             ],

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../screens/admin/partida_form_screen.dart';
+import '../../screens/main/arbitro_detalhe_screen.dart';
+import '../../screens/admin/campeonato_form_screen.dart';
 
 class HomeListItem extends StatelessWidget {
   final dynamic item; // Pode ser Partida, Arbitro ou Campeonato
@@ -47,7 +50,61 @@ class HomeListItem extends StatelessWidget {
         subtitle: subTitulo != null ? Text(subTitulo) : null,
         trailing: const Icon(Icons.chevron_right, size: 18),
         onTap: () {
-          /* Navegação específica */
+          if (type == 'Jogos') {
+            final String statusStr = item.status?.toLowerCase() ?? '';
+            final bool podeEditar = statusStr == 'agendada';
+
+            if (podeEditar) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PartidaFormScreen(partida: item),
+                ),
+              );
+            } else {
+              String motivo = 'Partida em andamento não pode ser editada.';
+              if (statusStr == 'finalizada' || statusStr == 'fechada') {
+                motivo = 'Partida encerrada não pode ser editada.';
+              }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(
+                        Icons.lock_outline,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(motivo)),
+                    ],
+                  ),
+                  backgroundColor: Colors.grey.shade700,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          } else if (type == 'Árbitros') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    ArbitroDetalheScreen(arbitro: item, canEdit: true),
+              ),
+            );
+          } else if (type == 'Campeonatos') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CampeonatoFormScreen(campeonato: item),
+              ),
+            );
+          }
         },
       ),
     );

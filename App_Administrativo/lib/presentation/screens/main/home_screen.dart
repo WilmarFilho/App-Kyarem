@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
+import 'package:kyarem_eventos/presentation/screens/admin/arbitros_screen.dart';
 import '../../../services/partida_service.dart';
 import '../../../services/admin_api_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
@@ -16,7 +17,9 @@ import '../admin/partidas_admin_screen.dart';
 import '../../../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool isMainScreenChild;
+
+  const HomeScreen({super.key, this.isMainScreenChild = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -194,23 +197,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           const GradientBackground(heightFactor: 0.8),
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                const HomeHeader(),
-                _buildCardsSection(),
-                const SizedBox(height: 20),
-                _buildWhatDoYouWantSection(),
-                Expanded(child: _buildMainGamesSection()),
-              ],
+            bottom: false,
+            child: NestedScrollView(
+              physics: const BouncingScrollPhysics(),
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        const HomeHeader(),
+                        _buildCardsSection(),
+                        const SizedBox(height: 20),
+                        _buildWhatDoYouWantSection(),
+                      ],
+                    ),
+                  ),
+                ];
+              },
+              body: Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: _buildMainGamesSection(),
+              ),
             ),
           ),
-          BottomNavigationWidget(
-            currentRoute: '/home',
-            isAdmin: _isAdminRole,
-            isPresidenteAtletica: _isPresidenteAtletica,
-            isArbitro: _isArbitro,
-          ),
+          if (!widget.isMainScreenChild)
+            BottomNavigationWidget(
+              currentRoute: '/home',
+              isAdmin: _isAdminRole,
+              isPresidenteAtletica: _isPresidenteAtletica,
+              isArbitro: _isArbitro,
+            ),
         ],
       ),
     );
@@ -305,6 +322,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: const Color(0xFFF85C39),
                     onTap: () =>
                         _navegarAdmin(const PartidasAdminScreen(canEdit: true)),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.gavel,
+                    label: 'Árbitros',
+                    color: const Color(0xFFF85C39),
+                    onTap: () => _navegarAdmin(const ArbitrosAdminScreen()),
                   ),
                   const SizedBox(width: 10),
                   _buildAdminShortcut(
@@ -445,6 +469,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildMainGamesSection() {
     return Container(
       width: double.infinity,
+      constraints: BoxConstraints(
+        minHeight: MediaQuery.of(context).size.height * 0.5,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
@@ -488,7 +515,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           Expanded(
             child: _carregandoListaAba && _itensListaInferior.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? const Padding(
+                    padding: EdgeInsets.all(50.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
                 : FadeTransition(
                     opacity: _listController,
                     child: SlideTransition(
@@ -508,15 +538,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                           if (lista.isEmpty) {
                             return Center(
-                              child: Text(
-                                "Nenhum registro encontrado",
-                                style: TextStyle(color: Colors.grey[400]),
+                              child: Padding(
+                                padding: const EdgeInsets.all(50.0),
+                                child: Text(
+                                  "Nenhum registro encontrado",
+                                  style: TextStyle(color: Colors.grey[400]),
+                                ),
                               ),
                             );
                           }
                           return ListView.builder(
                             padding: const EdgeInsets.fromLTRB(22, 0, 22, 120),
-                            physics: const BouncingScrollPhysics(),
                             itemCount: lista.length,
                             itemBuilder: (context, index) => HomeListItem(
                               item: lista[index],

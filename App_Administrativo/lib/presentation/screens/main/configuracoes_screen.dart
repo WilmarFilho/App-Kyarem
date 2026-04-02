@@ -4,7 +4,8 @@ import '../../widgets/layout/gradient_background.dart';
 import '../../../services/auth_service.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
-  const ConfiguracoesScreen({super.key});
+  final bool isMainScreenChild;
+  const ConfiguracoesScreen({super.key, this.isMainScreenChild = false});
 
   @override
   State<ConfiguracoesScreen> createState() => _ConfiguracoesScreenState();
@@ -60,12 +61,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
           ),
 
           // Barra de Navegação
-          BottomNavigationWidget(
-            currentRoute: '/configuracoes',
-            isAdmin: _isAdminRole,
-            isPresidenteAtletica: _isPresidenteAtletica,
-            isArbitro: _isArbitro,
-          ),
+          if (!widget.isMainScreenChild)
+            BottomNavigationWidget(
+              currentRoute: '/configuracoes',
+              isAdmin: _isAdminRole,
+              isPresidenteAtletica: _isPresidenteAtletica,
+              isArbitro: _isArbitro,
+            ),
         ],
       ),
     );

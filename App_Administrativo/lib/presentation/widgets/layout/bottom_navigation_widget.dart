@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos/presentation/screens/admin/arbitros_screen.dart';
+import 'package:kyarem_eventos/presentation/screens/admin/atleta_form_screen.dart';
 import '../../screens/admin/campeonato_form_screen.dart';
 import '../../screens/admin/atletica_form_screen.dart';
 import '../../screens/admin/equipe_form_screen.dart';
 import '../../screens/admin/partida_form_screen.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
-  final String currentRoute;
+  final String? currentRoute;
+  final int? currentIndex;
+  final ValueChanged<int>? onTabSelected;
   final bool isAdmin;
   final bool isPresidenteAtletica;
   final bool isArbitro;
 
   const BottomNavigationWidget({
     super.key,
-    required this.currentRoute,
+    this.currentRoute,
+    this.currentIndex,
+    this.onTabSelected,
     this.isAdmin = false,
     this.isPresidenteAtletica = false,
     this.isArbitro = false,
@@ -53,7 +59,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
       curve: Curves.fastOutSlowIn,
-      bottom: _menuAdicionarAberto ? 110 : -300,
+      bottom: _menuAdicionarAberto ? 110 : -450,
       left: 22,
       right: 22,
       child: AnimatedOpacity(
@@ -93,32 +99,66 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                 _buildReadOnlyMessage()
               // Admin/Delegado: criação completa
               else if (widget.isAdmin)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                Column(
                   children: [
-                    _buildAddOptionItem(
-                      Icons.sports_soccer,
-                      'Partida',
-                      const Color(0xFF2E9E56),
-                      onTap: () => _navegar(const PartidaFormScreen()),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.sports_soccer,
+                            'Partida',
+                            const Color(0xFF2E9E56),
+                            onTap: () => _navegar(const PartidaFormScreen()),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.emoji_events,
+                            'Campeonato',
+                            const Color(0xFFE6A817),
+                            onTap: () => _navegar(const CampeonatoFormScreen()),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.shield,
+                            'Atlética',
+                            const Color(0xFF2563EB),
+                            onTap: () => _navegar(const AtleticaFormScreen()),
+                          ),
+                        ),
+                      ],
                     ),
-                    _buildAddOptionItem(
-                      Icons.emoji_events,
-                      'Campeonato',
-                      const Color(0xFFE6A817),
-                      onTap: () => _navegar(const CampeonatoFormScreen()),
-                    ),
-                    _buildAddOptionItem(
-                      Icons.shield,
-                      'Atlética',
-                      const Color(0xFF2563EB),
-                      onTap: () => _navegar(const AtleticaFormScreen()),
-                    ),
-                    _buildAddOptionItem(
-                      Icons.groups,
-                      'Time',
-                      const Color(0xFF7C3AED),
-                      onTap: () => _navegar(const EquipeFormScreen()),
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.groups,
+                            'Time',
+                            const Color(0xFF7C3AED),
+                            onTap: () => _navegar(const EquipeFormScreen()),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.person,
+                            'Atleta',
+                            const Color(0xFFD946EF),
+                            onTap: () => _navegar(const AtletaFormScreen()),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.sports,
+                            'Árbitro',
+                            const Color(0xFF0EA5E9),
+                            onTap: () => _navegar(const ArbitrosAdminScreen()),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 )
@@ -228,16 +268,21 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             GestureDetector(
-              onTap: widget.currentRoute != '/home'
-                  ? () => Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/home',
-                      (route) => false,
-                    )
-                  : null,
+              onTap: () {
+                if (widget.onTabSelected != null) {
+                  widget.onTabSelected!(0);
+                } else if (widget.currentRoute != '/home') {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (route) => false,
+                  );
+                }
+              },
               child: Icon(
                 Icons.home_filled,
-                color: widget.currentRoute == '/home'
+                color:
+                    (widget.currentIndex == 0 || widget.currentRoute == '/home')
                     ? const Color(0xFFF85C39)
                     : Colors.white,
                 size: 28,
@@ -273,16 +318,22 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             ),
 
             GestureDetector(
-              onTap: widget.currentRoute != '/configuracoes'
-                  ? () => Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/configuracoes',
-                      (route) => false,
-                    )
-                  : null,
+              onTap: () {
+                if (widget.onTabSelected != null) {
+                  widget.onTabSelected!(1);
+                } else if (widget.currentRoute != '/configuracoes') {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/configuracoes',
+                    (route) => false,
+                  );
+                }
+              },
               child: Icon(
                 Icons.settings,
-                color: widget.currentRoute == '/configuracoes'
+                color:
+                    (widget.currentIndex == 1 ||
+                        widget.currentRoute == '/configuracoes')
                     ? const Color(0xFFF85C39)
                     : Colors.white,
                 size: 28,
