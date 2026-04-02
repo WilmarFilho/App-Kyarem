@@ -982,7 +982,7 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                                       ),
                                       if (p.modalidade?.nome != null)
                                         Text(
-                                          p.modalidade!.nome!,
+                                          p.modalidade!.nome,
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Colors.grey.shade500,
