@@ -33,7 +33,9 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
   void initState() {
     super.initState();
     _animCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _carregar();
   }
 
@@ -67,23 +69,30 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Desvincular árbitro?',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Desvincular árbitro?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Text(
-            'Remover "${widget.arbitro.nome}" da partida ${pa.equipeANome ?? '?'} × ${pa.equipeBNome ?? '?'}?'),
+          'Remover "${widget.arbitro.nome}" da partida ${pa.equipeANome ?? '?'} × ${pa.equipeBNome ?? '?'}?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade600,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Desvincular',
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Desvincular',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -92,12 +101,16 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
     if (confirmou == true && mounted) {
       final ok = await _api.desvincularArbitro(pa.partidaId, pa.vinculoId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Árbitro desvinculado!' : 'Erro ao desvincular.'),
-        backgroundColor: ok ? Colors.green : Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Árbitro desvinculado!' : 'Erro ao desvincular.'),
+          backgroundColor: ok ? Colors.green : Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       if (ok) _carregar();
     }
   }
@@ -113,16 +126,19 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
 
     // Remove as que o árbitro já está vinculado
     final jaVinculadas = _partidas.map((pa) => pa.partidaId).toSet();
-    final disponiveis =
-        agendadas.where((p) => !jaVinculadas.contains(p.id)).toList();
+    final disponiveis = agendadas
+        .where((p) => !jaVinculadas.contains(p.id))
+        .toList();
 
     if (!mounted) return;
 
     if (disponiveis.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Nenhuma partida agendada disponível.'),
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhuma partida agendada disponível.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
@@ -136,16 +152,23 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
         onDesignar: (partidaId, funcao) async {
           Navigator.pop(ctx);
           final ok = await _api.vincularArbitro(
-              partidaId, widget.arbitro.id, funcao);
+            partidaId,
+            widget.arbitro.id,
+            funcao,
+          );
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                ok ? 'Árbitro designado com sucesso!' : 'Erro ao designar.'),
-            backgroundColor: ok ? Colors.green : Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                ok ? 'Árbitro designado com sucesso!' : 'Erro ao designar.',
+              ),
+              backgroundColor: ok ? Colors.green : Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
           if (ok) _carregar();
         },
       ),
@@ -165,7 +188,10 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
         title: const Text(
           'Detalhes do Árbitro',
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         actions: [
           IconButton(
@@ -179,17 +205,24 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
               onPressed: _abrirDesignarPartida,
               backgroundColor: const Color(0xFFF85C39),
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Designar Partida',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Designar Partida',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           : null,
       body: _isLoading
-          ? Stack(children: [
-              const GradientBackground(),
-              const Center(
-                  child: CircularProgressIndicator(color: Colors.white)),
-            ])
+          ? Stack(
+              children: [
+                const GradientBackground(),
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ],
+            )
           : Column(
               children: [
                 // ── HEADER gradiente + card de perfil flutuante ──
@@ -258,7 +291,9 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: const Color(0xFFF85C39).withValues(alpha: 0.3), width: 1.5),
+          color: const Color(0xFFF85C39).withValues(alpha: 0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.12),
@@ -288,27 +323,45 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      Icon(Icons.phone_outlined,
-                          size: 13, color: Colors.grey.shade500),
+                      Icon(
+                        Icons.phone_outlined,
+                        size: 13,
+                        color: Colors.grey.shade500,
+                      ),
                       const SizedBox(width: 4),
-                      Text(widget.arbitro.telefone!,
-                          style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 12)),
+                      Text(
+                        widget.arbitro.telefone!,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ],
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    _statBadge('${_ativas.length}', 'Ativas',
-                        Colors.green.shade600, Colors.green.shade50),
+                    _statBadge(
+                      '${_ativas.length}',
+                      'Ativas',
+                      Colors.green.shade600,
+                      Colors.green.shade50,
+                    ),
                     const SizedBox(width: 8),
-                    _statBadge('${_encerradas.length}', 'Encerradas',
-                        Colors.grey.shade600, Colors.grey.shade100),
+                    _statBadge(
+                      '${_encerradas.length}',
+                      'Encerradas',
+                      Colors.grey.shade600,
+                      Colors.grey.shade100,
+                    ),
                     const SizedBox(width: 8),
-                    _statBadge('${_partidas.length}', 'Total',
-                        const Color(0xFFF85C39),
-                        const Color(0xFFF85C39).withValues(alpha: 0.08)),
+                    _statBadge(
+                      '${_partidas.length}',
+                      'Total',
+                      const Color(0xFFF85C39),
+                      const Color(0xFFF85C39).withValues(alpha: 0.08),
+                    ),
                   ],
                 ),
               ],
@@ -320,7 +373,11 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
   }
 
   Widget _statBadge(
-      String valor, String label, Color textColor, Color bgColor) {
+    String valor,
+    String label,
+    Color textColor,
+    Color bgColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -329,14 +386,21 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
       ),
       child: Column(
         children: [
-          Text(valor,
-              style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15)),
-          Text(label,
-              style: TextStyle(
-                  color: textColor.withValues(alpha: 0.7), fontSize: 10)),
+          Text(
+            valor,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.7),
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );
@@ -346,7 +410,9 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
     final a = widget.arbitro;
     if (a.fotoUrl != null && a.fotoUrl!.isNotEmpty) {
       return CircleAvatar(
-          radius: 34, backgroundImage: NetworkImage(a.fotoUrl!));
+        radius: 34,
+        backgroundImage: NetworkImage(a.fotoUrl!),
+      );
     }
     return CircleAvatar(
       radius: 34,
@@ -354,9 +420,10 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
       child: Text(
         a.nome.isNotEmpty ? a.nome[0].toUpperCase() : '?',
         style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFF85C39)),
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFFF85C39),
+        ),
       ),
     );
   }
@@ -385,23 +452,26 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
             Text(
               label,
               style: const TextStyle(
-                  color: Color(0xFF1a1a2e),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
+                color: Color(0xFF1a1a2e),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
             const SizedBox(width: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
               decoration: BoxDecoration(
                 color: cor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text('${partidas.length}',
-                  style: TextStyle(
-                      color: cor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12)),
+              child: Text(
+                '${partidas.length}',
+                style: TextStyle(
+                  color: cor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ],
         ),
@@ -417,9 +487,10 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: Center(
-              child: Text(emptyMsg,
-                  style:
-                      TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+              child: Text(
+                emptyMsg,
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              ),
             ),
           )
         else
@@ -477,10 +548,14 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                   const SizedBox(width: 6),
                   if (pa.modalidadeNome != null)
                     Expanded(
-                      child: Text(pa.modalidadeNome!,
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade500),
-                          overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        pa.modalidadeNome!,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   const SizedBox(width: 4),
                   _funcaoBadge(pa.funcao),
@@ -492,19 +567,24 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
               Row(
                 children: [
                   Expanded(
-                    child: Text(nomeA,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Color(0xFF1a1a2e)),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      nomeA,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF1a1a2e),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 10),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5F6FA),
                       borderRadius: BorderRadius.circular(10),
@@ -513,24 +593,28 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                       pa.isAtiva && pa.status.toLowerCase() != 'agendada'
                           ? '${pa.placarA} × ${pa.placarB}'
                           : pa.agendadaPara != null
-                              ? _formatarData(pa.agendadaPara!)
-                              : 'vs',
+                          ? _formatarData(pa.agendadaPara!)
+                          : 'vs',
                       style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1a1a2e),
-                          letterSpacing: 1),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1a1a2e),
+                        letterSpacing: 1,
+                      ),
                     ),
                   ),
                   Expanded(
-                    child: Text(nomeB,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Color(0xFF1a1a2e)),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      nomeB,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF1a1a2e),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -541,7 +625,9 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F6FA),
                     borderRadius: BorderRadius.circular(8),
@@ -549,25 +635,37 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                   child: Row(
                     children: [
                       if (pa.local != null && pa.local!.isNotEmpty) ...[
-                        Icon(Icons.location_on_outlined,
-                            size: 13, color: Colors.grey.shade500),
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 13,
+                          color: Colors.grey.shade500,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
-                          child: Text(pa.local!,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600)),
+                          child: Text(
+                            pa.local!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
                         ),
                       ],
                       if (pa.fase != null && pa.fase!.isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        Icon(Icons.flag_outlined,
-                            size: 13, color: Colors.grey.shade500),
+                        Icon(
+                          Icons.flag_outlined,
+                          size: 13,
+                          color: Colors.grey.shade500,
+                        ),
                         const SizedBox(width: 4),
-                        Text(pa.fase!,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600)),
+                        Text(
+                          pa.fase!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -579,12 +677,19 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(Icons.swipe_left_outlined,
-                        size: 11, color: Colors.grey.shade400),
+                    Icon(
+                      Icons.swipe_left_outlined,
+                      size: 11,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(width: 3),
-                    Text('Deslize para desvincular',
-                        style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade400)),
+                    Text(
+                      'Deslize para desvincular',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -625,13 +730,19 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: cor, shape: BoxShape.circle),
+          ),
           const SizedBox(width: 5),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11, color: cor, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: cor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -644,13 +755,17 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
         color: const Color(0xFFF85C39).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-            color: const Color(0xFFF85C39).withValues(alpha: 0.2)),
+          color: const Color(0xFFF85C39).withValues(alpha: 0.2),
+        ),
       ),
-      child: Text(funcao,
-          style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xFFF85C39),
-              fontWeight: FontWeight.bold)),
+      child: Text(
+        funcao,
+        style: const TextStyle(
+          fontSize: 11,
+          color: Color(0xFFF85C39),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -710,9 +825,9 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
       _filtradas = q.isEmpty
           ? widget.disponiveis
           : widget.disponiveis.where((p) {
-              final a = p.equipeA?.nome?.toLowerCase() ?? '';
-              final b = p.equipeB?.nome?.toLowerCase() ?? '';
-              final mod = p.modalidade?.nome?.toLowerCase() ?? '';
+              final a = p.equipeA?.nome.toLowerCase() ?? '';
+              final b = p.equipeB?.nome.toLowerCase() ?? '';
+              final mod = p.modalidade?.nome.toLowerCase() ?? '';
               return a.contains(q) || b.contains(q) || mod.contains(q);
             }).toList();
     });
@@ -747,19 +862,29 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                  const Icon(Icons.assignment_ind_outlined,
-                      color: Color(0xFFF85C39)),
+                  const Icon(
+                    Icons.assignment_ind_outlined,
+                    color: Color(0xFFF85C39),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Designar Partida',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 17)),
-                        Text(widget.arbitro.nome,
-                            style: TextStyle(
-                                fontSize: 13, color: Colors.grey.shade500)),
+                        const Text(
+                          'Designar Partida',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
+                        Text(
+                          widget.arbitro.nome,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -777,19 +902,21 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                   hintText: 'Buscar partida...',
                   prefixIcon: const Icon(Icons.search, size: 20),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Colors.grey.shade300)),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Colors.grey.shade300)),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                          color: Color(0xFFF85C39))),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFF85C39)),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ),
@@ -804,20 +931,19 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                       itemCount: _filtradas.length,
                       itemBuilder: (_, i) {
                         final p = _filtradas[i];
-                        final selecionada =
-                            _partidaSelecionada?.id == p.id;
+                        final selecionada = _partidaSelecionada?.id == p.id;
                         final nomeA = p.equipeA?.nome ?? 'Time A';
                         final nomeB = p.equipeB?.nome ?? 'Time B';
                         return GestureDetector(
-                          onTap: () =>
-                              setState(() => _partidaSelecionada = p),
+                          onTap: () => setState(() => _partidaSelecionada = p),
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: selecionada
-                                  ? const Color(0xFFF85C39)
-                                      .withValues(alpha: 0.08)
+                                  ? const Color(
+                                      0xFFF85C39,
+                                    ).withValues(alpha: 0.08)
                                   : Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
@@ -830,34 +956,45 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                             child: Row(
                               children: [
                                 if (selecionada)
-                                  const Icon(Icons.check_circle,
-                                      color: Color(0xFFF85C39), size: 18)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Color(0xFFF85C39),
+                                    size: 18,
+                                  )
                                 else
-                                  Icon(Icons.radio_button_unchecked,
-                                      color: Colors.grey.shade400,
-                                      size: 18),
+                                  Icon(
+                                    Icons.radio_button_unchecked,
+                                    color: Colors.grey.shade400,
+                                    size: 18,
+                                  ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text('$nomeA × $nomeB',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13)),
+                                      Text(
+                                        '$nomeA × $nomeB',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
                                       if (p.modalidade?.nome != null)
-                                        Text(p.modalidade!.nome!,
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color:
-                                                    Colors.grey.shade500)),
+                                        Text(
+                                          p.modalidade!.nome!,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                        ),
                                       if (p.agendadaPara != null)
                                         Text(
                                           _fmt(p.agendadaPara!),
                                           style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey.shade500),
+                                            fontSize: 11,
+                                            color: Colors.grey.shade500,
+                                          ),
                                         ),
                                     ],
                                   ),
@@ -877,17 +1014,21 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                 value: _funcao,
                 decoration: InputDecoration(
                   labelText: 'Função',
-                  floatingLabelStyle:
-                      const TextStyle(color: Color(0xFFF85C39)),
+                  floatingLabelStyle: const TextStyle(color: Color(0xFFF85C39)),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                        color: Color(0xFFF85C39), width: 1.5),
+                      color: Color(0xFFF85C39),
+                      width: 1.5,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                 ),
                 items: _funcoes
                     .map((f) => DropdownMenuItem(value: f, child: Text(f)))
@@ -899,28 +1040,36 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
             // Botão confirmar
             Padding(
               padding: EdgeInsets.fromLTRB(
-                  16, 12, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+                16,
+                12,
+                16,
+                MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _partidaSelecionada == null
                       ? null
-                      : () => widget.onDesignar(
-                          _partidaSelecionada!.id, _funcao),
+                      : () =>
+                            widget.onDesignar(_partidaSelecionada!.id, _funcao),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF85C39),
                     disabledBackgroundColor: Colors.grey.shade300,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     elevation: 0,
                   ),
                   icon: const Icon(Icons.check, color: Colors.white),
-                  label: const Text('Confirmar Designação',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
+                  label: const Text(
+                    'Confirmar Designação',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ),
