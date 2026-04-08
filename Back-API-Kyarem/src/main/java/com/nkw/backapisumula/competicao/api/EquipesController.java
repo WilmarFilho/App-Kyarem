@@ -2,8 +2,10 @@ package com.nkw.backapisumula.competicao.api;
 
 import com.nkw.backapisumula.competicao.Equipe;
 import com.nkw.backapisumula.competicao.EquipeAtletaInscrito;
+import com.nkw.backapisumula.competicao.EquipeStaff;
 import com.nkw.backapisumula.competicao.service.EquipeAtletaInscritoService;
 import com.nkw.backapisumula.competicao.service.EquipeService;
+import com.nkw.backapisumula.competicao.service.EquipeStaffService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotBlank;
@@ -21,10 +23,16 @@ public class EquipesController {
 
     private final EquipeService service;
     private final EquipeAtletaInscritoService inscritosService;
+    private final EquipeStaffService staffService;
 
-    public EquipesController(EquipeService service, EquipeAtletaInscritoService inscritosService) {
+    public EquipesController(
+            EquipeService service,
+            EquipeAtletaInscritoService inscritosService,
+            EquipeStaffService staffService
+    ) {
         this.service = service;
         this.inscritosService = inscritosService;
+        this.staffService = staffService;
     }
 
     @GetMapping
@@ -92,6 +100,27 @@ public class EquipesController {
         inscritosService.remove(id, inscritoId);
     }
 
+    // -------- Staff --------
+
+    @GetMapping("/{id}/staff")
+    public List<StaffResponse> listStaff(@PathVariable UUID id) {
+        return staffService.listByEquipe(id).stream().map(StaffResponse::from).toList();
+    }
+
+    @PostMapping("/{id}/staff")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    public StaffResponse addStaff(@PathVariable UUID id, @Valid @RequestBody AddStaffRequest r) {
+        return StaffResponse.from(staffService.add(id, r.nome(), r.cargo()));
+    }
+
+    @DeleteMapping("/{id}/staff/{staffId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    public void removeStaff(@PathVariable UUID id, @PathVariable UUID staffId) {
+        staffService.remove(id, staffId);
+    }
+
     public record CreateEquipeRequest(
             @NotNull UUID atleticaId,
             @NotNull UUID campeonatoId,
@@ -140,6 +169,11 @@ public class EquipesController {
             Boolean isCapitao
     ) {}
 
+    public record AddStaffRequest(
+            @NotBlank String nome,
+            @NotBlank String cargo
+    ) {}
+
     public record InscritoResponse(
             UUID id,
             UUID equipeId,
@@ -164,6 +198,24 @@ public class EquipesController {
                     i.getAtivo(),
                     i.getIsGoleiro(),
                     i.getIsCapitao()
+            );
+        }
+    }
+
+    public record StaffResponse(
+            UUID id,
+            UUID equipeId,
+            String nome,
+            String cargo,
+            java.time.OffsetDateTime criadoEm
+    ) {
+        public static StaffResponse from(EquipeStaff s) {
+            return new StaffResponse(
+                    s.getId(),
+                    s.getEquipe() != null ? s.getEquipe().getId() : null,
+                    s.getNome(),
+                    s.getCargo(),
+                    s.getCriadoEm()
             );
         }
     }

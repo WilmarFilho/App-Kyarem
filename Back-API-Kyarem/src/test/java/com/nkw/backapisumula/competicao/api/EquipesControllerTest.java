@@ -2,8 +2,10 @@ package com.nkw.backapisumula.competicao.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nkw.backapisumula.competicao.Equipe;
+import com.nkw.backapisumula.competicao.EquipeStaff;
 import com.nkw.backapisumula.competicao.service.EquipeAtletaInscritoService;
 import com.nkw.backapisumula.competicao.service.EquipeService;
+import com.nkw.backapisumula.competicao.service.EquipeStaffService;
 import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -38,6 +41,7 @@ class EquipesControllerTest {
 
     @MockBean private EquipeService service;
     @MockBean private EquipeAtletaInscritoService inscritosService;
+    @MockBean private EquipeStaffService staffService;
     @MockBean private JwtDecoder jwtDecoder;
     @MockBean private ProfileRepository profileRepository;
 
@@ -51,6 +55,16 @@ class EquipesControllerTest {
         e.setId(EQUIPE_ID);
         e.setNomeEquipe("Falcões do Norte");
         return e;
+    }
+
+    private EquipeStaff staff() {
+        EquipeStaff s = new EquipeStaff();
+        s.setId(UUID.randomUUID());
+        s.setEquipe(equipe());
+        s.setNome("João Silva");
+        s.setCargo("Técnico");
+        s.setCriadoEm(OffsetDateTime.now());
+        return s;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -202,5 +216,56 @@ class EquipesControllerTest {
         mockMvc.perform(get("/api/v1/equipes/{id}", EQUIPE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(EQUIPE_ID.toString()));
+    }
+
+    @Test
+    @WithMockUser(roles = "aluno")
+    void listStaff_equipeExistente_retorna200() throws Exception {
+        when(staffService.listByEquipe(EQUIPE_ID)).thenReturn(List.of(staff()));
+
+        mockMvc.perform(get("/api/v1/equipes/{id}/staff", EQUIPE_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].equipeId").value(EQUIPE_ID.toString()))
+                .andExpect(jsonPath("$[0].nome").value("João Silva"));
+    }
+
+    @Test
+    @WithMockUser(roles = "admin")
+    void addStaff_roleAdmin_retorna201() throws Exception {
+        when(staffService.add(any(), any(), any())).thenReturn(staff());
+
+        String body = objectMapper.writeValueAsString(
+                new EquipesController.AddStaffRequest("João Silva", "Técnico")
+        );
+
+        mockMvc.perform(post("/api/v1/equipes/{id}/staff", EQUIPE_ID)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.cargo").value("Técnico"));
+    }
+
+    @Test
+    @WithMockUser(roles = "aluno")
+    void addStaff_roleAluno_retorna403() throws Exception {
+        String body = objectMapper.writeValueAsString(
+                new EquipesController.AddStaffRequest("João Silva", "Técnico")
+        );
+
+        mockMvc.perform(post("/api/v1/equipes/{id}/staff", EQUIPE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "delegado")
+    void removeStaff_roleDelegado_retorna204() throws Exception {
+        UUID staffId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/v1/equipes/{id}/staff/{staffId}", EQUIPE_ID, staffId)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
     }
 }

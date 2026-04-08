@@ -7,6 +7,7 @@ import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
+import 'package:kyarem_eventos/models/equipe_staff_model.dart';
 
 class AdminApiService {
   final Dio _dio;
@@ -282,6 +283,46 @@ class AdminApiService {
       return true;
     } catch (e) {
       debugPrint("Erro removerInscrito: $e");
+      return false;
+    }
+  }
+
+  // ============== STAFF DA EQUIPE ==============
+  Future<List<EquipeStaff>> listarEquipeStaff(String equipeId) async {
+    try {
+      final res = await _dio.get('/equipes/$equipeId/staff');
+      return (res.data as List).map((e) => EquipeStaff.fromMap(e)).toList();
+    } catch (e) {
+      debugPrint("Erro listarEquipeStaff: $e");
+      return [];
+    }
+  }
+
+  Future<EquipeStaff?> criarEquipeStaff(Map<String, dynamic> data) async {
+    try {
+      final equipeId = data['equipe_id']?.toString() ?? data['equipeId']?.toString();
+      if (equipeId == null || equipeId.isEmpty) {
+        throw ArgumentError('equipe_id é obrigatório para criar staff.');
+      }
+
+      final payload = {
+        'nome': data['nome'],
+        'cargo': data['cargo'],
+      };
+      final res = await _dio.post('/equipes/$equipeId/staff', data: payload);
+      return EquipeStaff.fromMap(res.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint("Erro criarEquipeStaff: $e");
+      return null;
+    }
+  }
+
+  Future<bool> removerEquipeStaff(String equipeId, String staffId) async {
+    try {
+      await _dio.delete('/equipes/$equipeId/staff/$staffId');
+      return true;
+    } catch (e) {
+      debugPrint("Erro removerEquipeStaff: $e");
       return false;
     }
   }
