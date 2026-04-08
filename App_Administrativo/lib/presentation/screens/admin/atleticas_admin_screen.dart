@@ -4,14 +4,10 @@ import '../../../services/admin_api_service.dart';
 import 'atletica_form_screen.dart';
 
 class AtleticasAdminScreen extends StatefulWidget {
-  /// Quando informado, entra no modo "Minha Atlética":
-  /// - Lista filtrada para apenas essa atlética
-  /// - SEM botão de criar nova
-  /// - SEM botão de excluir
-  /// - Pode editar
   final String? minhaAtleticaId;
+  final AdminApiService? apiService;
 
-  const AtleticasAdminScreen({super.key, this.minhaAtleticaId});
+  const AtleticasAdminScreen({super.key, this.minhaAtleticaId, this.apiService});
 
   @override
   State<AtleticasAdminScreen> createState() => _AtleticasAdminScreenState();
@@ -19,7 +15,7 @@ class AtleticasAdminScreen extends StatefulWidget {
 
 class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     with SingleTickerProviderStateMixin {
-  final AdminApiService _apiService = AdminApiService();
+  late final AdminApiService _apiService = widget.apiService ?? AdminApiService();
   List<Atletica> _atleticas = [];
   bool _isLoading = true;
   late AnimationController _animController;

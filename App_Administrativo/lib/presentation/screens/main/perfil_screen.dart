@@ -4,14 +4,15 @@ import '../../widgets/layout/gradient_background.dart';
 import '../../../services/auth_service.dart';
 
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key});
+  final AuthService? authService;
+  const PerfilScreen({super.key, this.authService});
 
   @override
   State<PerfilScreen> createState() => _PerfilScreenState();
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
-  final AuthService _authService = AuthService();
+  late final AuthService _authService = widget.authService ?? AuthService();
   String _userRole = 'aluno';
 
   bool get _isAdminRole =>

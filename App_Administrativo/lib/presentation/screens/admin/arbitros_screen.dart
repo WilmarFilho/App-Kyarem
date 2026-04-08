@@ -4,8 +4,9 @@ import '../../../services/admin_api_service.dart';
 import 'arbitro_detalhe_screen.dart';
 
 class ArbitrosAdminScreen extends StatefulWidget {
-  final bool canEdit; // true para admin/delegado, false para árbitro/leitura
-  const ArbitrosAdminScreen({super.key, this.canEdit = false});
+  final bool canEdit;
+  final AdminApiService? apiService;
+  const ArbitrosAdminScreen({super.key, this.canEdit = false, this.apiService});
 
   @override
   State<ArbitrosAdminScreen> createState() => _ArbitrosScreenState();
@@ -13,7 +14,7 @@ class ArbitrosAdminScreen extends StatefulWidget {
 
 class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
     with SingleTickerProviderStateMixin {
-  final AdminApiService _api = AdminApiService();
+  late final AdminApiService _api = widget.apiService ?? AdminApiService();
   final TextEditingController _searchCtrl = TextEditingController();
 
   List<Arbitro> _todos = [];

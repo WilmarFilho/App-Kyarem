@@ -9,16 +9,20 @@ import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 
 class AdminApiService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
-      connectTimeout: const Duration(seconds: 10),
-    ),
-  );
+  final Dio _dio;
+  final SupabaseClient? _supabaseOverride;
 
-  final _supabase = Supabase.instance.client;
+  /// Retorna o client configurado ou o singleton global (lazy).
+  SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
 
-  AdminApiService() {
+  AdminApiService({Dio? dio, SupabaseClient? supabaseClient})
+      : _dio = dio ?? Dio(
+            BaseOptions(
+              baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
+              connectTimeout: const Duration(seconds: 10),
+            ),
+          ),
+        _supabaseOverride = supabaseClient {
     _initInterceptors();
   }
 

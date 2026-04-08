@@ -5,14 +5,18 @@ import '../../../services/admin_api_service.dart';
 import 'partida_form_screen.dart';
 
 class PartidasAdminScreen extends StatefulWidget {
-  /// Se false, oculta botões de criação/edição/exclusão (modo somente leitura).
   final bool canEdit;
-
-  /// Quando informado, filtra as partidas para mostrar apenas as da atlética.
-  /// Usado pelo presidente_atletica para ver apenas as partidas do seu time.
   final String? atleticaId;
+  final PartidaService? partidaService;
+  final AdminApiService? adminApiService;
 
-  const PartidasAdminScreen({super.key, this.canEdit = true, this.atleticaId});
+  const PartidasAdminScreen({
+    super.key,
+    this.canEdit = true,
+    this.atleticaId,
+    this.partidaService,
+    this.adminApiService,
+  });
 
   @override
   State<PartidasAdminScreen> createState() => _PartidasAdminScreenState();
@@ -20,8 +24,8 @@ class PartidasAdminScreen extends StatefulWidget {
 
 class _PartidasAdminScreenState extends State<PartidasAdminScreen>
     with SingleTickerProviderStateMixin {
-  final PartidaService _partidaService = PartidaService();
-  final AdminApiService _adminApiService = AdminApiService();
+  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
+  late final AdminApiService _adminApiService = widget.adminApiService ?? AdminApiService();
   List<Partida> _partidas = [];
   bool _isLoading = true;
   late AnimationController _animController;

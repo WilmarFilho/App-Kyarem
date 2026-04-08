@@ -18,17 +18,26 @@ import '../../../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isMainScreenChild;
+  final PartidaService? partidaService;
+  final AuthService? authService;
+  final AdminApiService? adminApiService;
 
-  const HomeScreen({super.key, this.isMainScreenChild = false});
+  const HomeScreen({
+    super.key,
+    this.isMainScreenChild = false,
+    this.partidaService,
+    this.authService,
+    this.adminApiService,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  final PartidaService _partidaService = PartidaService();
-  final AuthService _authService = AuthService();
-  final AdminApiService _adminApiService = AdminApiService();
+  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
+  late final AuthService _authService = widget.authService ?? AuthService();
+  late final AdminApiService _adminApiService = widget.adminApiService ?? AdminApiService();
 
   List<Partida> _partidasDestaque = [];
   List<dynamic> _itensListaInferior = [];

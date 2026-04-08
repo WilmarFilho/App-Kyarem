@@ -2,7 +2,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final SupabaseClient? _supabaseOverride;
+
+  /// Retorna o client injetado ou o singleton global (lazy).
+  /// O acesso ao Supabase.instance.client só ocorre durante
+  /// uma chamada real — nunca na construção da classe.
+  SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
+
+  AuthService({SupabaseClient? supabase}) : _supabaseOverride = supabase;
 
   // Verifica se existe sessão ativa
   Session? get currentSession => _supabase.auth.currentSession;

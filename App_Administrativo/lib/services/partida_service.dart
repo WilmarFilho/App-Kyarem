@@ -15,27 +15,40 @@ import '../models/campeonato_model.dart';
 import '../models/tipo_evento_model.dart';
 
 class PartidaService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
-      connectTimeout: const Duration(seconds: 5),
-    ),
-  );
+  final Dio _dio;
+  final SupabaseClient? _supabaseOverride;
 
-  final _supabase = Supabase.instance.client;
-  final _uuid = const Uuid(); // ← ADD
+  /// Retorna o client configurado ou o singleton global (lazy).
+  SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
+
+  final _uuid = const Uuid();
   Database? _db;
   Timer? _syncTimer;
   bool _isSyncing = false;
 
   final Map<String, Equipe> _equipesCache = {};
 
-  PartidaService() {
+  PartidaService({Dio? dio, SupabaseClient? supabase})
+      : _dio = dio ?? Dio(
+            BaseOptions(
+              baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
+              connectTimeout: const Duration(seconds: 5),
+            ),
+          ),
+        _supabaseOverride = supabase {
     _initInterceptors();
     _initLocalDb().then((_) {
       _startSyncTimer();
     });
   }
+
+  /// Construtor de teste: não inicializa o banco SQLite nem o timer periódico.
+  /// Usado por [FakePartidaService] para evitar timers pendentes em testes.
+  @visibleForTesting
+  PartidaService.forTesting()
+      : _dio = Dio(BaseOptions(baseUrl: 'http://localhost')),
+        _supabaseOverride = null;
+  // _initInterceptors, _initLocalDb e _startSyncTimer NÃO são chamados.
 
   // --- INICIALIZAÇÃO DO BANCO LOCAL (SQLITE) ---
   Future<void> _initLocalDb() async {
@@ -565,5 +578,7 @@ class PartidaService {
 
   void dispose() {
     _syncTimer?.cancel();
+    _syncTimer = null;
+    _db?.close();
   }
 }

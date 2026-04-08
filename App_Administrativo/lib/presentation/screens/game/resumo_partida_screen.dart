@@ -22,6 +22,7 @@ class MatchSummaryScreen extends StatefulWidget {
   final String? partidaId; // ← novo, opcional para busca retroativa
   final String? escudoA;
   final String? escudoB;
+  final PartidaService? partidaService;
 
   const MatchSummaryScreen({
     super.key,
@@ -33,6 +34,7 @@ class MatchSummaryScreen extends StatefulWidget {
     required this.golsB,
     this.eventos = const [],
     this.partidaId,
+    this.partidaService,
   });
 
   @override
@@ -40,7 +42,7 @@ class MatchSummaryScreen extends StatefulWidget {
 }
 
 class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
-  final PartidaService _partidaService = PartidaService();
+  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
 
   List<SummaryEventItem> _eventosExibidos = [];
   bool _carregando = false;

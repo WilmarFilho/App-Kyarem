@@ -176,7 +176,13 @@ class _ObservacaoEventoModalState extends State<_ObservacaoEventoModal> {
 
 class PartidaRunningScreen extends StatefulWidget {
   final Partida partida;
-  const PartidaRunningScreen({super.key, required this.partida});
+  final PartidaService? partidaService;
+
+  const PartidaRunningScreen({
+    super.key,
+    required this.partida,
+    this.partidaService,
+  });
 
   @override
   State<PartidaRunningScreen> createState() => _PartidaRunningScreenState();
@@ -188,7 +194,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   static const int duracaoSegundoTempo =
       40 * 60; // 2400 segundos (Total acumulado)
 
-  final PartidaService _partidaService = PartidaService();
+  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
   List<TipoEventoEsporte> _tiposDeEventosDisponiveis = [];
 
   late int _golsA;

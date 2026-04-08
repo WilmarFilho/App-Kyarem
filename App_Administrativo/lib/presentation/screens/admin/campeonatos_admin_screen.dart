@@ -4,7 +4,8 @@ import '../../../services/admin_api_service.dart';
 import 'campeonato_form_screen.dart';
 
 class CampeonatosAdminScreen extends StatefulWidget {
-  const CampeonatosAdminScreen({super.key});
+  final AdminApiService? apiService;
+  const CampeonatosAdminScreen({super.key, this.apiService});
 
   @override
   State<CampeonatosAdminScreen> createState() => _CampeonatosAdminScreenState();
@@ -12,7 +13,7 @@ class CampeonatosAdminScreen extends StatefulWidget {
 
 class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
     with SingleTickerProviderStateMixin {
-  final AdminApiService _apiService = AdminApiService();
+  late final AdminApiService _apiService = widget.apiService ?? AdminApiService();
   List<Campeonato> _campeonatos = [];
   bool _isLoading = true;
   late AnimationController _animController;

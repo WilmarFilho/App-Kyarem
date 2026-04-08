@@ -5,14 +5,15 @@ import '../../../services/auth_service.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
   final bool isMainScreenChild;
-  const ConfiguracoesScreen({super.key, this.isMainScreenChild = false});
+  final AuthService? authService;
+  const ConfiguracoesScreen({super.key, this.isMainScreenChild = false, this.authService});
 
   @override
   State<ConfiguracoesScreen> createState() => _ConfiguracoesScreenState();
 }
 
 class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
-  final AuthService _authService = AuthService();
+  late final AuthService _authService = widget.authService ?? AuthService();
   String _userRole = 'aluno';
 
   bool get _isAdminRole =>
