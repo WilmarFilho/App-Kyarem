@@ -4,7 +4,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
-import 'package:kyarem_eventos/models/partida_model.dart';
 
 import 'partida_service_test.mocks.dart';
 
@@ -46,48 +45,78 @@ void main() {
       // Stub: retorna duas partidas para /partidas
       // O enriquecimento de equipes tentará GET /equipes/{id} e falhará silenciosamente
       // (comportamento esperado quando não há equipes no cache)
-      when(mockDio.get('/partidas', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenAnswer((_) async => _fakeResponse([
-                {
-                  'id': 'p1',
-                  'modalidadeId': 'm1',
-                  'status': 'agendada',
-                  'equipeAId': 'eq-a',
-                  'equipeBId': 'eq-b',
-                },
-                {
-                  'id': 'p2',
-                  'modalidadeId': 'm2',
-                  'status': 'em_andamento',
-                  'equipeAId': 'eq-c',
-                  'equipeBId': 'eq-d',
-                },
-              ]));
+      when(
+        mockDio.get(
+          '/partidas',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {
+            'id': 'p1',
+            'modalidadeId': 'm1',
+            'status': 'agendada',
+            'equipeAId': 'eq-a',
+            'equipeBId': 'eq-b',
+          },
+          {
+            'id': 'p2',
+            'modalidadeId': 'm2',
+            'status': 'em_andamento',
+            'equipeAId': 'eq-c',
+            'equipeBId': 'eq-d',
+          },
+        ]),
+      );
 
       // Stub: equipes individuais lançam exceção (enriquecimento falha graciosamente)
-      when(mockDio.get('/equipes/eq-a', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/equipes/eq-a')));
-      when(mockDio.get('/equipes/eq-b', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/equipes/eq-b')));
-      when(mockDio.get('/equipes/eq-c', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/equipes/eq-c')));
-      when(mockDio.get('/equipes/eq-d', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/equipes/eq-d')));
+      when(
+        mockDio.get(
+          '/equipes/eq-a',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/equipes/eq-a')),
+      );
+      when(
+        mockDio.get(
+          '/equipes/eq-b',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/equipes/eq-b')),
+      );
+      when(
+        mockDio.get(
+          '/equipes/eq-c',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/equipes/eq-c')),
+      );
+      when(
+        mockDio.get(
+          '/equipes/eq-d',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/equipes/eq-d')),
+      );
 
       final result = await service.listarTodasPartidas();
 
@@ -97,11 +126,17 @@ void main() {
     });
 
     test('deve retornar lista vazia em caso de erro na API', () async {
-      when(mockDio.get('/partidas', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/partidas')));
+      when(
+        mockDio.get(
+          '/partidas',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/partidas')),
+      );
 
       final result = await service.listarTodasPartidas();
       expect(result, isEmpty);
@@ -113,17 +148,23 @@ void main() {
   // ============================================================
   group('PartidaService — buscarPartidaPorId', () {
     test('deve retornar Partida quando encontrada', () async {
-      when(mockDio.get('/partidas/p1', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenAnswer((_) async => _fakeResponse({
-                'id': 'p1',
-                'modalidadeId': 'm1',
-                'status': 'agendada',
-                'equipeAId': 'eq-a',
-                'equipeBId': 'eq-b',
-              }));
+      when(
+        mockDio.get(
+          '/partidas/p1',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer(
+        (_) async => _fakeResponse({
+          'id': 'p1',
+          'modalidadeId': 'm1',
+          'status': 'agendada',
+          'equipeAId': 'eq-a',
+          'equipeBId': 'eq-b',
+        }),
+      );
 
       final result = await service.buscarPartidaPorId('p1');
 
@@ -133,11 +174,19 @@ void main() {
     });
 
     test('deve retornar null em caso de erro', () async {
-      when(mockDio.get('/partidas/p-nao-existe', queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/partidas/p-nao-existe')));
+      when(
+        mockDio.get(
+          '/partidas/p-nao-existe',
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/partidas/p-nao-existe'),
+        ),
+      );
 
       final result = await service.buscarPartidaPorId('p-nao-existe');
       expect(result, isNull);
@@ -148,49 +197,71 @@ void main() {
   // STATUS DA PARTIDA
   // ============================================================
   group('PartidaService — atualizarPartida (status)', () {
-    test('deve chamar PATCH /partidas/{id}/status com status correto', () async {
-      when(mockDio.patch('/partidas/p1/status', data: anyNamed('data'),
-              queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onSendProgress: anyNamed('onSendProgress'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenAnswer((_) async => _fakeResponse({'ok': true}));
+    test(
+      'deve chamar PATCH /partidas/{id}/status com status correto',
+      () async {
+        when(
+          mockDio.patch(
+            '/partidas/p1/status',
+            data: anyNamed('data'),
+            queryParameters: anyNamed('queryParameters'),
+            options: anyNamed('options'),
+            cancelToken: anyNamed('cancelToken'),
+            onSendProgress: anyNamed('onSendProgress'),
+            onReceiveProgress: anyNamed('onReceiveProgress'),
+          ),
+        ).thenAnswer((_) async => _fakeResponse({'ok': true}));
 
-      // Não deve lançar exceção
-      await expectLater(
-        service.atualizarPartida('p1', novoStatus: 'em_andamento'),
-        completes,
-      );
+        // Não deve lançar exceção
+        await expectLater(
+          service.atualizarPartida('p1', novoStatus: 'em_andamento'),
+          completes,
+        );
 
-      verify(mockDio.patch('/partidas/p1/status', data: anyNamed('data'),
-          queryParameters: anyNamed('queryParameters'),
-          options: anyNamed('options'),
-          cancelToken: anyNamed('cancelToken'),
-          onSendProgress: anyNamed('onSendProgress'),
-          onReceiveProgress: anyNamed('onReceiveProgress'))).called(1);
-    });
+        verify(
+          mockDio.patch(
+            '/partidas/p1/status',
+            data: anyNamed('data'),
+            queryParameters: anyNamed('queryParameters'),
+            options: anyNamed('options'),
+            cancelToken: anyNamed('cancelToken'),
+            onSendProgress: anyNamed('onSendProgress'),
+            onReceiveProgress: anyNamed('onReceiveProgress'),
+          ),
+        ).called(1);
+      },
+    );
 
     test('deve ignorar status vazio sem fazer requisição', () async {
       await service.atualizarPartida('p1', novoStatus: '');
 
-      verifyNever(mockDio.patch(any, data: anyNamed('data'),
+      verifyNever(
+        mockDio.patch(
+          any,
+          data: anyNamed('data'),
           queryParameters: anyNamed('queryParameters'),
           options: anyNamed('options'),
           cancelToken: anyNamed('cancelToken'),
           onSendProgress: anyNamed('onSendProgress'),
-          onReceiveProgress: anyNamed('onReceiveProgress')));
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      );
     });
 
     test('deve ignorar status null sem fazer requisição', () async {
       await service.atualizarPartida('p1', novoStatus: null);
 
-      verifyNever(mockDio.patch(any, data: anyNamed('data'),
+      verifyNever(
+        mockDio.patch(
+          any,
+          data: anyNamed('data'),
           queryParameters: anyNamed('queryParameters'),
           options: anyNamed('options'),
           cancelToken: anyNamed('cancelToken'),
           onSendProgress: anyNamed('onSendProgress'),
-          onReceiveProgress: anyNamed('onReceiveProgress')));
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      );
     });
   });
 
@@ -199,13 +270,17 @@ void main() {
   // ============================================================
   group('PartidaService — startPartida', () {
     test('deve chamar POST /partidas/{id}/start sem lançar exceção', () async {
-      when(mockDio.post('/partidas/p1/start', data: anyNamed('data'),
-              queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onSendProgress: anyNamed('onSendProgress'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenAnswer((_) async => _fakeResponse({'ok': true}));
+      when(
+        mockDio.post(
+          '/partidas/p1/start',
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onSendProgress: anyNamed('onSendProgress'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer((_) async => _fakeResponse({'ok': true}));
 
       await expectLater(service.startPartida('p1'), completes);
     });
@@ -213,13 +288,17 @@ void main() {
 
   group('PartidaService — endPartida', () {
     test('deve retornar statusCode 200 em caso de sucesso', () async {
-      when(mockDio.post('/partidas/p1/end', data: anyNamed('data'),
-              queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onSendProgress: anyNamed('onSendProgress'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenAnswer((_) async => _fakeResponse({'ok': true}, statusCode: 200));
+      when(
+        mockDio.post(
+          '/partidas/p1/end',
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onSendProgress: anyNamed('onSendProgress'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer((_) async => _fakeResponse({'ok': true}, statusCode: 200));
 
       final (code, detail) = await service.endPartida('p1');
 
@@ -228,20 +307,26 @@ void main() {
     });
 
     test('deve retornar statusCode 409 e detail quando já encerrada', () async {
-      when(mockDio.post('/partidas/p1/end', data: anyNamed('data'),
-              queryParameters: anyNamed('queryParameters'),
-              options: anyNamed('options'),
-              cancelToken: anyNamed('cancelToken'),
-              onSendProgress: anyNamed('onSendProgress'),
-              onReceiveProgress: anyNamed('onReceiveProgress')))
-          .thenThrow(DioException(
+      when(
+        mockDio.post(
+          '/partidas/p1/end',
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onSendProgress: anyNamed('onSendProgress'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/partidas/p1/end'),
+          response: Response(
             requestOptions: RequestOptions(path: '/partidas/p1/end'),
-            response: Response(
-              requestOptions: RequestOptions(path: '/partidas/p1/end'),
-              statusCode: 409,
-              data: {'detail': 'Partida já encerrada'},
-            ),
-          ));
+            statusCode: 409,
+            data: {'detail': 'Partida já encerrada'},
+          ),
+        ),
+      );
 
       final (code, detail) = await service.endPartida('p1');
 

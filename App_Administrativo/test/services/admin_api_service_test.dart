@@ -2,9 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:kyarem_eventos/models/campeonato_model.dart';
-import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
-import 'package:kyarem_eventos/models/arbitro_model.dart';
 import 'package:kyarem_eventos/services/admin_api_service.dart';
 
 import 'admin_api_service_test.mocks.dart';
@@ -37,11 +34,17 @@ void main() {
   // ============================================================
   group('AdminApiService — listarCampeonatos', () {
     test('deve retornar lista de campeonatos em caso de sucesso', () async {
-      when(mockDio.get('/campeonatos', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'c1', 'nome': 'Copa Universitária'},
-                {'id': 'c2', 'nome': 'Liga de Verão'},
-              ]));
+      when(
+        mockDio.get(
+          '/campeonatos',
+          queryParameters: anyNamed('queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {'id': 'c1', 'nome': 'Copa Universitária'},
+          {'id': 'c2', 'nome': 'Liga de Verão'},
+        ]),
+      );
 
       final result = await service.listarCampeonatos();
 
@@ -51,28 +54,42 @@ void main() {
     });
 
     test('deve retornar lista vazia quando a API lança exceção', () async {
-      when(mockDio.get('/campeonatos', queryParameters: anyNamed('queryParameters')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/campeonatos')));
+      when(
+        mockDio.get(
+          '/campeonatos',
+          queryParameters: anyNamed('queryParameters'),
+        ),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/campeonatos')),
+      );
 
       final result = await service.listarCampeonatos();
 
       expect(result, isEmpty);
     });
 
-    test('deve retornar lista vazia quando a API retorna lista vazia', () async {
-      when(mockDio.get('/campeonatos', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([]));
+    test(
+      'deve retornar lista vazia quando a API retorna lista vazia',
+      () async {
+        when(
+          mockDio.get(
+            '/campeonatos',
+            queryParameters: anyNamed('queryParameters'),
+          ),
+        ).thenAnswer((_) async => _fakeResponse([]));
 
-      final result = await service.listarCampeonatos();
-      expect(result, isEmpty);
-    });
+        final result = await service.listarCampeonatos();
+        expect(result, isEmpty);
+      },
+    );
   });
 
   group('AdminApiService — criarCampeonato', () {
     test('deve retornar Campeonato em caso de sucesso', () async {
       final payload = {'nome': 'Novo Campeonato', 'nivelCampeonato': 'Local'};
-      when(mockDio.post('/campeonatos', data: anyNamed('data')))
-          .thenAnswer((_) async => _fakeResponse({'id': 'c-new', 'nome': 'Novo Campeonato'}));
+      when(mockDio.post('/campeonatos', data: anyNamed('data'))).thenAnswer(
+        (_) async => _fakeResponse({'id': 'c-new', 'nome': 'Novo Campeonato'}),
+      );
 
       final result = await service.criarCampeonato(payload);
 
@@ -82,8 +99,9 @@ void main() {
     });
 
     test('deve retornar null quando a API lança exceção', () async {
-      when(mockDio.post('/campeonatos', data: anyNamed('data')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/campeonatos')));
+      when(mockDio.post('/campeonatos', data: anyNamed('data'))).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/campeonatos')),
+      );
 
       final result = await service.criarCampeonato({'nome': 'X'});
       expect(result, isNull);
@@ -93,8 +111,9 @@ void main() {
   group('AdminApiService — atualizarCampeonato', () {
     test('deve retornar Campeonato atualizado em caso de sucesso', () async {
       final payload = {'nome': 'Nome Atualizado'};
-      when(mockDio.put('/campeonatos/c1', data: anyNamed('data')))
-          .thenAnswer((_) async => _fakeResponse({'id': 'c1', 'nome': 'Nome Atualizado'}));
+      when(mockDio.put('/campeonatos/c1', data: anyNamed('data'))).thenAnswer(
+        (_) async => _fakeResponse({'id': 'c1', 'nome': 'Nome Atualizado'}),
+      );
 
       final result = await service.atualizarCampeonato('c1', payload);
 
@@ -103,8 +122,9 @@ void main() {
     });
 
     test('deve retornar null em caso de erro', () async {
-      when(mockDio.put('/campeonatos/c1', data: anyNamed('data')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/campeonatos/c1')));
+      when(mockDio.put('/campeonatos/c1', data: anyNamed('data'))).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/campeonatos/c1')),
+      );
 
       final result = await service.atualizarCampeonato('c1', {});
       expect(result, isNull);
@@ -113,16 +133,18 @@ void main() {
 
   group('AdminApiService — excluirCampeonato', () {
     test('deve retornar true em caso de sucesso', () async {
-      when(mockDio.delete('/campeonatos/c1'))
-          .thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      when(
+        mockDio.delete('/campeonatos/c1'),
+      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
 
       final result = await service.excluirCampeonato('c1');
       expect(result, isTrue);
     });
 
     test('deve retornar false em caso de erro', () async {
-      when(mockDio.delete('/campeonatos/c1'))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/campeonatos/c1')));
+      when(mockDio.delete('/campeonatos/c1')).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/campeonatos/c1')),
+      );
 
       final result = await service.excluirCampeonato('c1');
       expect(result, isFalse);
@@ -134,11 +156,14 @@ void main() {
   // ============================================================
   group('AdminApiService — listarAtleticas', () {
     test('deve retornar lista de atleticas em caso de sucesso', () async {
-      when(mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'atl-1', 'nome': 'Atlética Eng'},
-                {'id': 'atl-2', 'nome': 'Atlética Med'},
-              ]));
+      when(
+        mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {'id': 'atl-1', 'nome': 'Atlética Eng'},
+          {'id': 'atl-2', 'nome': 'Atlética Med'},
+        ]),
+      );
 
       final result = await service.listarAtleticas();
 
@@ -147,8 +172,11 @@ void main() {
     });
 
     test('deve retornar lista vazia em caso de erro', () async {
-      when(mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/atleticas')));
+      when(
+        mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/atleticas')),
+      );
 
       final result = await service.listarAtleticas();
       expect(result, isEmpty);
@@ -157,39 +185,63 @@ void main() {
 
   group('AdminApiService — buscarAtleticaDoPresidente', () {
     test('deve retornar id da atletica quando usuario é presidente', () async {
-      when(mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'atl-1', 'presidenteId': 'user-abc', 'nome': 'Atlética Eng'},
-                {'id': 'atl-2', 'presidenteId': 'user-xyz', 'nome': 'Atlética Med'},
-              ]));
+      when(
+        mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {'id': 'atl-1', 'presidenteId': 'user-abc', 'nome': 'Atlética Eng'},
+          {'id': 'atl-2', 'presidenteId': 'user-xyz', 'nome': 'Atlética Med'},
+        ]),
+      );
 
       final result = await service.buscarAtleticaDoPresidente('user-abc');
       expect(result, 'atl-1');
     });
 
-    test('deve retornar null quando usuario não é presidente de nenhuma atletica', () async {
-      when(mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'atl-1', 'presidenteId': 'user-outro', 'nome': 'Outro'},
-              ]));
+    test(
+      'deve retornar null quando usuario não é presidente de nenhuma atletica',
+      () async {
+        when(
+          mockDio.get(
+            '/atleticas',
+            queryParameters: anyNamed('queryParameters'),
+          ),
+        ).thenAnswer(
+          (_) async => _fakeResponse([
+            {'id': 'atl-1', 'presidenteId': 'user-outro', 'nome': 'Outro'},
+          ]),
+        );
 
-      final result = await service.buscarAtleticaDoPresidente('user-sem-atletica');
-      expect(result, isNull);
-    });
+        final result = await service.buscarAtleticaDoPresidente(
+          'user-sem-atletica',
+        );
+        expect(result, isNull);
+      },
+    );
 
     test('deve aceitar campo presidente_id no formato snake_case', () async {
-      when(mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'atl-3', 'presidente_id': 'user-snake', 'nome': 'Atlética Snake'},
-              ]));
+      when(
+        mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {
+            'id': 'atl-3',
+            'presidente_id': 'user-snake',
+            'nome': 'Atlética Snake',
+          },
+        ]),
+      );
 
       final result = await service.buscarAtleticaDoPresidente('user-snake');
       expect(result, 'atl-3');
     });
 
     test('deve retornar null em caso de erro na API', () async {
-      when(mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/atleticas')));
+      when(
+        mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/atleticas')),
+      );
 
       final result = await service.buscarAtleticaDoPresidente('user-x');
       expect(result, isNull);
@@ -201,11 +253,14 @@ void main() {
   // ============================================================
   group('AdminApiService — listarArbitros', () {
     test('deve retornar lista de árbitros em caso de sucesso', () async {
-      when(mockDio.get('/arbitros', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'arb-1', 'nomeExibicao': 'João Silva'},
-                {'id': 'arb-2', 'nomeExibicao': 'Maria Souza'},
-              ]));
+      when(
+        mockDio.get('/arbitros', queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {'id': 'arb-1', 'nomeExibicao': 'João Silva'},
+          {'id': 'arb-2', 'nomeExibicao': 'Maria Souza'},
+        ]),
+      );
 
       final result = await service.listarArbitros();
 
@@ -214,8 +269,11 @@ void main() {
     });
 
     test('deve retornar lista vazia em caso de erro', () async {
-      when(mockDio.get('/arbitros', queryParameters: anyNamed('queryParameters')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/arbitros')));
+      when(
+        mockDio.get('/arbitros', queryParameters: anyNamed('queryParameters')),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/arbitros')),
+      );
 
       final result = await service.listarArbitros();
       expect(result, isEmpty);
@@ -224,16 +282,26 @@ void main() {
 
   group('AdminApiService — vincularArbitro', () {
     test('deve retornar true em caso de sucesso', () async {
-      when(mockDio.post('/partidas/p1/arbitros', data: anyNamed('data')))
-          .thenAnswer((_) async => _fakeResponse({'ok': true}));
+      when(
+        mockDio.post('/partidas/p1/arbitros', data: anyNamed('data')),
+      ).thenAnswer((_) async => _fakeResponse({'ok': true}));
 
-      final result = await service.vincularArbitro('p1', 'arb-1', 'Árbitro Principal');
+      final result = await service.vincularArbitro(
+        'p1',
+        'arb-1',
+        'Árbitro Principal',
+      );
       expect(result, isTrue);
     });
 
     test('deve retornar false em caso de erro', () async {
-      when(mockDio.post('/partidas/p1/arbitros', data: anyNamed('data')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/partidas/p1/arbitros')));
+      when(
+        mockDio.post('/partidas/p1/arbitros', data: anyNamed('data')),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/partidas/p1/arbitros'),
+        ),
+      );
 
       final result = await service.vincularArbitro('p1', 'arb-1', 'Mesário');
       expect(result, isFalse);
@@ -242,16 +310,20 @@ void main() {
 
   group('AdminApiService — desvincularArbitro', () {
     test('deve retornar true em caso de sucesso', () async {
-      when(mockDio.delete('/partidas/p1/arbitros/vinc-1'))
-          .thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      when(
+        mockDio.delete('/partidas/p1/arbitros/vinc-1'),
+      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
 
       final result = await service.desvincularArbitro('p1', 'vinc-1');
       expect(result, isTrue);
     });
 
     test('deve retornar false em caso de erro', () async {
-      when(mockDio.delete('/partidas/p1/arbitros/vinc-1'))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/partidas/p1/arbitros/vinc-1')));
+      when(mockDio.delete('/partidas/p1/arbitros/vinc-1')).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/partidas/p1/arbitros/vinc-1'),
+        ),
+      );
 
       final result = await service.desvincularArbitro('p1', 'vinc-1');
       expect(result, isFalse);
@@ -263,19 +335,25 @@ void main() {
   // ============================================================
   group('AdminApiService — listarEquipes', () {
     test('deve retornar lista de equipes sem filtros', () async {
-      when(mockDio.get('/equipes', queryParameters: anyNamed('queryParameters')))
-          .thenAnswer((_) async => _fakeResponse([
-                {'id': 'eq-1', 'nome': 'Engenharia FC', 'atleticaId': 'atl-1'},
-                {'id': 'eq-2', 'nome': 'Medicina RC', 'atleticaId': 'atl-2'},
-              ]));
+      when(
+        mockDio.get('/equipes', queryParameters: anyNamed('queryParameters')),
+      ).thenAnswer(
+        (_) async => _fakeResponse([
+          {'id': 'eq-1', 'nome': 'Engenharia FC', 'atleticaId': 'atl-1'},
+          {'id': 'eq-2', 'nome': 'Medicina RC', 'atleticaId': 'atl-2'},
+        ]),
+      );
 
       final result = await service.listarEquipes();
       expect(result, hasLength(2));
     });
 
     test('deve retornar lista vazia em caso de erro', () async {
-      when(mockDio.get('/equipes', queryParameters: anyNamed('queryParameters')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/equipes')));
+      when(
+        mockDio.get('/equipes', queryParameters: anyNamed('queryParameters')),
+      ).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/equipes')),
+      );
 
       final result = await service.listarEquipes();
       expect(result, isEmpty);
@@ -284,16 +362,18 @@ void main() {
 
   group('AdminApiService — excluirEquipe', () {
     test('deve retornar true em caso de sucesso', () async {
-      when(mockDio.delete('/equipes/eq-1'))
-          .thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      when(
+        mockDio.delete('/equipes/eq-1'),
+      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
 
       final result = await service.excluirEquipe('eq-1');
       expect(result, isTrue);
     });
 
     test('deve retornar false em caso de erro', () async {
-      when(mockDio.delete('/equipes/eq-1'))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/equipes/eq-1')));
+      when(mockDio.delete('/equipes/eq-1')).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/equipes/eq-1')),
+      );
 
       final result = await service.excluirEquipe('eq-1');
       expect(result, isFalse);
@@ -305,9 +385,14 @@ void main() {
   // ============================================================
   group('AdminApiService — criarPartida', () {
     test('deve retornar map de partida em caso de sucesso', () async {
-      final payload = {'modalidadeId': 'm1', 'equipeAId': 'a', 'equipeBId': 'b'};
-      when(mockDio.post('/partidas', data: anyNamed('data')))
-          .thenAnswer((_) async => _fakeResponse({'id': 'p-new', 'status': 'agendada'}));
+      final payload = {
+        'modalidadeId': 'm1',
+        'equipeAId': 'a',
+        'equipeBId': 'b',
+      };
+      when(mockDio.post('/partidas', data: anyNamed('data'))).thenAnswer(
+        (_) async => _fakeResponse({'id': 'p-new', 'status': 'agendada'}),
+      );
 
       final result = await service.criarPartida(payload);
 
@@ -317,8 +402,9 @@ void main() {
     });
 
     test('deve retornar null em caso de erro', () async {
-      when(mockDio.post('/partidas', data: anyNamed('data')))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/partidas')));
+      when(mockDio.post('/partidas', data: anyNamed('data'))).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/partidas')),
+      );
 
       final result = await service.criarPartida({});
       expect(result, isNull);
@@ -327,16 +413,18 @@ void main() {
 
   group('AdminApiService — excluirPartida', () {
     test('deve retornar true em caso de sucesso', () async {
-      when(mockDio.delete('/partidas/p1'))
-          .thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      when(
+        mockDio.delete('/partidas/p1'),
+      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
 
       final result = await service.excluirPartida('p1');
       expect(result, isTrue);
     });
 
     test('deve retornar false em caso de erro', () async {
-      when(mockDio.delete('/partidas/p1'))
-          .thenThrow(DioException(requestOptions: RequestOptions(path: '/partidas/p1')));
+      when(mockDio.delete('/partidas/p1')).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/partidas/p1')),
+      );
 
       final result = await service.excluirPartida('p1');
       expect(result, isFalse);
