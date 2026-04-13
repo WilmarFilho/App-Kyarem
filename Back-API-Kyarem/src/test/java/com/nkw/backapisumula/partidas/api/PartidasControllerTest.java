@@ -1,6 +1,7 @@
 package com.nkw.backapisumula.partidas.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nkw.backapisumula.common.log.ApplicationLogService;
 import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.service.PartidaService;
@@ -45,6 +46,7 @@ class PartidasControllerTest {
     // Mocks obrigatórios: services usados pelo controller
     @MockBean private PartidaService service;
     @MockBean private SumulaOficialPdfService sumulaOficialPdfService;
+    @MockBean private ApplicationLogService applicationLogService;
 
     // Mocks de infraestrutura de segurança:
     // JwtDecoder → evita chamada HTTP ao endpoint JWKS do Supabase

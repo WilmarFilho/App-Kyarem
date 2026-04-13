@@ -4,15 +4,13 @@ import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoders;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableMethodSecurity
@@ -31,10 +29,10 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // health/info se usar actuator
                         .requestMatchers("/actuator/**").permitAll()
-
-                        // leitura pública (se quiser permitir no MVP, pode ajustar depois)
+                        // logs administrativos
+                        .requestMatchers("/api/v1/admin/logs/**").hasRole("admin")
+                        // leitura publica (se quiser permitir no MVP, pode ajustar depois)
                         .requestMatchers(HttpMethod.GET, "/api/v1/esportes/**").permitAll()
-
                         // resto precisa auth
                         .anyRequest().authenticated()
                 )

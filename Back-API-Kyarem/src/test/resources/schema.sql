@@ -117,3 +117,22 @@ CREATE TABLE IF NOT EXISTS equipes_staff (
     cargo VARCHAR(100) NOT NULL,
     criado_em TIMESTAMP WITH TIME ZONE
 );
+
+CREATE TABLE IF NOT EXISTS application_logs (
+    id UUID DEFAULT RANDOM_UUID() PRIMARY KEY,
+    level TEXT NOT NULL,
+    category TEXT NOT NULL,
+    message TEXT NOT NULL,
+    source TEXT,
+    exception_class TEXT,
+    stack_trace TEXT,
+    details JSON,
+    http_method TEXT,
+    path TEXT,
+    status_code INT,
+    user_id UUID,
+    request_id TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

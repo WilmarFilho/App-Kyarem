@@ -1,6 +1,7 @@
 package com.nkw.backapisumula.competicao.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nkw.backapisumula.common.log.ApplicationLogService;
 import com.nkw.backapisumula.competicao.Equipe;
 import com.nkw.backapisumula.competicao.EquipeStaff;
 import com.nkw.backapisumula.competicao.service.EquipeAtletaInscritoService;
@@ -42,6 +43,7 @@ class EquipesControllerTest {
     @MockBean private EquipeService service;
     @MockBean private EquipeAtletaInscritoService inscritosService;
     @MockBean private EquipeStaffService staffService;
+    @MockBean private ApplicationLogService applicationLogService;
     @MockBean private JwtDecoder jwtDecoder;
     @MockBean private ProfileRepository profileRepository;
 
