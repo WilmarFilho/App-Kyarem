@@ -14,6 +14,10 @@ class FakePartidaService extends PartidaService {
   final List<Map<String, dynamic>> inscritosA;
   final List<Map<String, dynamic>> inscritosB;
   final List<Map<String, dynamic>> eventosPartida;
+  final Map<String, dynamic>? ultimoEventoComTempo;
+  int startPartidaChamadas = 0;
+  final List<Map<String, dynamic>> eventosSalvos = [];
+  final List<Map<String, String?>> statusAtualizados = [];
 
   FakePartidaService({
     this.partidas = const [],
@@ -21,6 +25,7 @@ class FakePartidaService extends PartidaService {
     this.inscritosA = const [],
     this.inscritosB = const [],
     this.eventosPartida = const [],
+    this.ultimoEventoComTempo,
   }) : super.forTesting();
 
   @override
@@ -60,6 +65,7 @@ class FakePartidaService extends PartidaService {
 
   @override
   Future<Map<String, dynamic>?> buscarUltimoEventoComTempo(String partidaId) async {
+    if (ultimoEventoComTempo != null) return ultimoEventoComTempo;
     if (eventosPartida.isEmpty) return null;
     return eventosPartida.last;
   }
@@ -75,7 +81,34 @@ class FakePartidaService extends PartidaService {
     String? descricao,
     bool isSubstitution = false,
   }) async {
-    // Apenas simula sucesso silencioso
+    eventosSalvos.add({
+      'partidaId': partidaId,
+      'tipoEventoId': tipoEventoId,
+      'equipeId': equipeId,
+      'atletaId': atletaId,
+      'atletaSaiId': atletaSaiId,
+      'tempoFormatado': tempoFormatado,
+      'descricao': descricao,
+      'isSubstitution': isSubstitution.toString(),
+    });
+  }
+
+  @override
+  Future<void> atualizarPartida(
+    String partidaId, {
+    String? novoStatus,
+    String? statusAntesPausa,
+  }) async {
+    statusAtualizados.add({
+      'partidaId': partidaId,
+      'novoStatus': novoStatus,
+      'statusAntesPausa': statusAntesPausa,
+    });
+  }
+
+  @override
+  Future<void> startPartida(String partidaId) async {
+    startPartidaChamadas++;
   }
 
   @override

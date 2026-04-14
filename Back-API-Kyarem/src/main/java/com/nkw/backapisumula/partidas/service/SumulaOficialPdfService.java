@@ -249,7 +249,7 @@ public class SumulaOficialPdfService {
                                        Map<UUID, Integer> numMap, int tempoPeriodo) {
         if (equipeId == null) return List.of();
         return eventos.stream()
-                .filter(e -> isTipo(e, "GOL"))
+                .filter(e -> EventoPartidaService.isGoalEvent(e.getTipoEvento()))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
                 .map(e -> new GoalEntry(
                         textOrBlank(Optional.ofNullable(e.getAtleta())
@@ -304,7 +304,7 @@ public class SumulaOficialPdfService {
         if (equipeId == null) return 0;
         OffsetDateTime tInicio2 = firstCreatedAtOfTipo(eventos, "INICIO_2_TEMPO");
         return (int) eventos.stream()
-                .filter(e -> isTipo(e, "GOL"))
+                .filter(e -> EventoPartidaService.isGoalEvent(e.getTipoEvento()))
                 .filter(e -> e.getEquipe() != null && Objects.equals(e.getEquipe().getId(), equipeId))
                 .filter(e -> {
                     OffsetDateTime t = e.getCriadoEm();

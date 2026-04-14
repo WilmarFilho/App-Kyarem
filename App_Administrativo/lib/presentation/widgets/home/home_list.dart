@@ -18,7 +18,9 @@ class HomeListItem extends StatelessWidget {
     if (type == 'Jogos') {
       titulo = '${item.equipeA?.nome} vs ${item.equipeB?.nome}';
       subTitulo = item.status.isNotEmpty
-          ? '${item.status[0].toUpperCase()}${item.status.substring(1).toLowerCase()}'
+          ? (item.status.toString().toLowerCase() == 'pênaltis'
+                ? 'Pênaltis'
+                : '${item.status[0].toUpperCase()}${item.status.substring(1).toLowerCase()}')
           : item.status;
       leading = const Icon(Icons.sports_soccer, color: Color(0xFFF85C39));
     } else if (type == 'Árbitros') {

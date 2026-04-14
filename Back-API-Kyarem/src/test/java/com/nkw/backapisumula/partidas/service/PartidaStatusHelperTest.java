@@ -42,7 +42,7 @@ class PartidaStatusHelperTest {
     // ──────────────────────────────────────────────────────
 
     @ParameterizedTest(name = "Status \"{0}\" deve ser considerado em andamento")
-    @ValueSource(strings = {"1° tempo", "intervalo", "2° tempo", "prorrogação", "acréscimo", "pausada"})
+    @ValueSource(strings = {"1° tempo", "intervalo", "2° tempo", "prorrogação", "acréscimo", "pausada", "pênaltis"})
     void isStatusEmAndamento_statusDeJogo_retornaTrue(String status) {
         assertTrue(PartidaService.isStatusEmAndamento(status));
     }
@@ -117,7 +117,7 @@ class PartidaStatusHelperTest {
     @ParameterizedTest(name = "Status válido \"{0}\" não deve lançar exceção")
     @ValueSource(strings = {
             "agendada", "1° tempo", "intervalo", "2° tempo",
-            "prorrogação", "acréscimo", "pausada", "finalizada", "fechada"
+            "prorrogação", "acréscimo", "pausada", "pênaltis", "finalizada", "fechada"
     })
     void validateStatus_statusValido_naoLancaExcecao(String status) {
         // validateStatus não é estático → usa a instância injetada

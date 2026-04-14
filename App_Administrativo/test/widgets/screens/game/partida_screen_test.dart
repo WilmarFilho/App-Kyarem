@@ -134,15 +134,17 @@ void main() {
     });
 
     testWidgets('botão play inicia a partida se estiver agendada', (tester) async {
+      final fakeService = FakePartidaService(
+        partidas: [partidaFake],
+        tiposEvento: tiposEventoFake,
+        inscritosA: inscritosAFake,
+        inscritosB: inscritosBFake,
+      );
+
       await tester.pumpWidget(_buildTestApp(
         PartidaRunningScreen(
           partida: partidaFake,
-          partidaService: FakePartidaService(
-            partidas: [partidaFake],
-            tiposEvento: tiposEventoFake,
-            inscritosA: inscritosAFake,
-            inscritosB: inscritosBFake,
-          ),
+          partidaService: fakeService,
         ),
       ));
 
@@ -156,6 +158,12 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pump(const Duration(seconds: 1));
 
+      expect(fakeService.startPartidaChamadas, 1);
+      expect(
+        fakeService.eventosSalvos.where((e) => e['tempoFormatado'] == '00:00'),
+        isNotEmpty,
+      );
+
       // Agora deve estar em 00:02 pelo menos (ou 00:01)
       expect(find.byWidgetPredicate((widget) {
         if (widget is Text) {
@@ -163,6 +171,29 @@ void main() {
         }
         return false;
       }), findsWidgets);
+    });
+
+    testWidgets('partida eliminatória empatada em aguardando pênaltis abre tela de pênaltis', (tester) async {
+      final partidaPenaltis = partidaFake.copyWith(
+        status: 'pênaltis',
+        fase: 'Eliminatórias',
+      );
+
+      await tester.pumpWidget(_buildTestApp(
+        PartidaRunningScreen(
+          partida: partidaPenaltis,
+          partidaService: FakePartidaService(
+            partidas: [partidaPenaltis],
+            tiposEvento: tiposEventoFake,
+            inscritosA: inscritosAFake,
+            inscritosB: inscritosBFake,
+          ),
+        ),
+      ));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('DISPUTA DE PÊNALTIS'), findsOneWidget);
     });
   });
 }

@@ -168,6 +168,8 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
       case 'prorrogação':
       case 'acréscimo':
         return Colors.green;
+      case 'pênaltis':
+        return const Color(0xFFF85C39);
       case 'finalizada':
         return Colors.grey;
       case 'fechada':
@@ -191,6 +193,8 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
         return 'Prorrogação';
       case 'acréscimo':
         return 'Acréscimo';
+      case 'pênaltis':
+        return 'Pênaltis';
       case 'pausada':
         return 'Pausada';
       case 'finalizada':

@@ -5,6 +5,7 @@ import 'package:kyarem_eventos/models/tipo_evento_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
 import 'package:kyarem_eventos/presentation/screens/game/resumo_partida_screen.dart';
+import 'package:kyarem_eventos/presentation/screens/game/eliminatorias_post_match_screen.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
 import 'package:printing/printing.dart';
 import '../../widgets/layout/gradient_background.dart';
@@ -22,6 +23,7 @@ enum PeriodoPartida {
   segundoTempo,
   prorrogacao,
   acrescimo,
+  aguardandoPenaltis,
   finalizada,
   fechada,
 }
@@ -190,6 +192,7 @@ class PartidaRunningScreen extends StatefulWidget {
 
 class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     with WidgetsBindingObserver {
+  static const String _statusAguardandoPenaltis = 'pênaltis';
   static const int duracaoPrimeiroTempo = 20 * 60; // 1200 segundos
   static const int duracaoSegundoTempo =
       40 * 60; // 2400 segundos (Total acumulado)
@@ -246,10 +249,14 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     _nomeTimeA = widget.partida.equipeA?.nome ?? "Time A";
     _nomeTimeB = widget.partida.equipeB?.nome ?? "Time B";
     _periodoAtual = _converterStatusParaPeriodo(widget.partida.status);
-    if (_periodoAtual != PeriodoPartida.naoIniciada) _partidaJaIniciou = true;
+    if (_periodoAtual != PeriodoPartida.naoIniciada &&
+        _periodoAtual != PeriodoPartida.aguardandoPenaltis) {
+      _partidaJaIniciou = true;
+    }
 
     // Se entrar em partida encerrada, não liga timers nem permite interação
     if (_periodoAtual == PeriodoPartida.finalizada ||
+        _periodoAtual == PeriodoPartida.aguardandoPenaltis ||
         _periodoAtual == PeriodoPartida.fechada) {
       _rodando = false;
       _timer?.cancel();
@@ -268,7 +275,15 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       }
     }
 
-    _carregarDadosIniciais().then((_) => _sincronizarCronometro());
+    _carregarDadosIniciais().then((_) async {
+      if (_periodoAtual == PeriodoPartida.aguardandoPenaltis ||
+          (_periodoAtual == PeriodoPartida.pausada &&
+              _periodoAntesDoPausa == PeriodoPartida.aguardandoPenaltis)) {
+        await _abrirTelaPenaltis();
+        return;
+      }
+      await _sincronizarCronometro();
+    });
   }
 
   // Localize o método _carregarDadosIniciais e adicione _carregarEventosSalvos()
@@ -295,6 +310,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       final rawEventos = await _partidaService.buscarEventosDaPartida(
         widget.partida.id,
       );
+
+      _recuperarDadosPerdidosDosEventos(rawEventos);
 
       final listaConvertida = rawEventos
           .map((ev) {
@@ -332,6 +349,70 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     } catch (e) {
       debugPrint("Erro ao carregar eventos salvos: $e");
     }
+  }
+
+  void _recuperarDadosPerdidosDosEventos(List<dynamic> rawEventos) {
+    if (_periodoAtual == PeriodoPartida.naoIniciada) return;
+
+    final eventosCronologicos = rawEventos.reversed.toList();
+
+    int pausasTimeA1 = 0;
+    int pausasTimeB1 = 0;
+    int pausasTimeA2 = 0;
+    int pausasTimeB2 = 0;
+
+    int tempAcrescimo = 0;
+    bool hasAcrescimo = false;
+
+    int tempProrrogacao = 0;
+    bool hasProrrogacao = false;
+
+    for (var ev in eventosCronologicos) {
+      final tipoNome = ev['tipo_evento']?['nome']?.toString().toUpperCase() ?? '';
+      final descricao = ev['descricao']?.toString() ?? '';
+      final equipeId = ev['equipe_id']?.toString() ?? '';
+      final tempoJogo = _parseTempoCronometro(ev['tempo_cronometro']?.toString() ?? '00:00');
+
+      if (tipoNome.contains('PAUSA_TECNICA')) {
+        bool isTimeA = equipeId == widget.partida.equipeAId;
+        if (tempoJogo <= duracaoPrimeiroTempo) {
+          if (isTimeA) pausasTimeA1++; else pausasTimeB1++;
+        } else {
+          if (isTimeA) pausasTimeA2++; else pausasTimeB2++;
+        }
+      }
+
+      if (tipoNome == 'ACRESCIMO_DADO') {
+        final match = RegExp(r'(\d+)').firstMatch(descricao);
+        if (match != null) {
+          int minutos = int.parse(match.group(1)!);
+          tempAcrescimo = minutos * 60;
+          hasAcrescimo = true;
+        }
+      }
+
+      if (tipoNome == 'PRORROGACAO_DADA') {
+        final match = RegExp(r'(\d+)').firstMatch(descricao);
+        if (match != null) {
+          int minutos = int.parse(match.group(1)!);
+          tempProrrogacao = minutos * 60;
+          hasProrrogacao = true;
+        }
+      }
+    }
+
+    setState(() {
+      _pausasTecnicasTimeAPrimeiroTempo = pausasTimeA1;
+      _pausasTecnicasTimeBPrimeiroTempo = pausasTimeB1;
+      _pausasTecnicasTimeASegundoTempo = pausasTimeA2;
+      _pausasTecnicasTimeBSegundoTempo = pausasTimeB2;
+
+      _tempoAcrescimo = tempAcrescimo;
+      _temAcrescimo = hasAcrescimo;
+
+      _tempoProrrogacao = tempProrrogacao;
+      _temProrrogacao = hasProrrogacao;
+    });
   }
 
   Future<void> _carregarNomesEquipes() async {
@@ -464,9 +545,37 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     }
   }
 
+  String _normalizarTexto(String? valor) {
+    return (valor ?? '')
+        .toLowerCase()
+        .trim()
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ç', 'c')
+        .replaceAll('_', ' ');
+  }
+
+  bool get _ehEliminatoria =>
+      _normalizarTexto(widget.partida.fase) == 'eliminatorias';
+
+  bool get _precisaPenaltis => _ehEliminatoria && _golsA == _golsB;
+
+  List<Atleta> _todosJogadores(List<Atleta> titulares, List<Atleta> reservas) {
+    return [...titulares, ...reservas];
+  }
+
   // Função auxiliar para o mapeamento
   PeriodoPartida _converterStatusParaPeriodo(String status) {
-    switch (status.toLowerCase()) {
+    switch (_normalizarTexto(status)) {
       case 'agendada':
         return PeriodoPartida.naoIniciada;
       case 'pausada':
@@ -481,6 +590,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         return PeriodoPartida.intervalo;
       case 'prorrogação':
         return PeriodoPartida.prorrogacao;
+      case 'penaltis':
+        return PeriodoPartida.aguardandoPenaltis;
       case 'finalizada':
         return PeriodoPartida.finalizada;
       case 'fechada':
@@ -507,6 +618,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         return 'prorrogação';
       case PeriodoPartida.acrescimo:
         return 'acréscimo';
+      case PeriodoPartida.aguardandoPenaltis:
+        return _statusAguardandoPenaltis;
       case PeriodoPartida.finalizada:
         return 'finalizada';
       case PeriodoPartida.fechada:
@@ -529,6 +642,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   Future<void> _registrarEventoSistemico(
     String nomeEventoNoBanco, {
     String descricao = '',
+    String? tempoOverride,
   }) async {
     debugPrint("REGISTRANDO EVENTO: $nomeEventoNoBanco");
     // 1. Tentar encontrar o tipo de evento na lista carregada
@@ -549,7 +663,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       jogadorNome: null,
       jogadorNumero: null,
       corTime: null,
-      horario: _formatarTempo(_segundos),
+      horario: tempoOverride ?? _formatarTempo(_segundos),
     );
 
     setState(() {
@@ -563,7 +677,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         descricao: descricao,
         partidaId: widget.partida.id,
         tipoEventoId: tipoEvento.id,
-        tempoFormatado: _formatarTempo(_segundos),
+        tempoFormatado: tempoOverride ?? _formatarTempo(_segundos),
       );
     }
   }
@@ -573,6 +687,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     String nomeEventoNoBanco, {
     required String? equipeId,
     String descricao = '',
+    String? tempoOverride,
   }) async {
     debugPrint(
       "REGISTRANDO EVENTO COM EQUIPE: $nomeEventoNoBanco equipeId=$equipeId",
@@ -592,7 +707,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       jogadorNome: null,
       jogadorNumero: null,
       corTime: null,
-      horario: _formatarTempo(_segundos),
+      horario: tempoOverride ?? _formatarTempo(_segundos),
     );
 
     setState(() {
@@ -608,14 +723,14 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         partidaId: widget.partida.id,
         equipeId: equipeId,
         tipoEventoId: tipoEvento.id,
-        tempoFormatado: _formatarTempo(_segundos),
+        tempoFormatado: tempoOverride ?? _formatarTempo(_segundos),
       );
     } else if (tipoEvento.id.isNotEmpty) {
       await _partidaService.salvarEvento(
         descricao: descricao,
         partidaId: widget.partida.id,
         tipoEventoId: tipoEvento.id,
-        tempoFormatado: _formatarTempo(_segundos),
+        tempoFormatado: tempoOverride ?? _formatarTempo(_segundos),
       );
     }
   }
@@ -661,6 +776,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   Future<void> _sincronizarCronometro() async {
     // Só faz sentido sincronizar se a partida já começou
     if (_periodoAtual == PeriodoPartida.naoIniciada ||
+        _periodoAtual == PeriodoPartida.aguardandoPenaltis ||
         _periodoAtual == PeriodoPartida.finalizada ||
         _periodoAtual == PeriodoPartida.fechada)
       return;
@@ -687,6 +803,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       orElse: () => TipoEventoEsporte(id: '', nome: '', esporteId: '', idx: 0),
     );
     final rawNome = tipoEvento.nome.toUpperCase();
+    final periodoEfetivo = _periodoAtual == PeriodoPartida.pausada
+        ? (_periodoAntesDoPausa ?? _periodoAtual)
+        : _periodoAtual;
 
     final eventoIndicaPausa =
         rawNome.contains('PAUSADA') ||
@@ -694,7 +813,11 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         rawNome.contains('INTERVALO') ||
         rawNome.contains('FIM_');
 
-    if (eventoIndicaPausa) {
+    final partidaPausada =
+        _periodoAtual == PeriodoPartida.pausada ||
+        _periodoAtual == PeriodoPartida.intervalo;
+
+    if (partidaPausada || eventoIndicaPausa) {
       // Partida estava pausada: congela no tempo do evento
       _timer?.cancel();
       setState(() {
@@ -708,7 +831,12 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           .difference(timestampAncora.toUtc())
           .inSeconds;
 
-      final segundosRecuperados = segundosAncora + segundosDecorridos;
+      int segundosRecuperados = segundosAncora + segundosDecorridos;
+      if (periodoEfetivo == PeriodoPartida.primeiroTempo &&
+          segundosRecuperados > duracaoPrimeiroTempo &&
+          !_temAcrescimo) {
+        segundosRecuperados = duracaoPrimeiroTempo;
+      }
 
       _timer?.cancel();
       _timerPausa?.cancel(); // ← novo
@@ -887,15 +1015,28 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     _timer?.cancel();
     _timerPausa?.cancel();
 
+    final precisaPenaltis = _precisaPenaltis;
+
     setState(() {
       _rodando = false;
-      _periodoAtual = PeriodoPartida.finalizada;
+      _periodoAtual = precisaPenaltis
+          ? PeriodoPartida.aguardandoPenaltis
+          : PeriodoPartida.finalizada;
     });
 
     _partidaService.atualizarPartida(
       widget.partida.id,
-      novoStatus: 'finalizada',
+      novoStatus: precisaPenaltis ? _statusAguardandoPenaltis : 'finalizada',
     );
+
+    if (precisaPenaltis) {
+      _registrarEventoSistemico('PENALTI');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _abrirTelaPenaltis();
+      });
+      return;
+    }
+
     _registrarEventoSistemico('FIM_PARTIDA');
   }
 
@@ -1221,6 +1362,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     // DEFINI QUAL O EVENTO QUE SERA REGISTRADO NO BANCO
     String? eventoParaRegistrar;
+    String? tempoEvento;
 
     // DEFINI QUAL O SERVIÇO QUE SERA EXECUTADO
     Future<void> Function()? atualizarServico;
@@ -1230,6 +1372,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       switch (_periodoAtual) {
         case PeriodoPartida.naoIniciada:
           eventoParaRegistrar = 'INICIO_1_TEMPO';
+          tempoEvento = '00:00';
           atualizarServico = () =>
               _partidaService.startPartida(widget.partida.id);
           break;
@@ -1245,11 +1388,13 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
             );
           }
           eventoParaRegistrar = 'PARTIDA_RETOMADA';
+          tempoEvento = _formatarTempo(_segundos);
           break;
         case PeriodoPartida.intervalo:
           debugPrint('AA intervalo');
           if (_periodoAntesDoPausa == PeriodoPartida.primeiroTempo) {
             eventoParaRegistrar = 'INICIO_2_TEMPO';
+            tempoEvento = _formatarTempo(duracaoPrimeiroTempo);
             atualizarServico = () => _partidaService.atualizarPartida(
               widget.partida.id,
               novoStatus: '2° tempo',
@@ -1257,6 +1402,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           } else if (_periodoAntesDoPausa == PeriodoPartida.segundoTempo) {
             _iniciarProrrogacao();
             eventoParaRegistrar = 'PRORROGACAO';
+            tempoEvento = '00:00';
             atualizarServico = () => _partidaService.atualizarPartida(
               widget.partida.id,
               novoStatus: 'prorrogação',
@@ -1265,6 +1411,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           break;
         default:
           eventoParaRegistrar = 'PARTIDA_RETOMADA';
+          tempoEvento = _formatarTempo(_segundos);
           break;
       }
       // VAI PARAR
@@ -1283,6 +1430,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         );
 
         eventoParaRegistrar = 'PARTIDA_PAUSADA';
+        tempoEvento = _formatarTempo(_segundos);
       }
     }
 
@@ -1327,7 +1475,6 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       });
       _timerPausa?.cancel();
       _partidaJaIniciou = true;
-      atualizarServico?.call();
     } else {
       _timer?.cancel();
       if (_periodoAtual != PeriodoPartida.finalizada &&
@@ -1346,8 +1493,31 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     }
 
     if (eventoParaRegistrar != null) {
-      _registrarEventoSistemico(eventoParaRegistrar);
+      _registrarEventoSistemico(
+        eventoParaRegistrar,
+        tempoOverride: tempoEvento,
+      );
     }
+  }
+
+  Future<void> _abrirTelaPenaltis() async {
+    if (!mounted) return;
+
+    await Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EliminatoriasPostMatchScreen(
+          partida: widget.partida,
+          timeA: _nomeTimeA,
+          timeB: _nomeTimeB,
+          golsA: _golsA,
+          golsB: _golsB,
+          jogadoresA: _todosJogadores(_jogadoresA, _reservasA),
+          jogadoresB: _todosJogadores(_jogadoresB, _reservasB),
+          partidaService: _partidaService,
+        ),
+      ),
+    );
   }
 
   // Função para contar estatísticas do jogador em tempo real
@@ -1866,23 +2036,17 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                       Navigator.pushReplacement(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) =>
-                                              MatchSummaryScreen(
-                                                timeA: _nomeTimeA,
-                                                timeB: _nomeTimeB,
-                                                escudoA: widget
-                                                    .partida
-                                                    .equipeA
-                                                    ?.atleticaEscudoUrl,
-                                                escudoB: widget
-                                                    .partida
-                                                    .equipeB
-                                                    ?.atleticaEscudoUrl,
-                                                golsA: _golsA,
-                                                golsB: _golsB,
-                                                eventos: _eventosPartida,
-                                                partidaId: widget.partida.id,
-                                              ),
+                                          builder: (context) => MatchSummaryScreen(
+                                            timeA: _nomeTimeA,
+                                            timeB: _nomeTimeB,
+                                            escudoA: widget.partida.equipeA?.atleticaEscudoUrl,
+                                            escudoB: widget.partida.equipeB?.atleticaEscudoUrl,
+                                            golsA: _golsA,
+                                            golsB: _golsB,
+                                            eventos: _eventosPartida,
+                                            partidaId: widget.partida.id,
+                                            partidaService: _partidaService,
+                                          ),
                                         ),
                                       );
                                     },

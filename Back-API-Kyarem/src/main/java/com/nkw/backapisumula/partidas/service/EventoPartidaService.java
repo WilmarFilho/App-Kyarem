@@ -90,6 +90,12 @@ public class EventoPartidaService {
         return sb.toString();
     }
 
+    public static boolean isGoalEvent(TipoEvento tipoEvento) {
+        if (tipoEvento == null || tipoEvento.getNome() == null) return false;
+        String nome = tipoEvento.getNome().trim().toUpperCase();
+        return nome.equals("GOL") || nome.equals("PENALTI_MARCADO") || nome.equals("PENALTI_CONVERTIDO");
+    }
+
     public record AddEventoInput(
             UUID equipeId,
             UUID atletaId,
@@ -349,8 +355,8 @@ public class EventoPartidaService {
             }
 
             // Se for gol, precisa de equipe para atualizar placar -> use /eventos
-            if (tipoEvento.getNome() != null && tipoEvento.getNome().trim().equalsIgnoreCase("gol")) {
-                throw new IllegalStateException("Evento 'gol' requer equipeId (use /api/v1/partidas/{partidaId}/eventos). ");
+            if (isGoalEvent(tipoEvento)) {
+                throw new IllegalStateException("Evento '" + tipoEvento.getNome() + "' requer equipeId (use /api/v1/partidas/{partidaId}/eventos). ");
             }
 
             if (r.localEventoId() != null 
@@ -589,8 +595,8 @@ public class EventoPartidaService {
             ev.setDescricaoDetalhada(r.descricaoDetalhada());
             toSave.add(ev);
 
-            // Atualiza placar se for Gol (vamos somar e persistir 1 vez)
-            if (tipoEvento.getNome() != null && tipoEvento.getNome().trim().equalsIgnoreCase("gol")) {
+            // Atualiza placar se for Gol ou Pênalti (vamos somar e persistir 1 vez)
+            if (isGoalEvent(tipoEvento)) {
                 if (Objects.equals(r.equipeId(), equipeAId)) {
                     golsA++;
                 } else {
@@ -713,8 +719,8 @@ public class EventoPartidaService {
 
         EventoPartida saved = repo.save(ev);
 
-        // Atualiza placar se for Gol
-        if (tipoEvento.getNome() != null && tipoEvento.getNome().trim().equalsIgnoreCase("gol")) {
+        // Atualiza placar se for Gol ou Pênalti convertido
+        if (isGoalEvent(tipoEvento)) {
             Integer a = partida.getPlacarA() == null ? 0 : partida.getPlacarA();
             Integer b = partida.getPlacarB() == null ? 0 : partida.getPlacarB();
 

@@ -355,6 +355,18 @@ class PartidaServiceTest {
         assertEquals("prorrogação", resultado.getStatus());
     }
 
+    @Test
+    void updateStatus_penaltis_semAcento_normalizaCorretamente() {
+        Partida p = partida("prorrogação");
+        when(repo.findById(PARTIDA_ID)).thenReturn(Optional.of(p));
+        when(repo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Partida resultado = service.updateStatus(PARTIDA_ID, USUARIO_ID, false,
+                "penaltis", null);
+
+        assertEquals("pênaltis", resultado.getStatus());
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // delete()
     // ════════════════════════════════════════════════════════════════════════

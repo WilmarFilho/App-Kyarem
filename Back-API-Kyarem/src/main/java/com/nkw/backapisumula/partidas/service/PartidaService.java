@@ -35,6 +35,7 @@ public class PartidaService {
     public static final String STATUS_PRORROGACAO = "prorrogação";
     public static final String STATUS_ACRESCIMO = "acréscimo";
     public static final String STATUS_PAUSADA = "pausada";
+    public static final String STATUS_PENALTIS = "pênaltis";
     public static final String STATUS_FINALIZADA = "finalizada";
     public static final String STATUS_FECHADA = "fechada";
 
@@ -46,6 +47,7 @@ public class PartidaService {
             STATUS_PRORROGACAO,
             STATUS_ACRESCIMO,
             STATUS_PAUSADA,
+            STATUS_PENALTIS,
             STATUS_FINALIZADA,
             STATUS_FECHADA
     );
@@ -329,6 +331,9 @@ public class PartidaService {
 
         // Aceita variações sem acento
         if (s.equals("prorrogacao")) return STATUS_PRORROGACAO;
+        if (s.equals("penaltis") || s.equals("pênaltis") || s.equals("penalti") || s.equals("pênalti")) {
+            return STATUS_PENALTIS;
+        }
 
         // Aceita variações comuns
         if (s.equals("pausa") || s.equals("pausado")) return STATUS_PAUSADA;
@@ -448,8 +453,8 @@ public class PartidaService {
     }
 
     /**
-     * Consideramos "em andamento" qualquer status válido que não seja agendada/finalizada.
-     * Isso cobre: 1° tempo, intervalo, 2° tempo, prorrogação.
+     * Consideramos "em andamento" qualquer status válido que não seja agendada/finalizada/fechada.
+     * Isso cobre: 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada e pênaltis.
      */
     public static boolean isStatusEmAndamento(String status) {
         if (status == null) return false;
@@ -461,7 +466,7 @@ public class PartidaService {
         if (status == null) return;
         String s = status.trim().toLowerCase(Locale.ROOT);
         if (!VALID_STATUS.contains(s)) {
-            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, finalizada, fechada.");
+            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, pênaltis, finalizada, fechada.");
         }
     }
 
