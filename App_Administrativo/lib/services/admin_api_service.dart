@@ -287,6 +287,54 @@ class AdminApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> atualizarInscrito(
+    String equipeId,
+    String inscritoId, {
+    bool? isGoleiro,
+    bool? isCapitao,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (isGoleiro != null) body['isGoleiro'] = isGoleiro;
+      if (isCapitao != null) body['isCapitao'] = isCapitao;
+      final res = await _dio.patch('/equipes/$equipeId/inscritos/$inscritoId', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint("Erro atualizarInscrito: $e");
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> listarProfiles({String? role}) async {
+    try {
+      final params = <String, dynamic>{};
+      if (role != null) params['role'] = role;
+      final res = await _dio.get('/profiles', queryParameters: params.isEmpty ? null : params);
+      return (res.data as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint("Erro listarProfiles: $e");
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> criarPresidente({
+    required String nome,
+    required String email,
+    required String senha,
+  }) async {
+    try {
+      final res = await _dio.post('/profiles/criar-presidente', data: {
+        'nomeExibicao': nome,
+        'email': email,
+        'senha': senha,
+      });
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint("Erro criarPresidente: $e");
+      return null;
+    }
+  }
+
   // ============== STAFF DA EQUIPE ==============
   Future<List<EquipeStaff>> listarEquipeStaff(String equipeId) async {
     try {

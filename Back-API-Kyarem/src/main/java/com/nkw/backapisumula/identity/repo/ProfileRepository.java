@@ -9,4 +9,8 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID> {
 
     List<Profile> findByRoleIgnoreCaseOrderByNomeExibicaoAsc(String role);
+
+    List<Profile> findAllByOrderByNomeExibicaoAsc();
+
+    List<Profile> findByRoleInIgnoreCaseOrderByNomeExibicaoAsc(List<String> roles);
 }

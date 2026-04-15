@@ -89,8 +89,17 @@ public class EquipesController {
                         .map(x -> new EquipeAtletaInscritoService.AddInscritoCommand(x.atletaId(), x.numeroCamisa(), x.ativo(), x.isGoleiro(), x.isCapitao()))
                         .toList()
         );
-
         return created.stream().map(InscritoResponse::from).toList();
+    }
+
+    @PatchMapping("/{id}/inscritos/{inscritoId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    public InscritoResponse patchInscrito(
+            @PathVariable UUID id,
+            @PathVariable UUID inscritoId,
+            @RequestBody PatchInscritoRequest r
+    ) {
+        return InscritoResponse.from(inscritosService.updateFuncao(id, inscritoId, r.isGoleiro(), r.isCapitao()));
     }
 
     @DeleteMapping("/{id}/inscritos/{inscritoId}")
@@ -121,6 +130,8 @@ public class EquipesController {
         staffService.remove(id, staffId);
     }
 
+    // -------- Records --------
+
     public record CreateEquipeRequest(
             @NotNull UUID atleticaId,
             @NotNull UUID campeonatoId,
@@ -133,6 +144,24 @@ public class EquipesController {
             UUID campeonatoId,
             UUID modalidadeId,
             String nomeEquipe
+    ) {}
+
+    public record AddInscritoRequest(
+            @NotNull UUID atletaId,
+            Integer numeroCamisa,
+            Boolean ativo,
+            Boolean isGoleiro,
+            Boolean isCapitao
+    ) {}
+
+    public record PatchInscritoRequest(
+            Boolean isGoleiro,
+            Boolean isCapitao
+    ) {}
+
+    public record AddStaffRequest(
+            @NotBlank String nome,
+            @NotBlank String cargo
     ) {}
 
     public record EquipeResponse(
@@ -160,19 +189,6 @@ public class EquipesController {
             );
         }
     }
-
-    public record AddInscritoRequest(
-            @NotNull UUID atletaId,
-            Integer numeroCamisa,
-            Boolean ativo,
-            Boolean isGoleiro,
-            Boolean isCapitao
-    ) {}
-
-    public record AddStaffRequest(
-            @NotBlank String nome,
-            @NotBlank String cargo
-    ) {}
 
     public record InscritoResponse(
             UUID id,

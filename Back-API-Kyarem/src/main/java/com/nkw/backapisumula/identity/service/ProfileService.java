@@ -24,4 +24,12 @@ public class ProfileService {
     public List<Profile> listArbitros() {
         return repo.findByRoleIgnoreCaseOrderByNomeExibicaoAsc("arbitro");
     }
+
+    public List<Profile> listAll() {
+        return repo.findAllByOrderByNomeExibicaoAsc();
+    }
+
+    public List<Profile> listByRole(String role) {
+        return repo.findByRoleIgnoreCaseOrderByNomeExibicaoAsc(role);
+    }
 }

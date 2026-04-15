@@ -105,4 +105,16 @@ public class EquipeAtletaInscritoService {
         }
         repo.delete(i);
     }
+
+    @Transactional
+    public EquipeAtletaInscrito updateFuncao(UUID equipeId, UUID inscritoId, Boolean isGoleiro, Boolean isCapitao) {
+        EquipeAtletaInscrito i = repo.findById(inscritoId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscrição não encontrada."));
+        if (i.getEquipe() == null || !i.getEquipe().getId().equals(equipeId)) {
+            throw new IllegalArgumentException("Inscrição não pertence à equipe informada.");
+        }
+        if (isGoleiro != null) i.setIsGoleiro(isGoleiro);
+        if (isCapitao != null) i.setIsCapitao(isCapitao);
+        return repo.save(i);
+    }
 }

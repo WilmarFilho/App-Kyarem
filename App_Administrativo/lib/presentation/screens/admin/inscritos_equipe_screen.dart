@@ -18,6 +18,10 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
   List<dynamic> _inscritos = [];
   bool _isLoading = true;
 
+  // ─── Limites ───
+  static const int _maxCapitoes = 1;
+  static const int _maxGoleiros = 2;
+
   @override
   void initState() {
     super.initState();
@@ -33,15 +37,23 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
     });
   }
 
+  // ── Contagens atuais ──
+  int get _totalCapitoes => _inscritos.where((i) => i['isCapitao'] == true).length;
+  int get _totalGoleiros => _inscritos.where((i) => i['isGoleiro'] == true).length;
+
   Future<void> _removerInscrito(String inscritoId) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Remover Atleta?'),
         content: const Text('O atleta será removido deste time, mas continuará cadastrado na base.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remover', style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -52,8 +64,124 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
         _carregarInscritos();
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao remover inscrito.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao remover inscrito.')),
+          );
         }
+      }
+    }
+  }
+
+  Future<void> _toggleCapitao(Map<String, dynamic> inscrito) async {
+    final isCapitaoAtual = inscrito['isCapitao'] == true;
+
+    // Se está tentando ATIVAR e já bateu o limite
+    if (!isCapitaoAtual && _totalCapitoes >= _maxCapitoes) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Já existe um capitão neste time. Remova o atual antes de atribuir outro.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1A1A2E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    final novoValor = !isCapitaoAtual;
+    final res = await _apiService.atualizarInscrito(
+      widget.equipe.id,
+      inscrito['id'].toString(),
+      isCapitao: novoValor,
+    );
+
+    if (res != null) {
+      _carregarInscritos();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(novoValor ? '${inscrito['atletaNome']} definido como capitão!' : 'Capitão removido.'),
+            backgroundColor: novoValor ? Colors.amber.shade700 : Colors.grey.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao atualizar função do atleta.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleGoleiro(Map<String, dynamic> inscrito) async {
+    final isGoleiroAtual = inscrito['isGoleiro'] == true;
+
+    // Se está tentando ATIVAR e já bateu o limite
+    if (!isGoleiroAtual && _totalGoleiros >= _maxGoleiros) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Este time já possui $_maxGoleiros goleiros. Remova um antes de adicionar outro.',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1A1A2E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    final novoValor = !isGoleiroAtual;
+    final res = await _apiService.atualizarInscrito(
+      widget.equipe.id,
+      inscrito['id'].toString(),
+      isGoleiro: novoValor,
+    );
+
+    if (res != null) {
+      _carregarInscritos();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(novoValor ? '${inscrito['atletaNome']} definido como goleiro!' : 'Goleiro removido.'),
+            backgroundColor: novoValor ? Colors.blueGrey.shade700 : Colors.grey.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao atualizar função do atleta.')),
+        );
       }
     }
   }
@@ -102,10 +230,35 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('INSCRITOS', style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 22, color: Colors.white, letterSpacing: 1)),
-            Text(widget.equipe.nome, style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal)),
+            const Text('INSCRITOS',
+                style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 22, color: Colors.white, letterSpacing: 1)),
+            Text(widget.equipe.nome,
+                style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal)),
           ],
         ),
+        actions: [
+          // Contadores compactos na AppBar
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Row(
+              children: [
+                _AppBarBadge(
+                  icon: Icons.sports_soccer,
+                  count: _totalGoleiros,
+                  max: _maxGoleiros,
+                  color: Colors.blueGrey,
+                ),
+                const SizedBox(width: 8),
+                _AppBarBadge(
+                  icon: Icons.military_tech,
+                  count: _totalCapitoes,
+                  max: _maxCapitoes,
+                  color: Colors.amber,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _abrirInscricaoLote,
@@ -117,59 +270,241 @@ class _InscritosEquipeScreenState extends State<InscritosEquipeScreen> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: Color(0xFFF85C39)))
             : _inscritos.isEmpty
-                ? const Center(child: Text("Nenhum atleta inscrito nesta equipe.", style: TextStyle(color: Colors.black87)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
-                        itemCount: _inscritos.length,
-                        itemBuilder: (context, index) {
-                          final i = _inscritos[index];
-                          final nome = i['atletaNome'] ?? 'Desconhecido';
-                          final fotoUrl = i['atletaFotoUrl']?.toString();
-                          final numCamisa = i['numeroCamisa'];
-                          return Card(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              leading: fotoUrl != null && fotoUrl.isNotEmpty
-                                ? CircleAvatar(
-                                    backgroundImage: NetworkImage(fotoUrl),
-                                    backgroundColor: Colors.transparent,
-                                  )
-                                : CircleAvatar(
-                                    backgroundColor: Colors.purple.shade100,
-                                    child: Text(numCamisa != null ? numCamisa.toString() : '?', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
-                                  ),
-                              title: Text(nome, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Row(
-                                children: [
-                                  if (i['isCapitao'] == true)
-                                    Container(
-                                      margin: const EdgeInsets.only(right: 5),
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                      decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(5)),
-                                      child: const Text('CAPITÃO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                                    ),
-                                  if (i['isGoleiro'] == true)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                      decoration: BoxDecoration(color: Colors.blueGrey, borderRadius: BorderRadius.circular(5)),
-                                      child: const Text('GOLEIRO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                                    ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                onPressed: () => _removerInscrito(i['id']),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                ? const Center(
+                    child: Text("Nenhum atleta inscrito nesta equipe.", style: TextStyle(color: Colors.black87)),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
+                    itemCount: _inscritos.length,
+                    itemBuilder: (context, index) {
+                      final i = _inscritos[index];
+                      return _InscritoCard(
+                        inscrito: i,
+                        onToggleCapitao: () => _toggleCapitao(i),
+                        onToggleGoleiro: () => _toggleGoleiro(i),
+                        onRemover: () => _removerInscrito(i['id'].toString()),
+                      );
+                    },
+                  ),
       ),
     );
   }
 }
 
+// ── Card do inscrito com PopupMenu ─────────────────────────────
+class _InscritoCard extends StatelessWidget {
+  final Map<String, dynamic> inscrito;
+  final VoidCallback onToggleCapitao;
+  final VoidCallback onToggleGoleiro;
+  final VoidCallback onRemover;
+
+  const _InscritoCard({
+    required this.inscrito,
+    required this.onToggleCapitao,
+    required this.onToggleGoleiro,
+    required this.onRemover,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final nome = inscrito['atletaNome']?.toString() ?? 'Desconhecido';
+    final fotoUrl = inscrito['atletaFotoUrl']?.toString();
+    final numCamisa = inscrito['numeroCamisa'];
+    final isCapitao = inscrito['isCapitao'] == true;
+    final isGoleiro = inscrito['isGoleiro'] == true;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 1.5,
+      shadowColor: Colors.black12,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isCapitao
+                      ? Colors.amber
+                      : isGoleiro
+                          ? Colors.blueGrey.shade300
+                          : Colors.grey.shade200,
+                  width: isCapitao || isGoleiro ? 2.5 : 1.5,
+                ),
+              ),
+              child: fotoUrl != null && fotoUrl.isNotEmpty
+                  ? ClipOval(child: Image.network(fotoUrl, fit: BoxFit.cover))
+                  : ClipOval(
+                      child: Container(
+                        color: Colors.purple.shade100,
+                        child: Center(
+                          child: Text(
+                            numCamisa != null ? numCamisa.toString() : '?',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 12),
+
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 5),
+                  if (isCapitao || isGoleiro)
+                    Wrap(
+                      spacing: 5,
+                      children: [
+                        if (isCapitao)
+                          _FuncaoBadge(label: 'CAPITÃO', color: Colors.amber.shade700),
+                        if (isGoleiro)
+                          _FuncaoBadge(label: 'GOLEIRO', color: Colors.blueGrey.shade600),
+                      ],
+                    )
+                  else
+                    Text('Atleta', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                ],
+              ),
+            ),
+
+            // Menu de ações
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.black54),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 3,
+              itemBuilder: (context) => [
+                // Toggle Capitão
+                PopupMenuItem<String>(
+                  value: 'capitao',
+                  child: Row(
+                    children: [
+                      Icon(
+                        isCapitao ? Icons.remove_circle_outline : Icons.military_tech,
+                        color: isCapitao ? Colors.red.shade400 : Colors.amber.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        isCapitao ? 'Remover como Capitão' : 'Tornar Capitão',
+                        style: TextStyle(
+                          color: isCapitao ? Colors.red.shade400 : Colors.amber.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Toggle Goleiro
+                PopupMenuItem<String>(
+                  value: 'goleiro',
+                  child: Row(
+                    children: [
+                      Icon(
+                        isGoleiro ? Icons.remove_circle_outline : Icons.sports_soccer,
+                        color: isGoleiro ? Colors.red.shade400 : Colors.blueGrey.shade600,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        isGoleiro ? 'Remover como Goleiro' : 'Tornar Goleiro',
+                        style: TextStyle(
+                          color: isGoleiro ? Colors.red.shade400 : Colors.blueGrey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                // Remover do time
+                PopupMenuItem<String>(
+                  value: 'remover',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_remove_outlined, color: Colors.red.shade600, size: 20),
+                      const SizedBox(width: 10),
+                      Text('Remover do Time', style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'capitao') onToggleCapitao();
+                if (value == 'goleiro') onToggleGoleiro();
+                if (value == 'remover') onRemover();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Badge de função (CAPITÃO / GOLEIRO) ───────────────────────
+class _FuncaoBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _FuncaoBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+}
+
+// ── Badge compacto na AppBar ───────────────────────────────────
+class _AppBarBadge extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final int max;
+  final Color color;
+
+  const _AppBarBadge({required this.icon, required this.count, required this.max, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFull = count >= max;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isFull ? color.withOpacity(0.9) : Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 4),
+          Text('$count/$max', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Modal Vincular Atletas (mantido igual) ─────────────────────
 class ModalVincularAtletas extends StatefulWidget {
   final Equipe equipe;
   const ModalVincularAtletas({super.key, required this.equipe});
@@ -210,11 +545,12 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
     if (_selecionados.isEmpty) return;
     setState(() => _isSaving = true);
 
-    final listaEnvio = _selecionados.map((id) => {
-      'atletaId': id,
-      'ativo': true,
-      // outros campos opcionais como numeroCamisa, isGoleiro podem ser estendidos aqui
-    }).toList();
+    final listaEnvio = _selecionados
+        .map((id) => {
+              'atletaId': id,
+              'ativo': true,
+            })
+        .toList();
 
     final sucesso = await _apiService.adicionarInscritos(widget.equipe.id, listaEnvio);
 
@@ -223,7 +559,8 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
       if (mounted) Navigator.pop(context, true);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao vincular. Tente novamente.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Erro ao vincular. Tente novamente.')));
       }
     }
   }
@@ -231,11 +568,10 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
   void _abrirCadastroNovoAtleta() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AtletaFormScreen(atleticaIdSugerida: widget.equipe.atletica?.id)),
+      MaterialPageRoute(
+          builder: (_) => AtletaFormScreen(atleticaIdSugerida: widget.equipe.atletica?.id)),
     );
-    if (result == true) {
-      _carregarAtletas(); // recarrega a lista
-    }
+    if (result == true) _carregarAtletas();
   }
 
   @override
@@ -266,45 +602,44 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
             onPressed: _abrirCadastroNovoAtleta,
             icon: const Icon(Icons.person_add),
             label: const Text('Cadastrar Novo Atleta na Base'),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 45),
-            ),
+            style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 45)),
           ),
         ),
         const Divider(),
         Expanded(
           child: _todosAtletas.isEmpty
-            ? const Center(child: Text('Nenhum atleta nesta Atlética.'))
-            : ListView.builder(
-                itemCount: _todosAtletas.length,
-                itemBuilder: (context, index) {
-                  final a = _todosAtletas[index];
-                  final isSelected = _selecionados.contains(a.id);
-                  return CheckboxListTile(
-                    title: Text(a.nome),
-                    subtitle: a.fotoUrl != null ? const Text('Com foto', style: TextStyle(fontSize: 12)) : null,
-                    value: isSelected,
-                    onChanged: (val) {
-                      setState(() {
-                        if (val == true) {
-                          _selecionados.add(a.id);
-                        } else {
-                          _selecionados.remove(a.id);
-                        }
-                      });
-                    },
-                    secondary: a.fotoUrl != null && a.fotoUrl!.isNotEmpty
-                        ? CircleAvatar(
-                            backgroundImage: NetworkImage(a.fotoUrl!),
-                            backgroundColor: Colors.transparent,
-                          )
-                        : CircleAvatar(
-                            backgroundColor: Colors.purple.shade50,
-                            child: const Icon(Icons.person, color: Colors.purple),
-                          ),
-                  );
-                },
-              ),
+              ? const Center(child: Text('Nenhum atleta nesta Atlética.'))
+              : ListView.builder(
+                  itemCount: _todosAtletas.length,
+                  itemBuilder: (context, index) {
+                    final a = _todosAtletas[index];
+                    final isSelected = _selecionados.contains(a.id);
+                    return CheckboxListTile(
+                      title: Text(a.nome),
+                      subtitle:
+                          a.fotoUrl != null ? const Text('Com foto', style: TextStyle(fontSize: 12)) : null,
+                      value: isSelected,
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selecionados.add(a.id);
+                          } else {
+                            _selecionados.remove(a.id);
+                          }
+                        });
+                      },
+                      secondary: a.fotoUrl != null && a.fotoUrl!.isNotEmpty
+                          ? CircleAvatar(
+                              backgroundImage: NetworkImage(a.fotoUrl!),
+                              backgroundColor: Colors.transparent,
+                            )
+                          : CircleAvatar(
+                              backgroundColor: Colors.purple.shade50,
+                              child: const Icon(Icons.person, color: Colors.purple),
+                            ),
+                    );
+                  },
+                ),
         ),
         Container(
           padding: const EdgeInsets.all(20),
@@ -323,7 +658,10 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
               ),
               child: _isSaving
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : Text('Adicionar ${_selecionados.length} Atleta(s)', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  : Text(
+                      'Adicionar ${_selecionados.length} Atleta(s)',
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
             ),
           ),
         ),
