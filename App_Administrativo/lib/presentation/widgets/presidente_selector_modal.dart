@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/admin_api_service.dart';
 
 /// Modal refinado para seleção ou criação do presidente de atlética.
@@ -8,7 +7,8 @@ class PresidenteSelectorModal extends StatefulWidget {
   const PresidenteSelectorModal({super.key});
 
   @override
-  State<PresidenteSelectorModal> createState() => _PresidenteSelectorModalState();
+  State<PresidenteSelectorModal> createState() =>
+      _PresidenteSelectorModalState();
 }
 
 class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
@@ -95,7 +95,10 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
       if (res != null) {
         Navigator.of(context).pop(res);
       } else {
-        setState(() => _erroCreate = 'Erro ao criar usuário. Verifique os dados e tente novamente.');
+        setState(
+          () => _erroCreate =
+              'Erro ao criar usuário. Verifique os dados e tente novamente.',
+        );
       }
     } catch (e) {
       setState(() => _erroCreate = e.toString());
@@ -139,7 +142,11 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.person_outline, color: Colors.white, size: 22),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 const Expanded(
@@ -148,7 +155,11 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
                     children: [
                       Text(
                         'Selecionar Presidente',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E)),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E),
+                        ),
                       ),
                       Text(
                         'Busque um usuário ou crie um novo',
@@ -179,12 +190,17 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFF85C39), Color(0xFFE64A19)]),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+                  ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.black54,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
                 dividerColor: Colors.transparent,
                 tabs: const [
                   Tab(text: 'Buscar Existente'),
@@ -200,10 +216,7 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildBuscarExistente(),
-                _buildCriarNovo(),
-              ],
+              children: [_buildBuscarExistente(), _buildCriarNovo()],
             ),
           ),
         ],
@@ -236,7 +249,10 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFF85C39), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF85C39),
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -246,42 +262,48 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
         // Lista
         Expanded(
           child: _loadingProfiles
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFF85C39)))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFF85C39)),
+                )
               : _filteredProfiles.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.person_search, size: 56, color: Colors.grey[300]),
-                          const SizedBox(height: 10),
-                          Text(
-                            _searchController.text.isEmpty
-                                ? 'Nenhum usuário cadastrado'
-                                : 'Nenhum resultado encontrado',
-                            style: TextStyle(color: Colors.grey[500]),
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.person_search,
+                        size: 56,
+                        color: Colors.grey[300],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _filteredProfiles.length,
-                      itemBuilder: (context, index) {
-                        final p = _filteredProfiles[index];
-                        final isSelected = _selected?['id'] == p['id'];
-                        final nome = p['nomeExibicao']?.toString() ?? 'Sem nome';
-                        final role = p['role']?.toString() ?? '';
-                        final foto = p['fotoUrl']?.toString();
+                      const SizedBox(height: 10),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? 'Nenhum usuário cadastrado'
+                            : 'Nenhum resultado encontrado',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _filteredProfiles.length,
+                  itemBuilder: (context, index) {
+                    final p = _filteredProfiles[index];
+                    final isSelected = _selected?['id'] == p['id'];
+                    final nome = p['nomeExibicao']?.toString() ?? 'Sem nome';
+                    final role = p['role']?.toString() ?? '';
+                    final foto = p['fotoUrl']?.toString();
 
-                        return _ProfileTile(
-                          nome: nome,
-                          role: _traduzirRole(role),
-                          fotoUrl: foto,
-                          isSelected: isSelected,
-                          onTap: () => setState(() => _selected = p),
-                        );
-                      },
-                    ),
+                    return _ProfileTile(
+                      nome: nome,
+                      role: _traduzirRole(role),
+                      fotoUrl: foto,
+                      isSelected: isSelected,
+                      onTap: () => setState(() => _selected = p),
+                    );
+                  },
+                ),
         ),
 
         // Botão confirmar
@@ -290,7 +312,13 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, -4))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
             child: SizedBox(
               width: double.infinity,
@@ -299,12 +327,21 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
                 onPressed: () => Navigator.of(context).pop(_selected),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF85C39),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                icon: const Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white,
+                ),
                 label: Text(
                   'Confirmar — ${_selected!['nomeExibicao'] ?? 'Selecionado'}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -328,7 +365,9 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
               decoration: BoxDecoration(
                 color: const Color(0xFFF85C39).withOpacity(0.07),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF85C39).withOpacity(0.2)),
+                border: Border.all(
+                  color: const Color(0xFFF85C39).withOpacity(0.2),
+                ),
               ),
               child: const Row(
                 children: [
@@ -349,8 +388,12 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
             const SizedBox(height: 6),
             TextFormField(
               controller: _nomeController,
-              decoration: _inputDecoration('Ex: João Silva', Icons.person_outline),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+              decoration: _inputDecoration(
+                'Ex: João Silva',
+                Icons.person_outline,
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
@@ -359,7 +402,10 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
             const SizedBox(height: 6),
             TextFormField(
               controller: _emailController,
-              decoration: _inputDecoration('presidente@atletica.com', Icons.email_outlined),
+              decoration: _inputDecoration(
+                'presidente@atletica.com',
+                Icons.email_outlined,
+              ),
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Informe o e-mail';
@@ -374,12 +420,20 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
             TextFormField(
               controller: _senhaController,
               obscureText: !_senhaVisible,
-              decoration: _inputDecoration('Mínimo 6 caracteres', Icons.lock_outline).copyWith(
-                suffixIcon: IconButton(
-                  icon: Icon(_senhaVisible ? Icons.visibility_off : Icons.visibility, color: Colors.black38),
-                  onPressed: () => setState(() => _senhaVisible = !_senhaVisible),
-                ),
-              ),
+              decoration:
+                  _inputDecoration(
+                    'Mínimo 6 caracteres',
+                    Icons.lock_outline,
+                  ).copyWith(
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _senhaVisible ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.black38,
+                      ),
+                      onPressed: () =>
+                          setState(() => _senhaVisible = !_senhaVisible),
+                    ),
+                  ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Informe a senha';
                 if (v.length < 6) return 'Mínimo 6 caracteres';
@@ -399,9 +453,18 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(_erroCreate!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        _erroCreate!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -414,18 +477,27 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF85C39),
                   disabledBackgroundColor: Colors.grey.shade300,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 icon: _criando
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Icon(Icons.person_add, color: Colors.white),
                 label: Text(
                   _criando ? 'Criando usuário...' : 'Criar e Selecionar',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -437,33 +509,63 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
   }
 
   Widget _buildInputLabel(String label) => Text(
-        label,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4A4A6A)),
-      );
+    label,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF4A4A6A),
+    ),
+  );
 
-  InputDecoration _inputDecoration(String hint, IconData icon) => InputDecoration(
+  InputDecoration _inputDecoration(String hint, IconData icon) =>
+      InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.black26),
         prefixIcon: Icon(icon, color: Colors.black38, size: 20),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF85C39), width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFF85C39), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        ),
       );
 
   String _traduzirRole(String role) {
     switch (role) {
-      case 'presidente_atletica': return 'Presidente de Atlética';
-      case 'admin': return 'Administrador';
-      case 'super_admin': return 'Super Admin';
-      case 'arbitro': return 'Árbitro';
-      case 'delegado': return 'Delegado';
-      case 'aluno': return 'Aluno';
-      default: return role;
+      case 'presidente_atletica':
+        return 'Presidente de Atlética';
+      case 'admin':
+        return 'Administrador';
+      case 'super_admin':
+        return 'Super Admin';
+      case 'arbitro':
+        return 'Árbitro';
+      case 'delegado':
+        return 'Delegado';
+      case 'aluno':
+        return 'Aluno';
+      default:
+        return role;
     }
   }
 }
@@ -493,14 +595,22 @@ class _ProfileTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF85C39).withOpacity(0.07) : Colors.white,
+          color: isSelected
+              ? const Color(0xFFF85C39).withOpacity(0.07)
+              : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? const Color(0xFFF85C39) : Colors.grey.shade200,
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: const Color(0xFFF85C39).withOpacity(0.12), blurRadius: 8, offset: const Offset(0, 3))]
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFF85C39).withOpacity(0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
               : [],
         ),
         child: Row(
@@ -519,7 +629,11 @@ class _ProfileTile extends StatelessWidget {
                   : Center(
                       child: Text(
                         nome.isNotEmpty ? nome[0].toUpperCase() : '?',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFFF85C39)),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Color(0xFFF85C39),
+                        ),
                       ),
                     ),
             ),
@@ -530,15 +644,31 @@ class _ProfileTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
+                  Text(
+                    nome,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(role, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                    child: Text(
+                      role,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ),
                 ],
               ),
