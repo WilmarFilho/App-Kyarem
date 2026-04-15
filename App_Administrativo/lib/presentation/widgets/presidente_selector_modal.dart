@@ -182,18 +182,27 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Container(
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.grey.shade200),
               ),
               child: TabBar(
                 controller: _tabController,
+                indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
                   ),
                   borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF85C39).withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.black54,

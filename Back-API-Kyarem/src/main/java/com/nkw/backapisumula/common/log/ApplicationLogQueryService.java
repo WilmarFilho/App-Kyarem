@@ -39,15 +39,17 @@ public class ApplicationLogQueryService {
         ApplicationLogLevel normalizedLevel = normalizeLevel(level);
         int normalizedLimit = normalizeLimit(limit);
 
-        Specification<ApplicationLog> spec = Specification.where(hasLevel(normalizedLevel))
-                .and(equalsIgnoreCase("category", category))
-                .and(equalsValue("statusCode", statusCode))
-                .and(equalsValue("userId", userId))
-                .and(equalsIgnoreCase("requestId", requestId))
-                .and(containsIgnoreCase("path", path))
-                .and(containsIgnoreCase("source", source))
-                .and(createdAtFrom(from))
-                .and(createdAtTo(to));
+        Specification<ApplicationLog> spec = Specification.allOf(
+                hasLevel(normalizedLevel),
+                equalsIgnoreCase("category", category),
+                equalsValue("statusCode", statusCode),
+                equalsValue("userId", userId),
+                equalsIgnoreCase("requestId", requestId),
+                containsIgnoreCase("path", path),
+                containsIgnoreCase("source", source),
+                createdAtFrom(from),
+                createdAtTo(to)
+        );
 
         PageRequest pageRequest = PageRequest.of(
                 0,
