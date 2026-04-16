@@ -1983,7 +1983,13 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                 onToggleCronometro: _alternarCronometro,
                                 onFinalizarPrimeiroTempo:
                                     _finalizarPrimeiroTempo,
-                                onFinalizarSegundoTempo: _finalizarSegundoTempo,
+                                onFinalizarSegundoTempo: () {
+                                  if (_temProrrogacao && !_estaNaProrrogacao) {
+                                    _finalizarSegundoTempo();
+                                  } else {
+                                    _finalizarPartida();
+                                  }
+                                },
                                 onAbrirModalProrrogacao: _abrirModalProrrogacao,
                                 onAbrirModalAcrescimo: _abrirModalAcrescimo,
                                 segundosIntervalo: _segundosIntervalo,

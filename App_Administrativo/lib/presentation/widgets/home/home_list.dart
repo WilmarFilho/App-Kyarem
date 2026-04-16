@@ -15,7 +15,7 @@ class HomeListItem extends StatelessWidget {
     String? subTitulo;
     Widget leading;
 
-    if (type == 'Jogos') {
+    if (type == 'Jogos' && (item.runtimeType.toString() == 'Partida')) {
       titulo = '${item.equipeA?.nome} vs ${item.equipeB?.nome}';
       subTitulo = item.status.isNotEmpty
           ? (item.status.toString().toLowerCase() == 'pênaltis'
@@ -23,7 +23,10 @@ class HomeListItem extends StatelessWidget {
                 : '${item.status[0].toUpperCase()}${item.status.substring(1).toLowerCase()}')
           : item.status;
       leading = const Icon(Icons.sports_soccer, color: Color(0xFFF85C39));
-    } else if (type == 'Árbitros') {
+    } else if (type == 'Árbitros' &&
+        (item.runtimeType.toString() == 'Arbitro' ||
+            (item.runtimeType.toString() != 'Partida' &&
+                item.runtimeType.toString() != 'Campeonato'))) {
       titulo = item.nome;
       leading = CircleAvatar(
         backgroundImage: item.fotoUrl != null
@@ -31,9 +34,15 @@ class HomeListItem extends StatelessWidget {
             : null,
         child: item.fotoUrl == null ? const Icon(Icons.person) : null,
       );
-    } else {
+    } else if (type == 'Campeonatos' &&
+        (item.runtimeType.toString() == 'Campeonato' ||
+            (item.runtimeType.toString() != 'Partida' &&
+                item.runtimeType.toString() != 'Arbitro'))) {
       titulo = item.nome;
       leading = const Icon(Icons.emoji_events, color: Colors.amber);
+    } else {
+      titulo = 'Carregando...';
+      leading = const Icon(Icons.sync, color: Colors.grey);
     }
 
     return Container(
