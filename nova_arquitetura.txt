@@ -69,33 +69,35 @@ Infra externa:
 
 3. FLUXO DE IDENTIDADE E ACESSO
 -------------------------------
-Regra principal:
-- todo mundo se cadastra no app global
-- toda conta nasce como USER
-- os demais acessos sao derivados de papeis globais e contextuais
+Regra principal de Cadastro:
+- Uma pessoa comum SO pode se cadastrar primeiramente atraves do App Global.
+- Todo cadastro no App Global cria a conta OBRIGATORIAMENTE com a role global USER.
+- Contas administrativas (ADMIN) sao criadas APENAS internamente (fluxo restrito/scripts).
+- Nenhuma outra role e concedida no momento do cadastro. Os demais acessos (contextuais ou elevacoes globais) sao sempre atribuidos posteriormente a essa conta USER base.
 
 Apps:
 - App global
-  Cadastro e login de qualquer usuario.
+  Unico local publico de cadastro. Login de qualquer pessoa.
+  Local onde o presidente/dirigente faz toda a GESTAO da sua atletica (criar times, convocar/escalar atletas, gerir elenco permanente).
 
 - App do campeonato
-  Sem cadastro.
-  Qualquer usuario autenticado pode acessar.
-  As funcionalidades dependem do papel contextual dentro da atletica/campeonato.
+  Sem cadastro publico.
+  Login de qualquer pessoa para acompanhamento e consumo de dados publicos.
+  Para presidentes/dirigentes, e o local usado exclusivamente para INSCREVER seus times (ja criados no app global) no torneio atual.
 
 - App admin
-  Sem cadastro.
-  Login permitido apenas para ADMIN e REFEREE.
+  Sem cadastro publico.
+  Login permitido APENAS para administradores (role global ADMIN) e arbitros (role contextual REFEREE).
 
 Papeis globais:
 - USER
 - ADMIN
-- REFEREE
 
 Papeis contextuais:
 - PRESIDENT
 - DIRECTOR
 - ATHLETE
+- REFEREE
 
 Regra de promocao:
 - presidente e dirigente se cadastram como USER no app global
@@ -149,7 +151,6 @@ operational.roles_globais
 Valores:
 - USER
 - ADMIN
-- REFEREE
 
 operational.usuarios_roles_globais
 - vinculo usuario -> papel global
@@ -165,6 +166,7 @@ Valores:
 - PRESIDENT
 - DIRECTOR
 - ATHLETE
+- REFEREE
 
 
 5.2 Estrutura esportiva base
@@ -179,7 +181,6 @@ Exemplos:
 
 operational.modalidades_catalogo
 - modalidades reais derivadas de um esporte
-- resolve o problema de modalidades diferentes do mesmo esporte
 
 Exemplos:
 - esporte: futebol
@@ -275,7 +276,6 @@ Regra:
 
 operational.atletas
 - extensao de um profile para contexto esportivo
-- preserva compatibilidade conceitual com o schema atual, onde atleta e usado em inscricoes, eventos e sumulas
 
 Campos:
 - id
@@ -293,14 +293,14 @@ Regra:
 
 operational.atletica_membros
 - vinculo entre usuario e atletica
-- armazena papeis contextuais na atletica
+- armazena papeis contextuais na atletica e gerencia a convocacao de novos membros
 
 Campos:
 - id
 - atletica_id
 - user_id
 - papel_codigo
-- status
+- status             (CONVOCADO | ATIVO | INATIVO | RECUSADO)
 - criado_por
 - criado_em
 - iniciado_em
@@ -333,8 +333,8 @@ Relacionamento:
 - campeonatos N:N atleticas via campeonato_atleticas
 
 
-5.6 Times da atletica e times inscritos no campeonato
------------------------------------------------------
+5.6 Times da atletica e elenco permanente
+-----------------------------------------
 operational.times_atletica
 - times permanentes da atletica por modalidade
 
@@ -353,6 +353,25 @@ Exemplos:
 - Atletica A / futsal masculino
 - Atletica A / volei feminino
 
+operational.time_atletica_atletas
+- elenco do time permanente da atletica
+- associa o atleta (que ja pertence a atletica) ao time especifico
+
+Campos:
+- id
+- time_atletica_id
+- atleta_id
+- status             (ATIVO | REMOVIDO)
+- adicionado_por
+- adicionado_em
+
+Regra:
+- O atleta ja deve ter a role contextual de ATHLETE (status ATIVO) na tabela operational.atletica_membros.
+- A associacao ao time e feita pelo presidente sem nova etapa de aceite.
+
+
+5.7 Inscricao de times e roster no campeonato
+---------------------------------------------
 operational.campeonato_times
 - time da atletica inscrito em uma modalidade especifica do campeonato
 
@@ -373,12 +392,9 @@ Relacionamentos:
 - campeonato_modalidades 1:N campeonato_times
 - times_atletica 1:N campeonato_times
 
-
-5.7 Convocacao e exclusividade de atleta no campeonato
-------------------------------------------------------
 operational.campeonato_atletas
-- roster do atleta no campeonato
-- controla convocacao, aceite e vinculacao ao time
+- roster final do atleta no campeonato
+- deriva dos atletas do time da atletica (time_atletica_atletas) quando o time e inscrito
 
 Campos:
 - id
@@ -390,25 +406,15 @@ Campos:
 - numero_camisa
 - is_capitao
 - is_goleiro
-- convocado_por
-- convocado_em
-- aceito_em
-- removido_em
-
-Status possiveis:
-- CONVOCADO
-- ACEITO
-- ATIVO
-- REMOVIDO
-- RECUSADO
+- inscrito_em
 
 Regra critica:
 - um atleta nao pode jogar por mais de uma atletica no mesmo campeonato
 
 Implementacao:
 - unique parcial em (campeonato_id, atleta_id)
-  considerando status ativos/pendentes
-
+  considerando status ativos
+  
 Esse ponto resolve a regra:
 "nao pode um atleta jogar em mais de uma atletica por campeonato"
 
@@ -434,22 +440,30 @@ Observacao:
 ----------------------------------------
 operational.tipos_eventos
 - catalogo de eventos por modalidade
-- agora vinculado a modalidade_catalogo, nao apenas ao esporte
+- os eventos sao rigorosamente separados por "escopo" para diferenciar acoes gerais da partida de acoes desportivas
 
 Campos:
 - id
 - modalidade_catalogo_id
 - codigo
 - nome
-- categoria
-- requer_equipe
-- requer_atleta
+- escopo                 (PARTIDA | EQUIPE | ATLETA)
 - impacta_placar
-- pontos_time_a
-- pontos_time_b
+- pontos_pro             (pontos para a equipe que gerou o evento)
+- pontos_contra          (pontos para a equipe adversaria)
 - payload_schema_json
 - ordem_exibicao
 - ativo
+
+Separacao dos Escopos:
+1. EVENTOS DE PARTIDA (Gerais): Nao envolvem times ou atletas, gerenciam o relogio e o estado.
+   Exemplos: INICIO_1_TEMPO, FIM_1_TEMPO, PAUSA_MEDICA.
+2. EVENTOS DE EQUIPE: Pertencem a um time, mas nao a um individuo especifico.
+   Exemplos: TIMEOUT_PEDIDO, PONTO_CONTRA, FALTA_TECNICA_BANCO.
+3. EVENTOS DE ATLETA: Acoes diretas de um jogador em quadra/campo.
+   Exemplos: GOL, CESTA, CARTAO_AMARELO, SUBSTITUICAO.
+
+Isso orienta a API a exigir (ou ignorar) equipe_id e atleta_id dependendo do escopo do evento.
 
 Exemplo:
 - futsal tem eventos diferentes de futebol de campo
@@ -471,6 +485,7 @@ Campos principais:
 - campeonato_time_a_id
 - campeonato_time_b_id
 - status
+- periodo_atual
 - status_antes_pausa
 - categoria
 - fase
@@ -485,33 +500,49 @@ Campos principais:
 - sumula_pdf_url
 - hash_integridade
 - versao_estado
+- criado_por             (user_id do arbitro/admin que criou)
 - criado_em
 - atualizado_em
 
-Status suportados:
-- agendada
-- 1_tempo
-- acrescimo
-- intervalo
-- pausada
-- 2_tempo
-- prorrogacao
-- penaltis
-- fechada
-- finalizada
+Status suportados (Ciclo de Vida Macro):
+- AGENDADA
+- EM_ANDAMENTO
+- INTERVALO
+- PAUSADA
+- FECHADA          (Sumula encerrada pelo mesario, aguarda assinatura/auditoria)
+- FINALIZADA       (Confirmada oficialmente, imutavel)
+- CANCELADA
+- WO
+
+Observacao sobre periodo_atual:
+- Para suportar qualquer esporte sem inflar o Enum de status, o campo `periodo_atual` (String) dita a fase especifica da partida.
+- Futsal/Futebol: "1_TEMPO", "2_TEMPO", "PRORROGACAO", "PENALTIS"
+- Basquete: "Q1", "Q2", "Q3", "Q4", "OT"
+- Volei: "SET1", "SET2", "SET3", "SET4", "TIE_BREAK"
+- A API rege o bloqueio de dados pelo `status`, enquanto o app renderiza a tela com base no `periodo_atual`.
+
+Observacao sobre versao_estado:
+- Funciona como um controle de concorrencia (Optimistic Locking). Evita que acoes simultaneas de dois arbitros na sumula se sobrescrevam, garantindo a integridade dos dados da partida.
+- Auxilia na Sincronizacao Realtime (SSE): os apps publicos utilizam essa versao para saber se perderam algum evento (caso a rede oscile) e, se necessario, disparam um recarregamento completo para manter o placar sempre correto na tela.
 
 operational.partida_arbitros
-- arbitros vinculados a partida
+- arbitros vinculados e autorizados a editar a sumula da partida
 
 Campos:
 - id
 - partida_id
 - arbitro_user_id
-- funcao
+- funcao                 (PRINCIPAL | AUXILIAR | MESARIO)
+- is_criador             (define se e o dono da partida)
+- adicionado_por         (user_id de quem o associou)
 - criado_em
 
 Regra:
-- arbitro_user_id deve possuir role global REFEREE
+- Admin global vincula a role contextual de REFEREE a um usuario (ex: adicionando-o a Liga ou Quadro de Arbitros).
+- Quando o arbitro cria a partida, ele e automaticamente salvo aqui com `is_criador = true`.
+- Apenas o arbitro "criador" da partida (ou um ADMIN) tem permissao para associar outros arbitros a ela.
+- Somente os arbitros listados nesta tabela tem acesso de escrita na sumula.
+- O arbitro_user_id deve possuir a role contextual REFEREE.
 
 
 5.11 Eventos da partida
@@ -1063,9 +1094,11 @@ Atletica e times:
 - operational.atleticas 1:N operational.times_atletica
 - operational.campeonato_atleticas 1:N operational.campeonato_times
 - operational.times_atletica 1:N operational.campeonato_times
+- operational.times_atletica 1:N operational.time_atletica_atletas
 
 Atletas:
 - operational.profiles 1:0..1 operational.atletas
+- operational.atletas 1:N operational.time_atletica_atletas
 - operational.atletas 1:N operational.campeonato_atletas
 
 Partidas:
@@ -1125,44 +1158,61 @@ Evolucao proposta:
 
 9. FLUXOS DE NEGOCIO IMPORTANTES
 --------------------------------
-9.1 Cadastro de usuario comum
-1. usuario cria conta no app global
-2. entra em auth.users
-3. cria operational.profiles
-4. recebe role global USER
+9.1 Cadastro de usuario comum (App Global)
+1. usuario acessa o app global
+2. realiza o cadastro (unico fluxo publico permitido para criacao de conta)
+3. entra em auth.users
+4. cria operational.profiles
+5. recebe OBRIGATORIAMENTE a role global USER
 
-9.2 Promocao para presidente/dirigente
-1. usuario ja existe como USER
-2. sistema cria atletica, se necessario
-3. sistema cria operational.atletica_membros com PRESIDENT ou DIRECTOR
+9.1.1 Cadastro de Administradores (Interno)
+1. Operacao restrita feita internamente fora do fluxo do app publico
+2. Usuario recebe a role global ADMIN
 
-9.3 Criacao de times da atletica
-1. presidente/dirigente cria a atletica
-2. cria times_atletica por modalidade_catalogo
-3. depois inscreve esses times no campeonato via campeonato_times
+9.2 Criacao da atletica e diretoria (App Administrativo)
+1. Admin do sistema acessa o app administrativo
+2. Admin cria a entidade atletica (operational.atleticas)
+3. Admin seleciona ou cria um usuario
+4. Admin associa esse usuario com o papel PRESIDENT ou DIRECTOR em operational.atletica_membros
 
-9.4 Convocacao de atleta
-1. usuario comum ja existe no sistema
-2. se ainda nao existir, cria registro em operational.atletas
-3. presidente/dirigente convoca para campeonato_time
-4. sistema grava em campeonato_atletas
-5. unique parcial impede o mesmo atleta em duas atleticas no mesmo campeonato
+9.3 Convocacao de atletas para a atletica (App Global)
+1. presidente/dirigente acessa o app global
+2. convoca usuarios comuns para fazerem parte da sua atletica
+3. cria registro em operational.atletica_membros com papel ATHLETE e status CONVOCADO
+4. se o usuario aceitar, status muda para ATIVO (e se torna operational.atletas caso ainda nao seja)
 
-9.5 Operacao de arbitragem
-1. arbitro/admin envia acao para API
+9.4 Criacao de times e elenco (App Global)
+1. presidente/dirigente cria os times permanentes (times_atletica) por modalidade_catalogo
+2. presidente associa os atletas (que ja estao ATIVOS na atletica) aos seus times (cria time_atletica_atletas)
+
+9.5 Inscricao no campeonato (App Campeonato)
+1. presidente/dirigente entra no app do campeonato
+2. inscreve os times da atletica (que ja estao com os atletas associados) nas modalidades do campeonato (cria campeonato_times)
+3. os atletas dos times inscritos sao consolidados no roster do campeonato (cria campeonato_atletas)
+4. unique parcial impede o mesmo atleta em duas atleticas no mesmo campeonato
+
+9.6 Criacao de Partidas e Equipe de Arbitragem (App Administrativo)
+1. Admin interno atribui a role contextual REFEREE a um usuario
+2. O arbitro acessa o app administrativo e cria uma partida (selecionando modalidade e times)
+3. O banco salva a partida e insere o arbitro em `partida_arbitros` como `is_criador = true`
+4. O arbitro "criador" gerencia sua mesa, adicionando outros usuarios (tambem REFEREEs) a partida
+5. A partir desse momento, todos dessa equipe podem registrar acoes na sumula simultaneamente
+
+9.7 Operacao de arbitragem
+1. arbitro (autorizado em partida_arbitros) envia acao para API
 2. API grava no schema operational
 3. API registra evento na outbox
 4. workers atualizam schema public
 5. realtime-gateway envia atualizacao SSE
 
-9.6 Fechamento de sumula
-1. comando entra pela API
+9.8 Fechamento de sumula
+1. arbitro envia comando para fechar a partida pela API
 2. API valida consistencia
 3. API fecha a partida/sumula no banco
 4. API publica evento na outbox
 5. workers atualizam classificacoes, metricas e visoes publicas
 
-9.7 Publicacao social
+9.9 Publicacao social
 1. usuario autenticado cria post via Supabase SDK
 2. RLS valida que autor_user_id = auth.uid()
 3. registro gravado em operational.posts_sociais
