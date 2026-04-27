@@ -53,10 +53,23 @@ ALTER TABLE operational.campeonatos
     ADD COLUMN IF NOT EXISTS nivel VARCHAR(50),
     ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'EM_PLANEJAMENTO';
 
-UPDATE operational.campeonatos
-SET nivel = nivel_campeonato
-WHERE nivel IS NULL
-  AND nivel_campeonato IS NOT NULL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'operational'
+          AND table_name = 'campeonatos'
+          AND column_name = 'nivel_campeonato'
+    ) THEN
+        EXECUTE '
+            UPDATE operational.campeonatos
+            SET nivel = nivel_campeonato
+            WHERE nivel IS NULL
+              AND nivel_campeonato IS NOT NULL
+        ';
+    END IF;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- CAMPEONATO_MODALIDADES
@@ -146,8 +159,27 @@ ALTER TABLE operational.partida_arbitros
     ADD COLUMN IF NOT EXISTS adicionado_por UUID;
 
 UPDATE operational.partida_arbitros
-SET arbitro_user_id = COALESCE(arbitro_id, user_id)
-WHERE arbitro_user_id IS NULL;
+SET arbitro_user_id = user_id
+WHERE arbitro_user_id IS NULL
+  AND user_id IS NOT NULL;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'operational'
+          AND table_name = 'partida_arbitros'
+          AND column_name = 'arbitro_id'
+    ) THEN
+        EXECUTE '
+            UPDATE operational.partida_arbitros
+            SET arbitro_user_id = arbitro_id
+            WHERE arbitro_user_id IS NULL
+              AND arbitro_id IS NOT NULL
+        ';
+    END IF;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- EVENTOS_PARTIDA
