@@ -67,8 +67,16 @@ public class ModalidadesController {
         CampeonatoModalidade modalidade = new CampeonatoModalidade();
         modalidade.setCampeonato(campeonato);
         modalidade.setModalidade(modalidadeCatalogo);
-        modalidade.setFaseAtual(request.faseAtual());
-        modalidade.setConfiguracoesEspecificas(request.configuracoesEspecificas());
+        
+        modalidade.setNomeExibicao(request.nomeExibicao());
+        modalidade.setCategoria(request.categoria());
+        modalidade.setGenero(request.genero());
+        modalidade.setRegrasJson(request.regrasJson());
+        modalidade.setFormatoFasesJson(request.formatoFasesJson());
+        modalidade.setTempoPartidaMinutos(request.tempoPartidaMinutos());
+        if (request.permiteProrrogacao() != null) modalidade.setPermiteProrrogacao(request.permiteProrrogacao());
+        if (request.permitePenaltis() != null) modalidade.setPermitePenaltis(request.permitePenaltis());
+        if (request.status() != null) modalidade.setStatus(request.status());
 
         return ModalidadeResponse.from(campeonatoModalidadeRepository.save(modalidade));
     }
@@ -91,12 +99,15 @@ public class ModalidadesController {
             modalidade.setModalidade(modalidadeCatalogo);
         }
 
-        if (request.faseAtual() != null) {
-            modalidade.setFaseAtual(request.faseAtual());
-        }
-        if (request.configuracoesEspecificas() != null) {
-            modalidade.setConfiguracoesEspecificas(request.configuracoesEspecificas());
-        }
+        if (request.nomeExibicao() != null) modalidade.setNomeExibicao(request.nomeExibicao());
+        if (request.categoria() != null) modalidade.setCategoria(request.categoria());
+        if (request.genero() != null) modalidade.setGenero(request.genero());
+        if (request.regrasJson() != null) modalidade.setRegrasJson(request.regrasJson());
+        if (request.formatoFasesJson() != null) modalidade.setFormatoFasesJson(request.formatoFasesJson());
+        if (request.tempoPartidaMinutos() != null) modalidade.setTempoPartidaMinutos(request.tempoPartidaMinutos());
+        if (request.permiteProrrogacao() != null) modalidade.setPermiteProrrogacao(request.permiteProrrogacao());
+        if (request.permitePenaltis() != null) modalidade.setPermitePenaltis(request.permitePenaltis());
+        if (request.status() != null) modalidade.setStatus(request.status());
 
         return ModalidadeResponse.from(campeonatoModalidadeRepository.save(modalidade));
     }
@@ -104,23 +115,29 @@ public class ModalidadesController {
     public record CreateModalidadeRequest(
             @NotNull UUID campeonatoId,
             @NotNull UUID modalidadeCatalogoId,
-            String faseAtual,
-            @JsonObject(allowNull = true)
-            @Schema(description = "Configurações específicas da modalidade no campeonato.", example = """
-{
-  "tempoRegulamentar": 40,
-  "permiteEmpate": true
-}
-            """)
-            JsonNode configuracoesEspecificas
+            String nomeExibicao,
+            String categoria,
+            String genero,
+            @JsonObject(allowNull = true) JsonNode regrasJson,
+            @JsonObject(allowNull = true) JsonNode formatoFasesJson,
+            Integer tempoPartidaMinutos,
+            Boolean permiteProrrogacao,
+            Boolean permitePenaltis,
+            String status
     ) {}
 
     public record UpdateModalidadeRequest(
             UUID campeonatoId,
             UUID modalidadeCatalogoId,
-            String faseAtual,
-            @JsonObject(allowNull = true)
-            JsonNode configuracoesEspecificas
+            String nomeExibicao,
+            String categoria,
+            String genero,
+            @JsonObject(allowNull = true) JsonNode regrasJson,
+            @JsonObject(allowNull = true) JsonNode formatoFasesJson,
+            Integer tempoPartidaMinutos,
+            Boolean permiteProrrogacao,
+            Boolean permitePenaltis,
+            String status
     ) {}
 
     public record ModalidadeResponse(
@@ -132,9 +149,16 @@ public class ModalidadesController {
             String esporteNome,
             String nome,
             String slug,
+            String generoCatalogo,
+            String nomeExibicao,
+            String categoria,
             String genero,
-            String faseAtual,
-            JsonNode configuracoesEspecificas
+            JsonNode regrasJson,
+            JsonNode formatoFasesJson,
+            Integer tempoPartidaMinutos,
+            Boolean permiteProrrogacao,
+            Boolean permitePenaltis,
+            String status
     ) {
         public static ModalidadeResponse from(CampeonatoModalidade modalidade) {
             ModalidadeCatalogo catalogo = modalidade.getModalidade();
@@ -148,8 +172,15 @@ public class ModalidadesController {
                     catalogo != null ? catalogo.getNome() : null,
                     catalogo != null ? catalogo.getSlug() : null,
                     catalogo != null ? catalogo.getGenero() : null,
-                    modalidade.getFaseAtual(),
-                    modalidade.getConfiguracoesEspecificas()
+                    modalidade.getNomeExibicao(),
+                    modalidade.getCategoria(),
+                    modalidade.getGenero(),
+                    modalidade.getRegrasJson(),
+                    modalidade.getFormatoFasesJson(),
+                    modalidade.getTempoPartidaMinutos(),
+                    modalidade.getPermiteProrrogacao(),
+                    modalidade.getPermitePenaltis(),
+                    modalidade.getStatus()
             );
         }
     }
