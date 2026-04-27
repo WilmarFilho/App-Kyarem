@@ -37,10 +37,23 @@ public class EventoPartida {
     @JoinColumn(name = "atleta_id")
     private Atleta atleta;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "atleta_sai_id")
+    private Atleta atletaSai;
+
     private String periodo;
 
     @Column(name = "minuto_segundo")
     private String minutoSegundo;
+
+    @Column(name = "descricao_detalhada")
+    private String descricaoDetalhada;
+
+    @Column(name = "is_substitution")
+    private Boolean isSubstitution = false;
+
+    @Column(name = "local_evento_id", unique = true)
+    private String localEventoId;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "dados_extras", columnDefinition = "jsonb")
@@ -68,11 +81,26 @@ public class EventoPartida {
     public Atleta getAtleta() { return atleta; }
     public void setAtleta(Atleta atleta) { this.atleta = atleta; }
 
+    public Atleta getAtletaSai() { return atletaSai; }
+    public void setAtletaSai(Atleta atletaSai) { this.atletaSai = atletaSai; }
+
     public String getPeriodo() { return periodo; }
     public void setPeriodo(String periodo) { this.periodo = periodo; }
 
     public String getMinutoSegundo() { return minutoSegundo; }
     public void setMinutoSegundo(String minutoSegundo) { this.minutoSegundo = minutoSegundo; }
+
+    public String getTempoCronometro() { return minutoSegundo; }
+    public void setTempoCronometro(String tempoCronometro) { this.minutoSegundo = tempoCronometro; }
+
+    public String getDescricaoDetalhada() { return descricaoDetalhada; }
+    public void setDescricaoDetalhada(String descricaoDetalhada) { this.descricaoDetalhada = descricaoDetalhada; }
+
+    public Boolean getIsSubstitution() { return isSubstitution; }
+    public void setIsSubstitution(Boolean isSubstitution) { this.isSubstitution = isSubstitution; }
+
+    public String getLocalEventoId() { return localEventoId; }
+    public void setLocalEventoId(String localEventoId) { this.localEventoId = localEventoId; }
 
     public JsonNode getDadosExtras() { return dadosExtras; }
     public void setDadosExtras(JsonNode dadosExtras) { this.dadosExtras = dadosExtras; }
@@ -82,4 +110,7 @@ public class EventoPartida {
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
+
+    public CampeonatoTime getEquipe() { return campeonatoTime; }
+    public void setEquipe(CampeonatoTime equipe) { this.campeonatoTime = equipe; }
 }

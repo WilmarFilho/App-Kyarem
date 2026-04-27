@@ -75,4 +75,8 @@ public class CampeonatoTime {
                 ? nomePersonalizado
                 : (time != null ? time.getNome() : null);
     }
+
+    public com.nkw.backapisumula.cadastros.Atletica getAtletica() {
+        return time != null ? time.getAtletica() : null;
+    }
 }

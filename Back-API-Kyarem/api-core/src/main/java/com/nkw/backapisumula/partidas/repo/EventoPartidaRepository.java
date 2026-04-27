@@ -24,7 +24,7 @@ public interface EventoPartidaRepository extends JpaRepository<EventoPartida, UU
               join e.partida p
               left join fetch e.atleta a
               left join fetch e.atletaSai asai
-              left join fetch e.equipe eq
+              left join fetch e.campeonatoTime eq
               left join fetch e.tipoEvento te
             where p.id = :partidaId
             order by e.criadoEm asc

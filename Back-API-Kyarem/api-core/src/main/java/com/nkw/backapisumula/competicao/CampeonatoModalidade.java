@@ -72,4 +72,27 @@ public class CampeonatoModalidade {
     public void setConfiguracoesEspecificas(JsonNode configuracoesEspecificas) {
         this.configuracoesEspecificas = configuracoesEspecificas;
     }
+
+    public String getCampeonatoNome() {
+        return campeonato != null ? campeonato.getNome() : null;
+    }
+
+    public String getNome() {
+        return modalidade != null ? modalidade.getNome() : null;
+    }
+
+    public com.nkw.backapisumula.cadastros.Esporte getEsporte() {
+        return modalidade != null ? modalidade.getEsporte() : null;
+    }
+
+    public Integer getTempoPartidaMinutos() {
+        if (configuracoesEspecificas != null && configuracoesEspecificas.has("tempoPartidaMinutos")) {
+            return configuracoesEspecificas.path("tempoPartidaMinutos").asInt(20);
+        }
+        if (modalidade != null && modalidade.getMotorConfigsDefault() != null
+                && modalidade.getMotorConfigsDefault().has("tempoPartidaMinutos")) {
+            return modalidade.getMotorConfigsDefault().path("tempoPartidaMinutos").asInt(20);
+        }
+        return 20;
+    }
 }

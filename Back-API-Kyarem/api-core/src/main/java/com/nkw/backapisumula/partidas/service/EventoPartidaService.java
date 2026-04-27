@@ -15,6 +15,7 @@ import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
 import com.nkw.backapisumula.config.FirebaseCloudMessagingService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,18 +87,18 @@ public class EventoPartidaService {
     public record AddEventoInput(
             UUID campeonatoTimeId,
             UUID atletaId,
+            UUID atletaSaiId,
+            boolean isSubstitution,
             UUID tipoEventoId,
-            String periodo,
             String minutoSegundo,
-            Object dadosExtras,
+            String descricaoDetalhada,
             String localEventoId
     ) {}
 
     public record AddEventoGeralInput(
             UUID tipoEventoId,
-            String periodo,
             String minutoSegundo,
-            Object dadosExtras,
+            String descricaoDetalhada,
             String localEventoId,
             UUID campeonatoTimeId
     ) {}
@@ -111,6 +112,7 @@ public class EventoPartidaService {
     private final FirebaseCloudMessagingService firebaseMessagingService;
     private final EventPublisherService eventPublisherService;
     private final ProfileRepository profileRepo;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public EventoPartidaService(EventoPartidaRepository repo,
                                PartidaRepository partidaRepo,
@@ -143,9 +145,11 @@ public class EventoPartidaService {
                                       boolean isArbitroOnly,
                                       UUID campeonatoTimeId,
                                       UUID atletaId,
+                                      UUID atletaSaiId,
+                                      boolean isSubstitution,
                                       UUID tipoEventoId,
-                                      String periodo,
-                                      String minutoSegundo) {
+                                      String minutoSegundo,
+                                      String descricaoDetalhada) {
 
         Partida partida = partidaRepo.findById(partidaId)
                 .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
@@ -187,8 +191,17 @@ public class EventoPartidaService {
             ev.setAtleta(null);
         }
 
-        if (periodo != null) ev.setPeriodo(periodo);
+        if (atletaSaiId != null) {
+            Atleta atletaSai = atletaRepo.findById(atletaSaiId)
+                    .orElseThrow(() -> new IllegalStateException("Atleta de saída não encontrado."));
+            ev.setAtletaSai(atletaSai);
+        } else {
+            ev.setAtletaSai(null);
+        }
+
+        ev.setIsSubstitution(isSubstitution);
         if (minutoSegundo != null && !minutoSegundo.isBlank()) ev.setMinutoSegundo(minutoSegundo);
+        ev.setDescricaoDetalhada(descricaoDetalhada);
 
         return repo.save(ev);
     }
@@ -273,9 +286,13 @@ public class EventoPartidaService {
             EventoPartida ev = new EventoPartida();
             ev.setPartida(partida);
             ev.setTipoEvento(tipoEvento);
-            ev.setPeriodo(r.periodo());
             ev.setMinutoSegundo(r.minutoSegundo());
             ev.setCriadoPorUser(author);
+            ev.setLocalEventoId(r.localEventoId());
+            ev.setDescricaoDetalhada(r.descricaoDetalhada());
+            if (r.descricaoDetalhada() != null && !r.descricaoDetalhada().isBlank()) {
+                ev.setDadosExtras(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
+            }
 
             if (r.campeonatoTimeId() != null) {
                 campeonatoTimeRepo.findById(r.campeonatoTimeId()).ifPresent(ev::setCampeonatoTime);
@@ -333,6 +350,7 @@ public class EventoPartidaService {
             if (r.campeonatoTimeId() != null) timeIds.add(r.campeonatoTimeId());
             if (r.tipoEventoId() != null) tipoEventoIds.add(r.tipoEventoId());
             if (r.atletaId() != null) atletaIds.add(r.atletaId());
+            if (r.atletaSaiId() != null) atletaIds.add(r.atletaSaiId());
         }
 
         Map<UUID, CampeonatoTime> times = new HashMap<>();
@@ -394,10 +412,23 @@ public class EventoPartidaService {
             ev.setPartida(partida);
             ev.setCampeonatoTime(time);
             ev.setAtleta(atleta);
+            if (r.atletaSaiId() != null) {
+                Atleta atletaSai = atletas.get(r.atletaSaiId());
+                if (atletaSai == null) {
+                    atletaSai = atletaRepo.findById(r.atletaSaiId())
+                            .orElseThrow(() -> new IllegalStateException("Atleta de saída não encontrado: " + r.atletaSaiId()));
+                }
+                ev.setAtletaSai(atletaSai);
+            }
             ev.setTipoEvento(tipoEvento);
-            ev.setPeriodo(r.periodo());
             ev.setMinutoSegundo(r.minutoSegundo());
             ev.setCriadoPorUser(author);
+            ev.setIsSubstitution(r.isSubstitution());
+            ev.setDescricaoDetalhada(r.descricaoDetalhada());
+            ev.setLocalEventoId(r.localEventoId());
+            if (r.descricaoDetalhada() != null && !r.descricaoDetalhada().isBlank()) {
+                ev.setDadosExtras(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
+            }
             toSave.add(ev);
 
             if (isGoalEvent(tipoEvento)) {
