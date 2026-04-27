@@ -25,11 +25,17 @@ public class TimeAtletica {
     @Column(name = "nome", nullable = false)
     private String nome;
 
-    @Column(name = "status")
+    @Column(name = "categoria")
+    private String categoria;
+
+    @Column(name = "genero")
+    private String genero;
+
+    @Column(name = "status", nullable = false)
     private String status = "ATIVO";
 
-    @Column(name = "genero", nullable = false)
-    private String genero;
+    @Column(name = "criado_por")
+    private UUID criadoPor;
 
     @Column(name = "criado_em", nullable = false)
     private OffsetDateTime criadoEm;
@@ -58,20 +64,28 @@ public class TimeAtletica {
         this.modalidade = modalidade;
     }
 
-    public String getNomeTime() {
-        return nome;
-    }
-
-    public void setNomeTime(String nomeTime) {
-        this.nome = nomeTime;
-    }
-
     public String getNome() {
         return nome;
     }
 
     public void setNome(String nome) {
         this.nome = nome;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public String getGenero() {
+        return genero;
+    }
+
+    public void setGenero(String genero) {
+        this.genero = genero;
     }
 
     public String getStatus() {
@@ -82,16 +96,12 @@ public class TimeAtletica {
         this.status = status;
     }
 
-    public String getCategoria() {
-        return null;
+    public UUID getCriadoPor() {
+        return criadoPor;
     }
 
-    public String getGenero() {
-        return genero;
-    }
-
-    public void setGenero(String genero) {
-        this.genero = genero;
+    public void setCriadoPor(UUID criadoPor) {
+        this.criadoPor = criadoPor;
     }
 
     public OffsetDateTime getCriadoEm() {

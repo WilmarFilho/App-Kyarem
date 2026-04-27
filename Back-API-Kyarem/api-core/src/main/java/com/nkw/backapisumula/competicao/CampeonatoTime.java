@@ -14,18 +14,31 @@ public class CampeonatoTime {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campeonato_id", nullable = false)
+    private Campeonato campeonato;
+
+    @Column(name = "campeonato_atletica_id", nullable = false)
+    private UUID campeonatoAtleticaId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campeonato_modalidade_id", nullable = false)
     private CampeonatoModalidade campeonatoModalidade;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "time_id", nullable = false)
+    @JoinColumn(name = "time_atletica_id", nullable = false)
     private TimeAtletica time;
 
-    @Column(name = "status_inscricao", nullable = false)
-    private String statusInscricao;
+    @Column(name = "nome_exibicao")
+    private String nomeExibicao;
 
-    @Column(name = "nome_personalizado")
-    private String nomePersonalizado;
+    @Column(name = "grupo")
+    private String grupo;
+
+    @Column(name = "seed")
+    private Integer seed;
+
+    @Column(name = "status", nullable = false)
+    private String status = "CONFIRMADA";
 
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
@@ -36,6 +49,22 @@ public class CampeonatoTime {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public Campeonato getCampeonato() {
+        return campeonato;
+    }
+
+    public void setCampeonato(Campeonato campeonato) {
+        this.campeonato = campeonato;
+    }
+
+    public UUID getCampeonatoAtleticaId() {
+        return campeonatoAtleticaId;
+    }
+
+    public void setCampeonatoAtleticaId(UUID campeonatoAtleticaId) {
+        this.campeonatoAtleticaId = campeonatoAtleticaId;
     }
 
     public CampeonatoModalidade getCampeonatoModalidade() {
@@ -54,29 +83,41 @@ public class CampeonatoTime {
         this.time = time;
     }
 
-    public String getStatusInscricao() {
-        return statusInscricao;
+    public String getNomeExibicao() {
+        return nomeExibicao;
     }
 
-    public void setStatusInscricao(String statusInscricao) {
-        this.statusInscricao = statusInscricao;
+    public void setNomeExibicao(String nomeExibicao) {
+        this.nomeExibicao = nomeExibicao;
     }
 
-    public Campeonato getCampeonato() {
-        return campeonatoModalidade != null ? campeonatoModalidade.getCampeonato() : null;
+    public String getGrupo() {
+        return grupo;
     }
 
-    public String getNomePersonalizado() {
-        return nomePersonalizado;
+    public void setGrupo(String grupo) {
+        this.grupo = grupo;
     }
 
-    public void setNomePersonalizado(String nomePersonalizado) {
-        this.nomePersonalizado = nomePersonalizado;
+    public Integer getSeed() {
+        return seed;
+    }
+
+    public void setSeed(Integer seed) {
+        this.seed = seed;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getNomeEquipe() {
-        return nomePersonalizado != null && !nomePersonalizado.isBlank()
-                ? nomePersonalizado
+        return nomeExibicao != null && !nomeExibicao.isBlank()
+                ? nomeExibicao
                 : (time != null ? time.getNome() : null);
     }
 

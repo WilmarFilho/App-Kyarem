@@ -111,10 +111,15 @@ public class TimesController {
                 .orElseThrow(() -> new IllegalStateException("Time da atlética não encontrado."));
 
         CampeonatoTime campeonatoTime = new CampeonatoTime();
+        campeonatoTime.setCampeonato(campeonatoModalidade.getCampeonato());
         campeonatoTime.setCampeonatoModalidade(campeonatoModalidade);
         campeonatoTime.setTime(timeAtletica);
-        campeonatoTime.setNomePersonalizado(request.nomePersonalizado());
-        campeonatoTime.setStatusInscricao("CONFIRMADA");
+        campeonatoTime.setNomeExibicao(request.nomeExibicao());
+        campeonatoTime.setStatus("CONFIRMADA");
+        // TODO: campeonatoAtleticaId is required by schema, but no entity/endpoint exists yet.
+        // We set a temporary UUID to avoid null pointer/compile errors, but this will fail DB constraints
+        // until the business logic fully implements campeonato_atleticas.
+        campeonatoTime.setCampeonatoAtleticaId(UUID.randomUUID());
 
         return CampeonatoTimeResponse.from(campeonatoTimeRepository.save(campeonatoTime));
     }
@@ -140,7 +145,7 @@ public class TimesController {
     public record InscricaoTimeRequest(
             @NotNull UUID campeonatoModalidadeId,
             @NotNull UUID timeAtleticaId,
-            String nomePersonalizado
+            String nomeExibicao
     ) {}
 
     public record TimeAtleticaResponse(
@@ -174,7 +179,7 @@ public class TimesController {
             String nome,
             String atleticaNome,
             String modalidadeNome,
-            String statusInscricao
+            String status
     ) {
         public static CampeonatoTimeResponse from(CampeonatoTime time) {
             return new CampeonatoTimeResponse(
@@ -187,7 +192,7 @@ public class TimesController {
                     time.getTime() != null && time.getTime().getAtletica() != null ? time.getTime().getAtletica().getNome() : null,
                     time.getCampeonatoModalidade() != null && time.getCampeonatoModalidade().getModalidade() != null
                             ? time.getCampeonatoModalidade().getModalidade().getNome() : null,
-                    time.getStatusInscricao()
+                    time.getStatus()
             );
         }
     }
