@@ -1,1 +1,7 @@
 rootProject.name = 'Back-API-Kyarem'
+
+include 'api-core'
+include 'outbox-publisher'
+include 'projection-worker'
+include 'metrics-worker'
+include 'realtime-gateway'

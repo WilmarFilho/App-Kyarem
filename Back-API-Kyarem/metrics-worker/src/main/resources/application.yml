@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: kyarem-metrics-worker
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/kyarem}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 5
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+
+  flyway:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+server:
+  port: ${APP_PORT:8087}
+
+logging:
+  level:
+    com.kyarem.metrics: ${LOG_LEVEL:INFO}

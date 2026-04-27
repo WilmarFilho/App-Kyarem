@@ -1,0 +1,12 @@
+// Módulo outbox-publisher — Lê outbox_events e publica no RabbitMQ
+plugins {
+    id 'org.springframework.boot'
+}
+
+description = 'Kyarem Outbox Publisher — Garante entrega de eventos para o broker'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+}

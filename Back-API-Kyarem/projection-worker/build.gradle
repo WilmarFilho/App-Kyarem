@@ -1,0 +1,10 @@
+// Módulo projection-worker — Consome eventos e atualiza schema public
+plugins {
+    id 'org.springframework.boot'
+}
+
+description = 'Kyarem Projection Worker — Mantém os read models do schema public atualizados'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+}

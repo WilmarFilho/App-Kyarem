@@ -1,0 +1,10 @@
+// Módulo metrics-worker — Recalcula classificações, artilharia e rankings
+plugins {
+    id 'org.springframework.boot'
+}
+
+description = 'Kyarem Metrics Worker — Recalculate rankings, standings and athlete stats'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+}

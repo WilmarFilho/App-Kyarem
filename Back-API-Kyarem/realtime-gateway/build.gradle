@@ -1,0 +1,11 @@
+// Módulo realtime-gateway — SSE para apps públicos
+plugins {
+    id 'org.springframework.boot'
+}
+
+description = 'Kyarem Realtime Gateway — Server-Sent Events para apps públicos'
+
+dependencies {
+    // WebFlux para suporte a SSE/reactive streams
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+}

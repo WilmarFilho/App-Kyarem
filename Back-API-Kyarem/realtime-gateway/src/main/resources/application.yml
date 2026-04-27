@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: kyarem-realtime-gateway
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/kyarem}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 20
+
+  flyway:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+server:
+  port: ${APP_PORT:9000}
+
+logging:
+  level:
+    com.kyarem.realtime: ${LOG_LEVEL:INFO}

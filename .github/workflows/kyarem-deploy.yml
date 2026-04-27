@@ -1,0 +1,146 @@
+name: 🚀 Deploy — Kyarem Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Back-API-Kyarem/**'
+      - '.github/workflows/kyarem-deploy.yml'
+
+  workflow_dispatch:   # Permite trigger manual pela UI do GitHub
+
+env:
+  REGISTRY: ghcr.io
+  REPO: ${{ github.repository_owner }}/back-api-kyarem
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Build JARs e imagens Docker, push para GHCR
+  # ────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        module:
+          - api-core
+          - outbox-publisher
+          - projection-worker
+          - metrics-worker
+          - realtime-gateway
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 🔑 Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐋 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build & Push — ${{ matrix.module }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Back-API-Kyarem
+          file: ./Back-API-Kyarem/${{ matrix.module }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.module }}:latest
+            ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.module }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.module }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.module }}
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Deploy na VPS
+  # Só executa após todos os módulos terem sido buildados com sucesso
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy VPS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔐 Criar .env.prod na VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}
+            cat > ${{ secrets.VPS_DEPLOY_PATH }}/.env << 'ENVEOF'
+            ${{ secrets.ENV_PROD }}
+            ENVEOF
+            # Adiciona a IMAGE_TAG dinâmica ao .env
+            echo "IMAGE_TAG=${{ github.sha }}" >> ${{ secrets.VPS_DEPLOY_PATH }}/.env
+            echo "GITHUB_REPOSITORY=${{ env.REPO }}" >> ${{ secrets.VPS_DEPLOY_PATH }}/.env
+
+      - name: 📤 Copiar docker-compose.yml para VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "Back-API-Kyarem/docker-compose.yml"
+          target: "${{ secrets.VPS_DEPLOY_PATH }}"
+          strip_components: 1
+
+      - name: 🚀 Pull imagens e reiniciar containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+
+            echo "🔑 Login GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+              -u ${{ github.actor }} --password-stdin
+
+            echo "📥 Pull das novas imagens..."
+            docker compose pull
+
+            echo "🔄 Reiniciando containers..."
+            docker compose up -d --remove-orphans
+
+            echo "⏳ Aguardando api-core ficar saudável..."
+            sleep 15
+            docker compose ps
+
+            echo "✅ Health check..."
+            curl -f http://127.0.0.1:8083/actuator/health || \
+              (echo "❌ api-core não respondeu!" && exit 1)
+
+            echo "🎉 Deploy concluído!"
+
+      - name: 🧹 Limpar imagens antigas
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            docker image prune -f --filter "until=24h"
