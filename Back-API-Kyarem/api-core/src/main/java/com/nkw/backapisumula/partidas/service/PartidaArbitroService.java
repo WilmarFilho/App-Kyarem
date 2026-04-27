@@ -47,6 +47,12 @@ public class PartidaArbitroService {
         Profile arbitro = profileRepo.findById(arbitroId)
                 .orElseThrow(() -> new IllegalStateException("Perfil do árbitro não encontrado."));
 
+        boolean hasRefereeRole = profileRepo.findRolesByUserId(arbitroId).stream()
+                .anyMatch(role -> "REFEREE".equalsIgnoreCase(role) || "ARBITRO_COMUM".equalsIgnoreCase(role));
+        if (!hasRefereeRole) {
+            throw new IllegalStateException("Usuário informado não possui papel contextual de REFEREE.");
+        }
+
         PartidaArbitro pa = new PartidaArbitro();
         pa.setPartida(partida);
         pa.setArbitro(arbitro);

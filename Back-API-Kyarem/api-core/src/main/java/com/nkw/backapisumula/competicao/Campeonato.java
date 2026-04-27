@@ -18,8 +18,9 @@ public class Campeonato {
     @Column(nullable = false)
     private String nome;
 
-    @Column(name = "nivel_campeonato")
-    private String nivelCampeonato;
+    private String slug;
+
+    private String nivel;
 
     @Column(name = "data_inicio")
     private LocalDate dataInicio;
@@ -33,14 +34,22 @@ public class Campeonato {
     @Column(name = "escudo_url")
     private String escudoUrl;
 
+    private String status;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
 
-    public String getNivelCampeonato() { return nivelCampeonato; }
-    public void setNivelCampeonato(String nivelCampeonato) { this.nivelCampeonato = nivelCampeonato; }
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+
+    public String getNivel() { return nivel; }
+    public void setNivel(String nivel) { this.nivel = nivel; }
+
+    public String getNivelCampeonato() { return nivel; }
+    public void setNivelCampeonato(String nivelCampeonato) { this.nivel = nivelCampeonato; }
 
     public LocalDate getDataInicio() { return dataInicio; }
     public void setDataInicio(LocalDate dataInicio) { this.dataInicio = dataInicio; }
@@ -53,4 +62,7 @@ public class Campeonato {
 
     public String getEscudoUrl() { return escudoUrl; }
     public void setEscudoUrl(String escudoUrl) { this.escudoUrl = escudoUrl; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

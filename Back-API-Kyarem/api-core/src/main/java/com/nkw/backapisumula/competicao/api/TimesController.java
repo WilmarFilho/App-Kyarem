@@ -49,7 +49,7 @@ public class TimesController {
 
     @PostMapping("/atletica")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public TimeAtleticaResponse createTimeAtletica(@Valid @RequestBody CreateTimeAtleticaRequest request) {
         ModalidadeCatalogo modalidade = modalidadeCatalogoRepository.findById(request.modalidadeCatalogoId())
                 .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
@@ -67,7 +67,7 @@ public class TimesController {
     }
 
     @PutMapping("/atletica/{timeId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public TimeAtleticaResponse updateTimeAtletica(@PathVariable UUID timeId,
                                                    @Valid @RequestBody UpdateTimeAtleticaRequest request) {
         TimeAtletica time = timeAtleticaRepository.findById(timeId)
@@ -87,7 +87,7 @@ public class TimesController {
 
     @DeleteMapping("/atletica/{timeId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public void deleteTimeAtletica(@PathVariable UUID timeId) {
         timeAtleticaRepository.deleteById(timeId);
     }
@@ -102,7 +102,7 @@ public class TimesController {
 
     @PostMapping("/campeonato")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public CampeonatoTimeResponse inscreverTimeNoCampeonato(@Valid @RequestBody InscricaoTimeRequest request) {
         CampeonatoModalidade campeonatoModalidade = campeonatoModalidadeRepository.findById(request.campeonatoModalidadeId())
                 .orElseThrow(() -> new IllegalStateException("Modalidade do campeonato não encontrada."));
@@ -121,7 +121,7 @@ public class TimesController {
 
     @DeleteMapping("/campeonato/{campeonatoTimeId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public void removerTimeDoCampeonato(@PathVariable UUID campeonatoTimeId) {
         campeonatoTimeRepository.deleteById(campeonatoTimeId);
     }

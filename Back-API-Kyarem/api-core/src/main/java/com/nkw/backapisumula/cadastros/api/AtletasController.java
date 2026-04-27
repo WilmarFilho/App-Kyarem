@@ -45,7 +45,7 @@ public class AtletasController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public AtletaResponse create(@Valid @RequestBody CreateAtletaRequest req) {
         Atletica atletica = atleticaService.getOrThrow(req.atleticaId());
         Atleta a = atletaService.create(atletica, req.nome(), req.fotoUrl());
@@ -53,20 +53,20 @@ public class AtletasController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public AtletaResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateAtletaRequest req) {
         return AtletaResponse.from(atletaService.update(id, req.nome()));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public void delete(@PathVariable UUID id) {
         atletaService.delete(id);
     }
 
     @PostMapping("/upload-foto")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public Map<String, String> uploadFoto(@RequestParam("file") MultipartFile file) throws IOException {
         String originalName = file.getOriginalFilename();
         String ext = (originalName != null && originalName.contains("."))

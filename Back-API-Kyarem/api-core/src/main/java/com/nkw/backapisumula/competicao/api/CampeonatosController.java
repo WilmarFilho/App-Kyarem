@@ -40,7 +40,7 @@ public class CampeonatosController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public CampeonatoResponse create(@Valid @RequestBody CreateCampeonatoRequest r) {
         Campeonato c = new Campeonato();
         c.setNome(r.nome());
@@ -52,7 +52,7 @@ public class CampeonatosController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public CampeonatoResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCampeonatoRequest r) {
         Campeonato patch = new Campeonato();
         patch.setNome(r.nome());
@@ -65,13 +65,13 @@ public class CampeonatosController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public void delete(@PathVariable UUID id) {
         service.delete(id);
     }
 
     @PostMapping("/upload-escudo")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public Map<String, String> uploadEscudo(@RequestParam("file") MultipartFile file) throws IOException {
         String originalName = file.getOriginalFilename();
         String ext = (originalName != null && originalName.contains("."))

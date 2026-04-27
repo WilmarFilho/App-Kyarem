@@ -57,7 +57,7 @@ public class ModalidadesController {
 
     @PostMapping("/api/v1/modalidades")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public ModalidadeResponse create(@Valid @RequestBody CreateModalidadeRequest request) {
         Campeonato campeonato = campeonatoRepository.findById(request.campeonatoId())
                 .orElseThrow(() -> new IllegalStateException("Campeonato não encontrado."));
@@ -74,7 +74,7 @@ public class ModalidadesController {
     }
 
     @PutMapping("/api/v1/modalidades/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public ModalidadeResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateModalidadeRequest request) {
         CampeonatoModalidade modalidade = campeonatoModalidadeRepository.findById(id)
                 .orElseThrow(() -> new IllegalStateException("Modalidade do campeonato não encontrada."));

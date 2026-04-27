@@ -30,7 +30,7 @@ public class ArbitrosController {
 
     /** Lista todos os árbitros cadastrados. */
     @GetMapping
-    @PreAuthorize("hasAnyRole('admin','delegado')")
+    @PreAuthorize("hasAnyRole('admin','director')")
     public List<ArbitroResponse> list() {
         return profileService.listArbitros().stream().map(ArbitroResponse::from).toList();
     }
@@ -41,7 +41,7 @@ public class ArbitrosController {
      * GET /api/v1/arbitros/{arbitroId}/partidas
      */
     @GetMapping("/{arbitroId}/partidas")
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public List<PartidaDoArbitroResponse> listarPartidasDoArbitro(@PathVariable UUID arbitroId) {
         return partidaArbitroService.listByArbitro(arbitroId)
                 .stream()

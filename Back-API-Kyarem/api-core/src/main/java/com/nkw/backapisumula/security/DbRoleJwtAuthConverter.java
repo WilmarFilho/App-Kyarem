@@ -12,11 +12,11 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Converte um Jwt do Supabase em Authentication, usando o role de negócio do banco:
- * public.profiles.role.
+ * Converte um Jwt do Supabase em Authentication usando os papeis globais e
+ * contextuais persistidos no banco.
  *
  * - JWT: autentica e fornece o subject (sub) = auth.users.id
- * - DB: determina a role de autorização (admin, arbitro, presidente_atletica, etc.)
+ * - DB: determina as authorities de autorização (admin, referee, president, etc.)
  */
 public class DbRoleJwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
@@ -54,8 +54,11 @@ public class DbRoleJwtAuthConverter implements Converter<Jwt, AbstractAuthentica
         String role = rawRole.trim().toUpperCase(Locale.ROOT);
         return switch (role) {
             case "ADMIN", "ADMIN_PLATAFORMA" -> "ROLE_admin";
-            case "ORGANIZADOR" -> "ROLE_delegado";
-            case "ARBITRO_COMUM", "REFEREE" -> "ROLE_arbitro";
+            case "ORGANIZADOR", "DIRECTOR" -> "ROLE_director";
+            case "PRESIDENTE_ATLETICA", "PRESIDENT" -> "ROLE_president";
+            case "ARBITRO_COMUM", "REFEREE" -> "ROLE_referee";
+            case "ALUNO", "ATHLETE" -> "ROLE_athlete";
+            case "PUBLICO_LEITURA", "USER" -> "ROLE_user";
             default -> "ROLE_" + rawRole.trim().toLowerCase(Locale.ROOT);
         };
     }

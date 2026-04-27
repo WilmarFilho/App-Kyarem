@@ -24,6 +24,10 @@ public class ProfileService {
     }
 
     public List<Profile> listArbitros() {
+        List<Profile> arbitros = repo.findByGlobalRoleOrderByNomeExibicaoAsc("REFEREE");
+        if (!arbitros.isEmpty()) {
+            return hydrateRoles(arbitros);
+        }
         return hydrateRoles(repo.findByGlobalRoleOrderByNomeExibicaoAsc("ARBITRO_COMUM"));
     }
 
@@ -50,11 +54,17 @@ public class ProfileService {
         if (roles.stream().anyMatch(role -> "ADMIN_PLATAFORMA".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role))) {
             return "admin";
         }
-        if (roles.stream().anyMatch(role -> "ORGANIZADOR".equalsIgnoreCase(role))) {
-            return "delegado";
+        if (roles.stream().anyMatch(role -> "DIRECTOR".equalsIgnoreCase(role) || "ORGANIZADOR".equalsIgnoreCase(role))) {
+            return "director";
+        }
+        if (roles.stream().anyMatch(role -> "PRESIDENT".equalsIgnoreCase(role) || "PRESIDENTE_ATLETICA".equalsIgnoreCase(role))) {
+            return "president";
+        }
+        if (roles.stream().anyMatch(role -> "ATHLETE".equalsIgnoreCase(role) || "ALUNO".equalsIgnoreCase(role))) {
+            return "athlete";
         }
         if (roles.stream().anyMatch(role -> "ARBITRO_COMUM".equalsIgnoreCase(role) || "REFEREE".equalsIgnoreCase(role))) {
-            return "arbitro";
+            return "referee";
         }
         return roles.get(0).toLowerCase();
     }

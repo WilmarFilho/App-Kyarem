@@ -30,7 +30,7 @@ public class SupabaseAdminUserService {
      * @param email       e-mail do novo usuário
      * @param password    senha inicial
      * @param nomeExibicao nome de exibição (será gravado no profile via trigger ou update manual)
-     * @param role        role a ser definido no profile (ex: "presidente_atletica")
+     * @param role        papel inicial colocado no metadata do usuário
      * @return UUID do usuário criado
      */
     @SuppressWarnings("unchecked")

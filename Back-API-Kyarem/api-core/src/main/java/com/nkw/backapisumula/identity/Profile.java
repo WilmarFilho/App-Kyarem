@@ -15,10 +15,17 @@ public class Profile {
     @Column(name = "nome_exibicao")
     private String nomeExibicao;
 
-    @Column(name = "foto_url")
-    private String fotoUrl;
+    @Column(name = "nome_completo")
+    private String nomeCompleto;
+
+    private String email;
 
     private String telefone;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    private String status;
 
     @Transient
     private String role;
@@ -37,11 +44,23 @@ public class Profile {
     public String getNomeExibicao() { return nomeExibicao; }
     public void setNomeExibicao(String nomeExibicao) { this.nomeExibicao = nomeExibicao; }
 
-    public String getFotoUrl() { return fotoUrl; }
-    public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
+    public String getNomeCompleto() { return nomeCompleto; }
+    public void setNomeCompleto(String nomeCompleto) { this.nomeCompleto = nomeCompleto; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public String getTelefone() { return telefone; }
     public void setTelefone(String telefone) { this.telefone = telefone; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public String getFotoUrl() { return avatarUrl; }
+    public void setFotoUrl(String fotoUrl) { this.avatarUrl = fotoUrl; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }

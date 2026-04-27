@@ -33,7 +33,7 @@ public class EventosPartidaGeraisController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public List<EventosPartidaController.EventoPartidaResponse> add(@PathVariable UUID partidaId,
                                                                     Authentication authentication,
                                                                     @AuthenticationPrincipal Jwt jwt,
@@ -57,11 +57,11 @@ public class EventosPartidaGeraisController {
     }
 
     private boolean isArbitroOnly(Authentication authentication) {
-        boolean isAdminOrDelegado = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_delegado"));
-        boolean isArbitro = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_arbitro"));
-        return isArbitro && !isAdminOrDelegado;
+        boolean isAdminOrDirector = authentication.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_director"));
+        boolean isReferee = authentication.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_referee"));
+        return isReferee && !isAdminOrDirector;
     }
 
     public record AddEventoGeralRequest(

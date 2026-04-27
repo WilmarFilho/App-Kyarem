@@ -28,14 +28,14 @@ public class EventosPartidaController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro','presidente_atletica','aluno','publico_leitura')")
+    @PreAuthorize("hasAnyRole('admin','director','referee','president','athlete','user')")
     public List<EventoPartidaResponse> list(@PathVariable UUID partidaId) {
         return service.list(partidaId).stream().map(EventoPartidaResponse::from).toList();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public List<EventoPartidaResponse> add(@PathVariable UUID partidaId,
                                           Authentication authentication,
                                           @AuthenticationPrincipal Jwt jwt,
@@ -62,7 +62,7 @@ public class EventosPartidaController {
     }
 
     @PutMapping("/{eventoId}")
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public EventoPartidaResponse update(@PathVariable UUID partidaId,
                                         @PathVariable UUID eventoId,
                                         Authentication authentication,
@@ -90,7 +90,7 @@ public class EventosPartidaController {
 
     @DeleteMapping("/{eventoId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public void delete(@PathVariable UUID partidaId,
                        @PathVariable UUID eventoId,
                        Authentication authentication,
@@ -103,11 +103,11 @@ public class EventosPartidaController {
     }
 
     private boolean isArbitroOnly(Authentication authentication) {
-        boolean isAdminOrDelegado = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_delegado"));
-        boolean isArbitro = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_arbitro"));
-        return isArbitro && !isAdminOrDelegado;
+        boolean isAdminOrDirector = authentication.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_director"));
+        boolean isReferee = authentication.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_referee"));
+        return isReferee && !isAdminOrDirector;
     }
 
     public record AddEventoRequest(

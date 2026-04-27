@@ -38,7 +38,7 @@ public class PartidasController {
     }
 
     @GetMapping("/minhas")
-    @PreAuthorize("hasAnyRole('admin','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','referee')")
     public List<PartidaResponse> minhas(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
         return service.listByArbitro(userId).stream().map(PartidaResponse::from).toList();
@@ -60,14 +60,14 @@ public class PartidasController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public PartidaResponse create(@Valid @RequestBody CreatePartidaRequest req) {
         Partida p = service.create(req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.categoria(), req.fase());
         return PartidaResponse.from(p);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin','delegado')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public PartidaResponse update(@PathVariable UUID id,
                                  Authentication authentication,
                                  @AuthenticationPrincipal Jwt jwt,
@@ -79,7 +79,7 @@ public class PartidasController {
     }
 
     @GetMapping(value = "/{id}/sumula-oficial.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public ResponseEntity<byte[]> getOfficialPdf(@PathVariable UUID id) {
         byte[] pdf = sumulaOficialPdfService.gerarPdf(id);
         return ResponseEntity.ok()
@@ -89,7 +89,7 @@ public class PartidasController {
     }
 
     @PostMapping("/{id}/start")
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public PartidaResponse start(@PathVariable UUID id,
                                  Authentication authentication,
                                  @AuthenticationPrincipal Jwt jwt) {
@@ -99,7 +99,7 @@ public class PartidasController {
     }
 
     @PostMapping("/{id}/end")
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public PartidaResponse end(@PathVariable UUID id,
                                Authentication authentication,
                                @AuthenticationPrincipal Jwt jwt) {
@@ -110,7 +110,7 @@ public class PartidasController {
 
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public PartidaResponse updateStatus(@PathVariable UUID id,
                                         Authentication authentication,
                                         @AuthenticationPrincipal Jwt jwt,
@@ -123,16 +123,16 @@ public class PartidasController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyRole('admin','delegado')")
+    @PreAuthorize("hasAnyRole('admin','director')")
     public void delete(@PathVariable UUID id) {
         service.delete(id);
     }
 
     private boolean isArbitroOnly(Authentication authentication) {
-        boolean isAdminOrDelegado = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_delegado"));
-        boolean isArbitro = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_arbitro"));
-        return isArbitro && !isAdminOrDelegado;
+        boolean isAdminOrDirector = authentication.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_director"));
+        boolean isReferee = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_referee"));
+        return isReferee && !isAdminOrDirector;
     }
 
     public record CreatePartidaRequest(

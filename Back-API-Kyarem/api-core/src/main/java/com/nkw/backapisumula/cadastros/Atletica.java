@@ -18,6 +18,8 @@ public class Atletica {
 
     private String sigla;
 
+    private String slug;
+
     @Column(name = "cor_principal")
     private String corPrincipal;
 
@@ -26,6 +28,11 @@ public class Atletica {
 
     @Column(name = "presidente_id", columnDefinition = "uuid")
     private UUID presidenteId;
+
+    @Column(name = "criado_por", columnDefinition = "uuid")
+    private UUID criadoPor;
+
+    private String status;
 
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
@@ -39,6 +46,9 @@ public class Atletica {
     public String getSigla() { return sigla; }
     public void setSigla(String sigla) { this.sigla = sigla; }
 
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+
     public String getCorPrincipal() { return corPrincipal; }
     public void setCorPrincipal(String corPrincipal) { this.corPrincipal = corPrincipal; }
 
@@ -47,6 +57,12 @@ public class Atletica {
 
     public UUID getPresidenteId() { return presidenteId; }
     public void setPresidenteId(UUID presidenteId) { this.presidenteId = presidenteId; }
+
+    public UUID getCriadoPor() { return criadoPor; }
+    public void setCriadoPor(UUID criadoPor) { this.criadoPor = criadoPor; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }

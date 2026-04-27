@@ -35,7 +35,7 @@ public class AtleticasController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public AtleticaResponse create(@Valid @RequestBody CreateAtleticaRequest req) {
         Atletica a = new Atletica();
         a.setNome(req.nome());
@@ -47,7 +47,7 @@ public class AtleticasController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public AtleticaResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateAtleticaRequest req) {
         Atletica patch = new Atletica();
         patch.setNome(req.nome());
@@ -60,13 +60,13 @@ public class AtleticasController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public void delete(@PathVariable UUID id) {
         service.delete(id);
     }
 
     @PostMapping("/upload-escudo")
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado','ROLE_presidente_atletica')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public java.util.Map<String, String> uploadEscudo(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
         String originalName = file.getOriginalFilename();
         String ext = (originalName != null && originalName.contains("."))

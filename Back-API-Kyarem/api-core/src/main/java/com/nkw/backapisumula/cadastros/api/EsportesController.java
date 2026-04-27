@@ -37,7 +37,7 @@ public class EsportesController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public EsporteResponse create(@Valid @RequestBody CreateEsporteRequest req) {
         Esporte e = esporteService.create(req.nome());
         return EsporteResponse.from(e);
@@ -50,7 +50,7 @@ public class EsportesController {
 
     @PostMapping("/{id}/tipos-eventos")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public TipoEventoResponse createTipoEvento(@PathVariable UUID id, @Valid @RequestBody CreateTipoEventoRequest req) {
         Esporte esporte = esporteService.getOrThrow(id);
         TipoEvento te = tipoEventoService.create(esporte, req.nome());

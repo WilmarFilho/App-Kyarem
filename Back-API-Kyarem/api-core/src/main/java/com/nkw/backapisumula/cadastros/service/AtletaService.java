@@ -19,7 +19,7 @@ public class AtletaService {
     }
 
     public List<Atleta> listByAtletica(UUID atleticaId) {
-        return repo.findAllByAtletica_IdOrderByNomeAsc(atleticaId);
+        return repo.findAllByAtletica_IdOrderByNomeCompeticaoAsc(atleticaId);
     }
 
     public Atleta getOrThrow(UUID id) {

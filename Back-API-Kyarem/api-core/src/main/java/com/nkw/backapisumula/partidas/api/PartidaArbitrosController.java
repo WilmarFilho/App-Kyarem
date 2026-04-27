@@ -24,14 +24,14 @@ public class PartidaArbitrosController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('admin','delegado','arbitro')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public List<PartidaArbitroResponse> list(@PathVariable UUID partidaId) {
         return service.list(partidaId).stream().map(PartidaArbitroResponse::from).toList();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('admin','delegado')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public PartidaArbitroResponse add(@PathVariable UUID partidaId, @Valid @RequestBody AddArbitroRequest req) {
         PartidaArbitro pa = service.add(partidaId, req.arbitroId(), req.funcao());
         return PartidaArbitroResponse.from(pa);
@@ -39,7 +39,7 @@ public class PartidaArbitrosController {
 
     @DeleteMapping("/{partidaArbitroId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyRole('admin','delegado')")
+    @PreAuthorize("hasAnyRole('admin','director','referee')")
     public void remove(@PathVariable UUID partidaId, @PathVariable UUID partidaArbitroId) {
         // partidaId está no path por consistência; remoção usa o id do vínculo
         service.remove(partidaArbitroId);

@@ -1,7 +1,9 @@
 package com.nkw.backapisumula.identity.api;
 
 import com.nkw.backapisumula.identity.Profile;
+import com.nkw.backapisumula.identity.UsuarioRoleGlobal;
 import com.nkw.backapisumula.identity.repo.ProfileRepository;
+import com.nkw.backapisumula.identity.repo.UsuarioRoleGlobalRepository;
 import com.nkw.backapisumula.identity.service.ProfileService;
 import com.nkw.backapisumula.identity.service.SupabaseAdminUserService;
 import jakarta.validation.Valid;
@@ -27,23 +29,26 @@ public class ProfilesController {
     private final ProfileService profileService;
     private final SupabaseAdminUserService adminUserService;
     private final ProfileRepository profileRepository;
+    private final UsuarioRoleGlobalRepository usuarioRoleGlobalRepository;
 
     public ProfilesController(
             ProfileService profileService,
             SupabaseAdminUserService adminUserService,
-            ProfileRepository profileRepository
+            ProfileRepository profileRepository,
+            UsuarioRoleGlobalRepository usuarioRoleGlobalRepository
     ) {
         this.profileService = profileService;
         this.adminUserService = adminUserService;
         this.profileRepository = profileRepository;
+        this.usuarioRoleGlobalRepository = usuarioRoleGlobalRepository;
     }
 
     /**
      * Lista todos os profiles, opcionalmente filtrado por role.
-     * GET /api/v1/profiles?role=presidente_atletica
+     * GET /api/v1/profiles?role=president
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public List<ProfileResponse> list(@RequestParam(required = false) String role) {
         List<Profile> profiles = (role != null && !role.isBlank())
                 ? profileService.listByRole(role)
@@ -52,22 +57,22 @@ public class ProfilesController {
     }
 
     /**
-     * Cria um novo usuário no Supabase Auth com role presidente_atletica.
-     * O trigger do banco cria o profile automaticamente; depois atualizamos
-     * nome_exibicao e role diretamente na tabela profiles.
+     * Cria um novo usuário base no Supabase Auth.
+     * Pela nova arquitetura, o cadastro nasce como USER e os papéis
+     * contextuais são atribuídos posteriormente.
      *
      * POST /api/v1/profiles/criar-presidente
      */
     @PostMapping("/criar-presidente")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_delegado')")
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public ProfileResponse criarPresidente(@Valid @RequestBody CriarPresidenteRequest req) {
         // 1. Cria o auth user via Supabase Admin API
         UUID userId = adminUserService.createAuthUser(
                 req.email(),
                 req.senha(),
                 req.nomeExibicao(),
-                "presidente_atletica"
+                "USER"
         );
 
         // 2. Aguarda um breve instante para o trigger criar o profile (fallback manual)
@@ -84,17 +89,27 @@ public class ProfilesController {
             profile = new Profile();
             profile.setId(userId);
             profile.setNomeExibicao(req.nomeExibicao());
-            profile.setRole("presidente_atletica");
+            profile.setStatus("ATIVO");
             profile.setCriadoEm(OffsetDateTime.now());
             profile.setAtualizadoEm(OffsetDateTime.now());
             profileRepository.save(profile);
         } else {
-            // 4. Atualiza nome e role no profile existente
+            // 4. Atualiza dados básicos do profile existente
             profile.setNomeExibicao(req.nomeExibicao());
-            profile.setRole("presidente_atletica");
+            profile.setStatus("ATIVO");
             profile.setAtualizadoEm(OffsetDateTime.now());
             profileRepository.save(profile);
         }
+
+        if (!usuarioRoleGlobalRepository.existsByUserIdAndRole(userId, "USER")) {
+            UsuarioRoleGlobal role = new UsuarioRoleGlobal();
+            role.setUserId(userId);
+            role.setRole("USER");
+            role.setCriadoEm(OffsetDateTime.now());
+            usuarioRoleGlobalRepository.save(role);
+        }
+
+        profile.setRole("user");
 
         return ProfileResponse.from(profile);
     }
