@@ -146,8 +146,8 @@ jobs:
             echo "📥 Pull das novas imagens..."
             docker compose pull
 
-            echo "🔄 Reiniciando containers..."
-            docker compose up -d --remove-orphans
+            echo "🔄 Subindo infraestrutura base..."
+            docker compose up -d --remove-orphans back-api-kyarem-rabbitmq back-api-kyarem-api-core
 
             echo "⏳ Aguardando api-core ficar saudável..."
             docker compose ps
@@ -155,6 +155,13 @@ jobs:
             echo "✅ Health check..."
             for i in $(seq 1 24); do
               if curl -fsS http://127.0.0.1:8083/actuator/health; then
+                echo "🚀 Subindo workers e gateway..."
+                docker compose up -d --remove-orphans \
+                  back-api-kyarem-outbox-publisher \
+                  back-api-kyarem-projection-worker \
+                  back-api-kyarem-metrics-worker \
+                  back-api-kyarem-realtime-gateway
+
                 echo "🎉 Deploy concluído!"
                 exit 0
               fi
