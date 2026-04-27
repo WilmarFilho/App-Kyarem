@@ -139,14 +139,23 @@ jobs:
             docker compose up -d --remove-orphans
 
             echo "⏳ Aguardando api-core ficar saudável..."
-            sleep 15
             docker compose ps
 
             echo "✅ Health check..."
-            curl -f http://127.0.0.1:8083/actuator/health || \
-              (echo "❌ api-core não respondeu!" && exit 1)
+            for i in $(seq 1 24); do
+              if curl -fsS http://127.0.0.1:8083/actuator/health; then
+                echo "🎉 Deploy concluído!"
+                exit 0
+              fi
 
-            echo "🎉 Deploy concluído!"
+              echo "Tentativa $i/24: api-core ainda não respondeu"
+              docker ps --filter name=back-api-kyarem-api-core
+              sleep 5
+            done
+
+            echo "❌ api-core não respondeu!"
+            docker logs --tail 200 back-api-kyarem-api-core || true
+            exit 1
 
       - name: 🧹 Limpar imagens antigas
         uses: appleboy/ssh-action@v1.0.3

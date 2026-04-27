@@ -1,15 +1,15 @@
 # docker-compose.yml — Kyarem (Back-API-Kyarem)
-# Todos os containers usam prefixo kyarem_ e comunicação interna.
+# Todos os containers usam prefixo back-api-kyarem e comunicação interna.
 # O nginx da VPS (externo ao Docker) acessa api-core e realtime-gateway via localhost.
 
-name: kyarem
+name: back-api-kyarem
 
 networks:
-  kyarem_network:
+  back-api-kyarem-network:
     driver: bridge
 
 volumes:
-  kyarem_rabbitmq_data:
+  back-api-kyarem-rabbitmq-data:
 
 services:
 
@@ -18,9 +18,9 @@ services:
   # Não expõe porta pública. Acesso via SSH tunnel para debug.
   # Management UI: ssh -L 15672:localhost:15672 user@vps → http://localhost:15672
   # ──────────────────────────────────────────────────────────────────────────
-  kyarem_rabbitmq:
+  back-api-kyarem-rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: kyarem_rabbitmq
+    container_name: back-api-kyarem-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
@@ -30,7 +30,7 @@ services:
       - "5672"
       - "15672"
     volumes:
-      - kyarem_rabbitmq_data:/var/lib/rabbitmq
+      - back-api-kyarem-rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -38,22 +38,22 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - kyarem_network
+      - back-api-kyarem-network
 
   # ──────────────────────────────────────────────────────────────────────────
   # api-core — Backend principal
   # Expõe 127.0.0.1:8083 para o nginx da VPS
   # ──────────────────────────────────────────────────────────────────────────
-  kyarem_api_core:
+  back-api-kyarem-api-core:
     image: ghcr.io/${GITHUB_REPOSITORY}/api-core:${IMAGE_TAG:-latest}
-    container_name: kyarem_api_core
+    container_name: back-api-kyarem-api-core
     restart: unless-stopped
     env_file:
       - .env
     environment:
       APP_PORT: 8080
       SERVER_FORWARD_HEADERS_STRATEGY: framework
-      SPRING_RABBITMQ_HOST: kyarem_rabbitmq
+      SPRING_RABBITMQ_HOST: back-api-kyarem-rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
@@ -61,88 +61,88 @@ services:
     ports:
       - "127.0.0.1:8083:8080"   # apenas localhost → nginx da VPS
     networks:
-      - kyarem_network
+      - back-api-kyarem-network
     depends_on:
-      kyarem_rabbitmq:
+      back-api-kyarem-rabbitmq:
         condition: service_healthy
 
   # ──────────────────────────────────────────────────────────────────────────
   # outbox-publisher — Poll na outbox e publica no RabbitMQ
   # Sem porta exposta — worker puro
   # ──────────────────────────────────────────────────────────────────────────
-  kyarem_outbox_publisher:
+  back-api-kyarem-outbox-publisher:
     image: ghcr.io/${GITHUB_REPOSITORY}/outbox-publisher:${IMAGE_TAG:-latest}
-    container_name: kyarem_outbox_publisher
+    container_name: back-api-kyarem-outbox-publisher
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      RABBITMQ_HOST: kyarem_rabbitmq
+      RABBITMQ_HOST: back-api-kyarem-rabbitmq
       RABBITMQ_PORT: 5672
     networks:
-      - kyarem_network
+      - back-api-kyarem-network
     depends_on:
-      kyarem_rabbitmq:
+      back-api-kyarem-rabbitmq:
         condition: service_healthy
-      kyarem_api_core:
+      back-api-kyarem-api-core:
         condition: service_started
 
   # ──────────────────────────────────────────────────────────────────────────
   # projection-worker — Atualiza schema public com read models
   # Sem porta exposta — worker puro
   # ──────────────────────────────────────────────────────────────────────────
-  kyarem_projection_worker:
+  back-api-kyarem-projection-worker:
     image: ghcr.io/${GITHUB_REPOSITORY}/projection-worker:${IMAGE_TAG:-latest}
-    container_name: kyarem_projection_worker
+    container_name: back-api-kyarem-projection-worker
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      RABBITMQ_HOST: kyarem_rabbitmq
+      RABBITMQ_HOST: back-api-kyarem-rabbitmq
       RABBITMQ_PORT: 5672
     networks:
-      - kyarem_network
+      - back-api-kyarem-network
     depends_on:
-      kyarem_rabbitmq:
+      back-api-kyarem-rabbitmq:
         condition: service_healthy
 
   # ──────────────────────────────────────────────────────────────────────────
   # metrics-worker — Recalcula classificações e rankings
   # Sem porta exposta — worker puro
   # ──────────────────────────────────────────────────────────────────────────
-  kyarem_metrics_worker:
+  back-api-kyarem-metrics-worker:
     image: ghcr.io/${GITHUB_REPOSITORY}/metrics-worker:${IMAGE_TAG:-latest}
-    container_name: kyarem_metrics_worker
+    container_name: back-api-kyarem-metrics-worker
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      RABBITMQ_HOST: kyarem_rabbitmq
+      RABBITMQ_HOST: back-api-kyarem-rabbitmq
       RABBITMQ_PORT: 5672
     networks:
-      - kyarem_network
+      - back-api-kyarem-network
     depends_on:
-      kyarem_rabbitmq:
+      back-api-kyarem-rabbitmq:
         condition: service_healthy
 
   # ──────────────────────────────────────────────────────────────────────────
   # realtime-gateway — SSE para apps públicos
   # Expõe 127.0.0.1:8084 para o nginx da VPS
   # ──────────────────────────────────────────────────────────────────────────
-  kyarem_realtime_gateway:
+  back-api-kyarem-realtime-gateway:
     image: ghcr.io/${GITHUB_REPOSITORY}/realtime-gateway:${IMAGE_TAG:-latest}
-    container_name: kyarem_realtime_gateway
+    container_name: back-api-kyarem-realtime-gateway
     restart: unless-stopped
     env_file:
       - .env
     environment:
       APP_PORT: 9000
-      RABBITMQ_HOST: kyarem_rabbitmq
+      RABBITMQ_HOST: back-api-kyarem-rabbitmq
       RABBITMQ_PORT: 5672
     ports:
       - "127.0.0.1:8084:9000"   # apenas localhost → nginx da VPS
     networks:
-      - kyarem_network
+      - back-api-kyarem-network
     depends_on:
-      kyarem_rabbitmq:
+      back-api-kyarem-rabbitmq:
         condition: service_healthy
