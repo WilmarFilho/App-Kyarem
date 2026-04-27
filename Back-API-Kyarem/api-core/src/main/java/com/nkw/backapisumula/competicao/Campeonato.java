@@ -48,8 +48,6 @@ public class Campeonato {
     public String getNivel() { return nivel; }
     public void setNivel(String nivel) { this.nivel = nivel; }
 
-    public String getNivelCampeonato() { return nivel; }
-    public void setNivelCampeonato(String nivelCampeonato) { this.nivel = nivelCampeonato; }
 
     public LocalDate getDataInicio() { return dataInicio; }
     public void setDataInicio(LocalDate dataInicio) { this.dataInicio = dataInicio; }

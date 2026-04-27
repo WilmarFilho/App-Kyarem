@@ -2,6 +2,7 @@ package com.nkw.backapisumula.competicao;
 
 import jakarta.persistence.*;
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "campeonato_times", schema = "operational")
@@ -23,8 +24,11 @@ public class CampeonatoTime {
     @Column(name = "status_inscricao", nullable = false)
     private String statusInscricao;
 
-    @Transient
+    @Column(name = "nome_personalizado")
     private String nomePersonalizado;
+
+    @Column(name = "criado_em")
+    private OffsetDateTime criadoEm;
 
     public UUID getId() {
         return id;
@@ -78,5 +82,13 @@ public class CampeonatoTime {
 
     public com.nkw.backapisumula.cadastros.Atletica getAtletica() {
         return time != null ? time.getAtletica() : null;
+    }
+
+    public OffsetDateTime getCriadoEm() {
+        return criadoEm;
+    }
+
+    public void setCriadoEm(OffsetDateTime criadoEm) {
+        this.criadoEm = criadoEm;
     }
 }

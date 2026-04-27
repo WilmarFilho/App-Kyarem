@@ -25,17 +25,20 @@ public class OutboxEvent {
     private String eventType;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", nullable = false)
-    private JsonNode payload;
+    @Column(name = "payload_json", columnDefinition = "jsonb", nullable = false)
+    private JsonNode payloadJson;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    @Column(name = "occurred_at", nullable = false)
+    private OffsetDateTime occurredAt;
 
-    @Column(name = "processed_at")
-    private OffsetDateTime processedAt;
+    @Column(name = "published_at")
+    private OffsetDateTime publishedAt;
 
-    @Column(name = "error_message")
-    private String errorMessage;
+    @Column(name = "status", nullable = false)
+    private String status = "PENDING";
+
+    @Column(name = "retry_count", nullable = false)
+    private Integer retryCount = 0;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -49,15 +52,18 @@ public class OutboxEvent {
     public String getEventType() { return eventType; }
     public void setEventType(String eventType) { this.eventType = eventType; }
 
-    public JsonNode getPayload() { return payload; }
-    public void setPayload(JsonNode payload) { this.payload = payload; }
+    public JsonNode getPayloadJson() { return payloadJson; }
+    public void setPayloadJson(JsonNode payloadJson) { this.payloadJson = payloadJson; }
 
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(OffsetDateTime occurredAt) { this.occurredAt = occurredAt; }
 
-    public OffsetDateTime getProcessedAt() { return processedAt; }
-    public void setProcessedAt(OffsetDateTime processedAt) { this.processedAt = processedAt; }
+    public OffsetDateTime getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(OffsetDateTime publishedAt) { this.publishedAt = publishedAt; }
 
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public Integer getRetryCount() { return retryCount; }
+    public void setRetryCount(Integer retryCount) { this.retryCount = retryCount; }
 }

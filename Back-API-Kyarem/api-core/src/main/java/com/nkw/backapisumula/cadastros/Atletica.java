@@ -26,9 +26,6 @@ public class Atletica {
     @Column(name = "escudo_url")
     private String escudoUrl;
 
-    @Column(name = "presidente_id", columnDefinition = "uuid")
-    private UUID presidenteId;
-
     @Column(name = "criado_por", columnDefinition = "uuid")
     private UUID criadoPor;
 
@@ -54,9 +51,6 @@ public class Atletica {
 
     public String getEscudoUrl() { return escudoUrl; }
     public void setEscudoUrl(String escudoUrl) { this.escudoUrl = escudoUrl; }
-
-    public UUID getPresidenteId() { return presidenteId; }
-    public void setPresidenteId(UUID presidenteId) { this.presidenteId = presidenteId; }
 
     public UUID getCriadoPor() { return criadoPor; }
     public void setCriadoPor(UUID criadoPor) { this.criadoPor = criadoPor; }

@@ -16,10 +16,6 @@ public class Atleta {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "atletica_id")
-    private Atletica atletica;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private Profile user;
 
@@ -42,8 +38,6 @@ public class Atleta {
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
-    public Atletica getAtletica() { return atletica; }
-    public void setAtletica(Atletica atletica) { this.atletica = atletica; }
 
     public Profile getUser() { return user; }
     public void setUser(Profile user) { this.user = user; }

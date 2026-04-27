@@ -21,7 +21,7 @@ public class CampeonatoModalidade {
     private Campeonato campeonato;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "modalidade_id", nullable = false)
+    @JoinColumn(name = "modalidade_catalogo_id", nullable = false)
     private ModalidadeCatalogo modalidade;
 
     @Column(name = "fase_atual")

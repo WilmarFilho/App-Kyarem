@@ -20,11 +20,17 @@ public class PartidaArbitro {
     private Partida partida;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "arbitro_id")
+    @JoinColumn(name = "arbitro_user_id")
     private Profile arbitro;
 
     @Column(nullable = false)
     private String funcao;
+
+    @Column(name = "is_criador", nullable = false)
+    private Boolean isCriador = false;
+
+    @Column(name = "adicionado_por", columnDefinition = "uuid")
+    private UUID adicionadoPor;
 
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
@@ -40,6 +46,12 @@ public class PartidaArbitro {
 
     public String getFuncao() { return funcao; }
     public void setFuncao(String funcao) { this.funcao = funcao; }
+
+    public Boolean getIsCriador() { return isCriador; }
+    public void setIsCriador(Boolean isCriador) { this.isCriador = isCriador; }
+
+    public UUID getAdicionadoPor() { return adicionadoPor; }
+    public void setAdicionadoPor(UUID adicionadoPor) { this.adicionadoPor = adicionadoPor; }
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }

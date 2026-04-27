@@ -30,8 +30,8 @@ public class EventoPartida {
     private TipoEvento tipoEvento;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "time_id")
-    private CampeonatoTime campeonatoTime;
+    @JoinColumn(name = "equipe_id")
+    private CampeonatoTime equipe;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "atleta_id")
@@ -43,8 +43,8 @@ public class EventoPartida {
 
     private String periodo;
 
-    @Column(name = "minuto_segundo")
-    private String minutoSegundo;
+    @Column(name = "tempo_cronometro")
+    private String tempoCronometro;
 
     @Column(name = "descricao_detalhada")
     private String descricaoDetalhada;
@@ -56,12 +56,12 @@ public class EventoPartida {
     private String localEventoId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "dados_extras", columnDefinition = "jsonb")
-    private JsonNode dadosExtras;
+    @Column(name = "payload_json", columnDefinition = "jsonb")
+    private JsonNode payloadJson;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "criado_por_user_id", nullable = false)
-    private Profile criadoPorUser;
+    @JoinColumn(name = "arbitro_user_id", nullable = false)
+    private Profile arbitroUser;
 
     @Column(name = "criado_em", insertable = false, updatable = false)
     private OffsetDateTime criadoEm;
@@ -75,8 +75,8 @@ public class EventoPartida {
     public TipoEvento getTipoEvento() { return tipoEvento; }
     public void setTipoEvento(TipoEvento tipoEvento) { this.tipoEvento = tipoEvento; }
 
-    public CampeonatoTime getCampeonatoTime() { return campeonatoTime; }
-    public void setCampeonatoTime(CampeonatoTime campeonatoTime) { this.campeonatoTime = campeonatoTime; }
+    public CampeonatoTime getEquipe() { return equipe; }
+    public void setEquipe(CampeonatoTime equipe) { this.equipe = equipe; }
 
     public Atleta getAtleta() { return atleta; }
     public void setAtleta(Atleta atleta) { this.atleta = atleta; }
@@ -87,11 +87,8 @@ public class EventoPartida {
     public String getPeriodo() { return periodo; }
     public void setPeriodo(String periodo) { this.periodo = periodo; }
 
-    public String getMinutoSegundo() { return minutoSegundo; }
-    public void setMinutoSegundo(String minutoSegundo) { this.minutoSegundo = minutoSegundo; }
-
-    public String getTempoCronometro() { return minutoSegundo; }
-    public void setTempoCronometro(String tempoCronometro) { this.minutoSegundo = tempoCronometro; }
+    public String getTempoCronometro() { return tempoCronometro; }
+    public void setTempoCronometro(String tempoCronometro) { this.tempoCronometro = tempoCronometro; }
 
     public String getDescricaoDetalhada() { return descricaoDetalhada; }
     public void setDescricaoDetalhada(String descricaoDetalhada) { this.descricaoDetalhada = descricaoDetalhada; }
@@ -102,15 +99,14 @@ public class EventoPartida {
     public String getLocalEventoId() { return localEventoId; }
     public void setLocalEventoId(String localEventoId) { this.localEventoId = localEventoId; }
 
-    public JsonNode getDadosExtras() { return dadosExtras; }
-    public void setDadosExtras(JsonNode dadosExtras) { this.dadosExtras = dadosExtras; }
+    public JsonNode getPayloadJson() { return payloadJson; }
+    public void setPayloadJson(JsonNode payloadJson) { this.payloadJson = payloadJson; }
 
-    public Profile getCriadoPorUser() { return criadoPorUser; }
-    public void setCriadoPorUser(Profile criadoPorUser) { this.criadoPorUser = criadoPorUser; }
+    public Profile getArbitroUser() { return arbitroUser; }
+    public void setArbitroUser(Profile arbitroUser) { this.arbitroUser = arbitroUser; }
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
 
-    public CampeonatoTime getEquipe() { return campeonatoTime; }
-    public void setEquipe(CampeonatoTime equipe) { this.campeonatoTime = equipe; }
+
 }

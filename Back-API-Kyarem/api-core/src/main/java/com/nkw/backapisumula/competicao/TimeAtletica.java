@@ -19,11 +19,17 @@ public class TimeAtletica {
     private Atletica atletica;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "modalidade_id", nullable = false)
+    @JoinColumn(name = "modalidade_catalogo_id", nullable = false)
     private ModalidadeCatalogo modalidade;
 
-    @Column(name = "nome_time", nullable = false)
-    private String nomeTime;
+    @Column(name = "nome", nullable = false)
+    private String nome;
+
+    @Column(name = "status")
+    private String status = "ATIVO";
+
+    @Column(name = "genero", nullable = false)
+    private String genero;
 
     @Column(name = "criado_em", nullable = false)
     private OffsetDateTime criadoEm;
@@ -53,19 +59,27 @@ public class TimeAtletica {
     }
 
     public String getNomeTime() {
-        return nomeTime;
+        return nome;
     }
 
     public void setNomeTime(String nomeTime) {
-        this.nomeTime = nomeTime;
+        this.nome = nomeTime;
     }
 
     public String getNome() {
-        return nomeTime;
+        return nome;
     }
 
     public void setNome(String nome) {
-        this.nomeTime = nome;
+        this.nome = nome;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getCategoria() {
@@ -73,7 +87,11 @@ public class TimeAtletica {
     }
 
     public String getGenero() {
-        return modalidade != null ? modalidade.getGenero() : null;
+        return genero;
+    }
+
+    public void setGenero(String genero) {
+        this.genero = genero;
     }
 
     public OffsetDateTime getCriadoEm() {
