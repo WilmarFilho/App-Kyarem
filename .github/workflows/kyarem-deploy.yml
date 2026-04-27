@@ -132,6 +132,17 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
               -u ${{ github.actor }} --password-stdin
 
+            echo "🧹 Derrubando stack atual back-api-kyarem (se existir)..."
+            docker compose down --remove-orphans 2>/dev/null || true
+
+            echo "🧹 Removendo stack legada kyarem (se existir)..."
+            docker rm -f kyarem_api_core kyarem_outbox_publisher kyarem_projection_worker kyarem_metrics_worker kyarem_realtime_gateway kyarem_rabbitmq 2>/dev/null || true
+            docker network rm kyarem_kyarem_network 2>/dev/null || true
+
+            echo "🔎 Conferindo portas antes do novo up..."
+            docker ps -a --filter publish=8083
+            docker ps -a --filter publish=8084
+
             echo "📥 Pull das novas imagens..."
             docker compose pull
 
