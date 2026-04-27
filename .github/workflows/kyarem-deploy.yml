@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPO: ${{ github.repository_owner }}/back-api-kyarem
+  IMAGE_REPOSITORY: back-api-kyarem
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────────
@@ -38,6 +38,12 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 🔡 Normalizar namespace do GHCR
+        id: ghcr_namespace
+        shell: bash
+        run: |
+          echo "repo=${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_REPOSITORY}" >> "$GITHUB_OUTPUT"
+
       - name: ☕ Setup JDK 21
         uses: actions/setup-java@v4
         with:
@@ -62,8 +68,8 @@ jobs:
           file: ./Back-API-Kyarem/${{ matrix.module }}/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.module }}:latest
-            ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.module }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.ghcr_namespace.outputs.repo }}/${{ matrix.module }}:latest
+            ${{ env.REGISTRY }}/${{ steps.ghcr_namespace.outputs.repo }}/${{ matrix.module }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.module }}
           cache-to: type=gha,mode=max,scope=${{ matrix.module }}
 
@@ -81,6 +87,12 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 🔡 Normalizar namespace do GHCR
+        id: ghcr_namespace
+        shell: bash
+        run: |
+          echo "repo=${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_REPOSITORY}" >> "$GITHUB_OUTPUT"
+
       - name: 🔐 Criar .env.prod na VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -94,7 +106,7 @@ jobs:
             ENVEOF
             # Adiciona a IMAGE_TAG dinâmica ao .env
             echo "IMAGE_TAG=${{ github.sha }}" >> ${{ secrets.VPS_DEPLOY_PATH }}/.env
-            echo "GITHUB_REPOSITORY=${{ env.REPO }}" >> ${{ secrets.VPS_DEPLOY_PATH }}/.env
+            echo "GITHUB_REPOSITORY=${{ steps.ghcr_namespace.outputs.repo }}" >> ${{ secrets.VPS_DEPLOY_PATH }}/.env
 
       - name: 📤 Copiar docker-compose.yml para VPS
         uses: appleboy/scp-action@v0.1.7
