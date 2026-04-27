@@ -71,8 +71,8 @@ public class EventoPartidaService {
             sb.append(" — ").append(ev.getAtleta().getNome());
         }
 
-        if (ev.getDadosExtras() != null) {
-            sb.append(": ").append(ev.getDadosExtras().toString());
+        if (ev.getPayloadJson() != null) {
+            sb.append(": ").append(ev.getPayloadJson().toString());
         }
 
         return sb.toString();
@@ -173,7 +173,7 @@ public class EventoPartidaService {
             CampeonatoTime time = campeonatoTimeRepo.findById(campeonatoTimeId)
                     .orElseThrow(() -> new IllegalStateException("Time não encontrado."));
             validateTimeNaPartida(partida, time.getId());
-            ev.setCampeonatoTime(time);
+            ev.setEquipe(time);
         }
 
         if (tipoEventoId != null) {
@@ -200,7 +200,7 @@ public class EventoPartidaService {
         }
 
         ev.setIsSubstitution(isSubstitution);
-        if (minutoSegundo != null && !minutoSegundo.isBlank()) ev.setMinutoSegundo(minutoSegundo);
+        if (minutoSegundo != null && !minutoSegundo.isBlank()) ev.setTempoCronometro(minutoSegundo);
         ev.setDescricaoDetalhada(descricaoDetalhada);
 
         return repo.save(ev);
@@ -271,7 +271,9 @@ public class EventoPartidaService {
 
             TipoEvento tipoEvento = tipos.get(r.tipoEventoId());
             if (tipoEvento == null) throw new IllegalStateException("Tipo de evento não encontrado: " + r.tipoEventoId());
-            if (!Objects.equals(esporteId, tipoEvento.getEsporte() != null ? tipoEvento.getEsporte().getId() : null)) {
+            UUID teEsporteId = (tipoEvento.getModalidadeCatalogo() != null && tipoEvento.getModalidadeCatalogo().getEsporte() != null)
+                    ? tipoEvento.getModalidadeCatalogo().getEsporte().getId() : null;
+            if (!Objects.equals(esporteId, teEsporteId)) {
                 throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
             }
             if (isGoalEvent(tipoEvento)) {
@@ -286,16 +288,16 @@ public class EventoPartidaService {
             EventoPartida ev = new EventoPartida();
             ev.setPartida(partida);
             ev.setTipoEvento(tipoEvento);
-            ev.setMinutoSegundo(r.minutoSegundo());
-            ev.setCriadoPorUser(author);
+            ev.setTempoCronometro(r.minutoSegundo());
+            ev.setArbitroUser(author);
             ev.setLocalEventoId(r.localEventoId());
             ev.setDescricaoDetalhada(r.descricaoDetalhada());
             if (r.descricaoDetalhada() != null && !r.descricaoDetalhada().isBlank()) {
-                ev.setDadosExtras(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
+                ev.setPayloadJson(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
             }
 
             if (r.campeonatoTimeId() != null) {
-                campeonatoTimeRepo.findById(r.campeonatoTimeId()).ifPresent(ev::setCampeonatoTime);
+                campeonatoTimeRepo.findById(r.campeonatoTimeId()).ifPresent(ev::setEquipe);
             }
 
             toSave.add(ev);
@@ -392,7 +394,9 @@ public class EventoPartidaService {
 
             TipoEvento tipoEvento = tipos.get(r.tipoEventoId());
             if (tipoEvento == null) throw new IllegalStateException("Tipo de evento não encontrado: " + r.tipoEventoId());
-            if (!Objects.equals(esporteId, tipoEvento.getEsporte() != null ? tipoEvento.getEsporte().getId() : null)) {
+            UUID teEsporteId2 = (tipoEvento.getModalidadeCatalogo() != null && tipoEvento.getModalidadeCatalogo().getEsporte() != null)
+                    ? tipoEvento.getModalidadeCatalogo().getEsporte().getId() : null;
+            if (!Objects.equals(esporteId, teEsporteId2)) {
                 throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
             }
 
@@ -410,7 +414,7 @@ public class EventoPartidaService {
 
             EventoPartida ev = new EventoPartida();
             ev.setPartida(partida);
-            ev.setCampeonatoTime(time);
+            ev.setEquipe(time);
             ev.setAtleta(atleta);
             if (r.atletaSaiId() != null) {
                 Atleta atletaSai = atletas.get(r.atletaSaiId());
@@ -421,13 +425,13 @@ public class EventoPartidaService {
                 ev.setAtletaSai(atletaSai);
             }
             ev.setTipoEvento(tipoEvento);
-            ev.setMinutoSegundo(r.minutoSegundo());
-            ev.setCriadoPorUser(author);
+            ev.setTempoCronometro(r.minutoSegundo());
+            ev.setArbitroUser(author);
             ev.setIsSubstitution(r.isSubstitution());
             ev.setDescricaoDetalhada(r.descricaoDetalhada());
             ev.setLocalEventoId(r.localEventoId());
             if (r.descricaoDetalhada() != null && !r.descricaoDetalhada().isBlank()) {
-                ev.setDadosExtras(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
+                ev.setPayloadJson(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
             }
             toSave.add(ev);
 
@@ -505,7 +509,8 @@ public class EventoPartidaService {
     private void validateTipoEventoEsporte(Partida partida, TipoEvento tipoEvento) {
         UUID esportePartida = partida.getModalidade() != null && partida.getModalidade().getEsporte() != null
                 ? partida.getModalidade().getEsporte().getId() : null;
-        UUID esporteEvento = tipoEvento.getEsporte() != null ? tipoEvento.getEsporte().getId() : null;
+        UUID esporteEvento = (tipoEvento.getModalidadeCatalogo() != null && tipoEvento.getModalidadeCatalogo().getEsporte() != null)
+                ? tipoEvento.getModalidadeCatalogo().getEsporte().getId() : null;
         if (!Objects.equals(esportePartida, esporteEvento)) {
             throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
         }

@@ -25,8 +25,8 @@ public class EventPublisherService {
         event.setAggregateType(aggregateType);
         event.setAggregateId(aggregateId);
         event.setEventType(eventType);
-        event.setPayload(objectMapper.valueToTree(payload));
-        event.setCreatedAt(OffsetDateTime.now());
+        event.setPayloadJson(objectMapper.valueToTree(payload));
+        event.setOccurredAt(OffsetDateTime.now());
         outboxEventRepository.save(event);
     }
 }

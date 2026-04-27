@@ -42,7 +42,6 @@ public class AtleticasController {
         a.setSigla(req.sigla());
         a.setCorPrincipal(req.corPrincipal());
         a.setEscudoUrl(req.escudoUrl());
-        a.setPresidenteId(req.presidenteId());
         return AtleticaResponse.from(service.create(a));
     }
 
@@ -54,7 +53,6 @@ public class AtleticasController {
         patch.setSigla(req.sigla());
         patch.setCorPrincipal(req.corPrincipal());
         patch.setEscudoUrl(req.escudoUrl());
-        patch.setPresidenteId(req.presidenteId());
         return AtleticaResponse.from(service.update(id, patch));
     }
 
@@ -85,16 +83,14 @@ public class AtleticasController {
             @NotBlank String nome,
             String sigla,
             String corPrincipal,
-            String escudoUrl,
-            UUID presidenteId
+            String escudoUrl
     ) {}
 
     public record UpdateAtleticaRequest(
             @NotBlank String nome,
             String sigla,
             String corPrincipal,
-            String escudoUrl,
-            UUID presidenteId
+            String escudoUrl
     ) {}
 
     public record AtleticaResponse(
@@ -102,13 +98,12 @@ public class AtleticasController {
             String nome,
             String sigla,
             String corPrincipal,
-            String escudoUrl,
-            UUID presidenteId
+            String escudoUrl
     ) {
         static AtleticaResponse from(Atletica a) {
             return new AtleticaResponse(
                     a.getId(), a.getNome(), a.getSigla(),
-                    a.getCorPrincipal(), a.getEscudoUrl(), a.getPresidenteId()
+                    a.getCorPrincipal(), a.getEscudoUrl()
             );
         }
     }

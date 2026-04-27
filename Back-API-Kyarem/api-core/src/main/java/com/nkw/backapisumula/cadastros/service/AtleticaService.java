@@ -37,7 +37,6 @@ public class AtleticaService {
         if (patch.getSigla() != null) a.setSigla(patch.getSigla().trim());
         if (patch.getCorPrincipal() != null) a.setCorPrincipal(patch.getCorPrincipal());
         if (patch.getEscudoUrl() != null) a.setEscudoUrl(patch.getEscudoUrl());
-        if (patch.getPresidenteId() != null) a.setPresidenteId(patch.getPresidenteId());
         return repo.save(a);
     }
 

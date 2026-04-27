@@ -27,7 +27,7 @@ public class CampeonatoService {
 
     public Campeonato create(Campeonato c) {
         c.setNome(c.getNome().trim());
-        if (c.getNivelCampeonato() != null) c.setNivelCampeonato(c.getNivelCampeonato().trim());
+        if (c.getNivel() != null) c.setNivel(c.getNivel().trim());
         if (c.getEscudoUrl() != null) c.setEscudoUrl(c.getEscudoUrl().trim());
         c.setCriadoEm(OffsetDateTime.now());
         return repo.save(c);
@@ -36,7 +36,7 @@ public class CampeonatoService {
     public Campeonato update(UUID id, Campeonato patch) {
         Campeonato c = getOrThrow(id);
         if (patch.getNome() != null) c.setNome(patch.getNome().trim());
-        if (patch.getNivelCampeonato() != null) c.setNivelCampeonato(patch.getNivelCampeonato().trim());
+        if (patch.getNivel() != null) c.setNivel(patch.getNivel().trim());
         if (patch.getDataInicio() != null) c.setDataInicio(patch.getDataInicio());
         if (patch.getDataFim() != null) c.setDataFim(patch.getDataFim());
         if (patch.getEscudoUrl() != null) c.setEscudoUrl(patch.getEscudoUrl().trim());

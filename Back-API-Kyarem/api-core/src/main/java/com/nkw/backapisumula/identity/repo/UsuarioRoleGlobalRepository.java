@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
 
-public interface UsuarioRoleGlobalRepository extends JpaRepository<UsuarioRoleGlobal, UsuarioRoleGlobal.UsuarioRoleGlobalId> {
+public interface UsuarioRoleGlobalRepository extends JpaRepository<UsuarioRoleGlobal, UUID> {
     boolean existsByUserIdAndRole(UUID userId, String role);
 }

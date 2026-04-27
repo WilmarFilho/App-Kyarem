@@ -45,15 +45,14 @@ public class EsportesController {
 
     @GetMapping("/{id}/tipos-eventos")
     public List<TipoEventoResponse> listTiposEventos(@PathVariable UUID id) {
-        return tipoEventoService.listByEsporte(id).stream().map(TipoEventoResponse::from).toList();
+        return tipoEventoService.listByModalidadeCatalogo(id).stream().map(TipoEventoResponse::from).toList();
     }
 
     @PostMapping("/{id}/tipos-eventos")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public TipoEventoResponse createTipoEvento(@PathVariable UUID id, @Valid @RequestBody CreateTipoEventoRequest req) {
-        Esporte esporte = esporteService.getOrThrow(id);
-        TipoEvento te = tipoEventoService.create(esporte, req.nome());
+        TipoEvento te = tipoEventoService.create(id, req.nome());
         return TipoEventoResponse.from(te);
     }
 
@@ -64,9 +63,10 @@ public class EsportesController {
         static EsporteResponse from(Esporte e) { return new EsporteResponse(e.getId(), e.getNome()); }
     }
 
-    public record TipoEventoResponse(UUID id, UUID esporteId, String nome) {
+    public record TipoEventoResponse(UUID id, UUID modalidadeCatalogoId, String nome) {
         static TipoEventoResponse from(TipoEvento te) {
-            return new TipoEventoResponse(te.getId(), te.getEsporte().getId(), te.getNome());
+            UUID modalidadeCatalogoId = te.getModalidadeCatalogo() != null ? te.getModalidadeCatalogo().getId() : null;
+            return new TipoEventoResponse(te.getId(), modalidadeCatalogoId, te.getNome());
         }
     }
 }

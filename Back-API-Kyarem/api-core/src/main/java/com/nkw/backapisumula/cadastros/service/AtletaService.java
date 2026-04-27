@@ -1,7 +1,6 @@
 package com.nkw.backapisumula.cadastros.service;
 
 import com.nkw.backapisumula.cadastros.Atleta;
-import com.nkw.backapisumula.cadastros.Atletica;
 import com.nkw.backapisumula.cadastros.repo.AtletaRepository;
 import org.springframework.stereotype.Service;
 
@@ -18,17 +17,16 @@ public class AtletaService {
         this.repo = repo;
     }
 
-    public List<Atleta> listByAtletica(UUID atleticaId) {
-        return repo.findAllByAtletica_IdOrderByNomeCompeticaoAsc(atleticaId);
+    public List<Atleta> listAll() {
+        return repo.findAll();
     }
 
     public Atleta getOrThrow(UUID id) {
         return repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Atleta não encontrado."));
     }
 
-    public Atleta create(Atletica atletica, String nome, String fotoUrl) {
+    public Atleta create(String nome, String fotoUrl) {
         Atleta a = new Atleta();
-        a.setAtletica(atletica);
         a.setNome(nome.trim());
         if (fotoUrl != null && !fotoUrl.isBlank()) a.setFotoUrl(fotoUrl.trim());
         a.setCriadoEm(OffsetDateTime.now());
@@ -45,4 +43,3 @@ public class AtletaService {
         repo.deleteById(id);
     }
 }
-

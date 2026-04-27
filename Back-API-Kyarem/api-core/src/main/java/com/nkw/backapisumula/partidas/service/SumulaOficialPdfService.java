@@ -105,8 +105,8 @@ public class SumulaOficialPdfService {
         if (evento.getDescricaoDetalhada() != null && !evento.getDescricaoDetalhada().isBlank()) {
             return evento.getDescricaoDetalhada();
         }
-        if (evento.getDadosExtras() != null && !evento.getDadosExtras().isNull()) {
-            return evento.getDadosExtras().toString();
+        if (evento.getPayloadJson() != null && !evento.getPayloadJson().isNull()) {
+            return evento.getPayloadJson().toString();
         }
         if (Boolean.TRUE.equals(evento.getIsSubstitution()) && evento.getAtletaSai() != null) {
             return "Substituição: sai " + evento.getAtletaSai().getNome();

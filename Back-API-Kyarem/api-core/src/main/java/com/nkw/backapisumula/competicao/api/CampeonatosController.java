@@ -44,7 +44,7 @@ public class CampeonatosController {
     public CampeonatoResponse create(@Valid @RequestBody CreateCampeonatoRequest r) {
         Campeonato c = new Campeonato();
         c.setNome(r.nome());
-        c.setNivelCampeonato(r.nivelCampeonato());
+        c.setNivel(r.nivel());
         c.setDataInicio(r.dataInicio());
         c.setDataFim(r.dataFim());
         c.setEscudoUrl(r.escudoUrl());
@@ -56,7 +56,7 @@ public class CampeonatosController {
     public CampeonatoResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCampeonatoRequest r) {
         Campeonato patch = new Campeonato();
         patch.setNome(r.nome());
-        patch.setNivelCampeonato(r.nivelCampeonato());
+        patch.setNivel(r.nivel());
         patch.setDataInicio(r.dataInicio());
         patch.setDataFim(r.dataFim());
         patch.setEscudoUrl(r.escudoUrl());
@@ -88,7 +88,7 @@ public class CampeonatosController {
 
     public record CreateCampeonatoRequest(
             @NotBlank String nome,
-            String nivelCampeonato,
+            String nivel,
             LocalDate dataInicio,
             LocalDate dataFim,
             String escudoUrl
@@ -96,7 +96,7 @@ public class CampeonatosController {
 
     public record UpdateCampeonatoRequest(
             String nome,
-            String nivelCampeonato,
+            String nivel,
             LocalDate dataInicio,
             LocalDate dataFim,
             String escudoUrl
@@ -105,7 +105,7 @@ public class CampeonatosController {
     public record CampeonatoResponse(
             UUID id,
             String nome,
-            String nivelCampeonato,
+            String nivel,
             LocalDate dataInicio,
             LocalDate dataFim,
             String escudoUrl
@@ -114,7 +114,7 @@ public class CampeonatosController {
             return new CampeonatoResponse(
                     c.getId(),
                     c.getNome(),
-                    c.getNivelCampeonato(),
+                    c.getNivel(),
                     c.getDataInicio(),
                     c.getDataFim(),
                     c.getEscudoUrl()
@@ -122,4 +122,3 @@ public class CampeonatosController {
         }
     }
 }
-

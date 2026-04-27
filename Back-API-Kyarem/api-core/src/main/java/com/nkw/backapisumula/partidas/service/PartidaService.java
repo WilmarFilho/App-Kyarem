@@ -436,17 +436,20 @@ public class PartidaService {
         eventos.forEach(e -> {
             ObjectNode ev = eventosJson.addObject();
             ev.put("id", e.getId().toString());
-            ev.put("tempo", e.getMinutoSegundo());
-            ev.put("descricao", e.getDadosExtras() != null ? e.getDadosExtras().toString() : null);
+            ev.put("tempo", e.getTempoCronometro());
+            // descricao: tenta descricaoDetalhada, depois payloadJson
+            String descricao = e.getDescricaoDetalhada();
+            if (descricao == null && e.getPayloadJson() != null) descricao = e.getPayloadJson().toString();
+            ev.put("descricao", descricao);
             if (e.getTipoEvento() != null) {
                 ObjectNode tipo = ev.putObject("tipoEvento");
                 tipo.put("id", e.getTipoEvento().getId().toString());
                 tipo.put("nome", e.getTipoEvento().getNome());
             }
-            if (e.getCampeonatoTime() != null && e.getCampeonatoTime().getTime() != null) {
+            if (e.getEquipe() != null && e.getEquipe().getTime() != null) {
                 ObjectNode eq = ev.putObject("equipe");
-                eq.put("id", e.getCampeonatoTime().getId().toString());
-                eq.put("nomeEquipe", e.getCampeonatoTime().getTime().getNome());
+                eq.put("id", e.getEquipe().getId().toString());
+                eq.put("nomeEquipe", e.getEquipe().getTime().getNome());
             }
             if (e.getAtleta() != null) {
                 ObjectNode at = ev.putObject("atleta");

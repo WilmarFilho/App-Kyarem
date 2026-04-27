@@ -1,13 +1,10 @@
 package com.nkw.backapisumula.cadastros.api;
 
 import com.nkw.backapisumula.cadastros.Atleta;
-import com.nkw.backapisumula.cadastros.Atletica;
 import com.nkw.backapisumula.cadastros.service.AtletaService;
-import com.nkw.backapisumula.cadastros.service.AtleticaService;
 import com.nkw.backapisumula.storage.SupabaseImageUploadService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,19 +20,17 @@ import java.util.UUID;
 public class AtletasController {
 
     private final AtletaService atletaService;
-    private final AtleticaService atleticaService;
     private final SupabaseImageUploadService imageUploadService;
 
-    public AtletasController(AtletaService atletaService, AtleticaService atleticaService,
+    public AtletasController(AtletaService atletaService,
                              SupabaseImageUploadService imageUploadService) {
         this.atletaService = atletaService;
-        this.atleticaService = atleticaService;
         this.imageUploadService = imageUploadService;
     }
 
     @GetMapping
-    public List<AtletaResponse> list(@RequestParam UUID atleticaId) {
-        return atletaService.listByAtletica(atleticaId).stream().map(AtletaResponse::from).toList();
+    public List<AtletaResponse> list() {
+        return atletaService.listAll().stream().map(AtletaResponse::from).toList();
     }
 
     @GetMapping("/{id}")
@@ -47,8 +42,7 @@ public class AtletasController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
     public AtletaResponse create(@Valid @RequestBody CreateAtletaRequest req) {
-        Atletica atletica = atleticaService.getOrThrow(req.atleticaId());
-        Atleta a = atletaService.create(atletica, req.nome(), req.fotoUrl());
+        Atleta a = atletaService.create(req.nome(), req.fotoUrl());
         return AtletaResponse.from(a);
     }
 
@@ -81,14 +75,12 @@ public class AtletasController {
         return Map.of("url", publicUrl);
     }
 
-    public record CreateAtletaRequest(@NotNull UUID atleticaId, @NotBlank String nome, String fotoUrl) {}
+    public record CreateAtletaRequest(@NotBlank String nome, String fotoUrl) {}
     public record UpdateAtletaRequest(@NotBlank String nome) {}
 
-    public record AtletaResponse(UUID id, UUID atleticaId, String nome, String fotoUrl) {
+    public record AtletaResponse(UUID id, String nome, String fotoUrl) {
         static AtletaResponse from(Atleta a) {
-            UUID atleticaId = a.getAtletica() != null ? a.getAtletica().getId() : null;
-            return new AtletaResponse(a.getId(), atleticaId, a.getNome(), a.getFotoUrl());
+            return new AtletaResponse(a.getId(), a.getNome(), a.getFotoUrl());
         }
     }
 }
-
