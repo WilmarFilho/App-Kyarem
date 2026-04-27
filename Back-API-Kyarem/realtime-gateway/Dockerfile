@@ -3,7 +3,7 @@
 FROM gradle:8.10.2-jdk21 AS build
 WORKDIR /home/gradle/project
 COPY --chown=gradle:gradle . .
-RUN gradle :realtime-gateway:bootJar --no-daemon -x test
+RUN chmod +x ./gradlew && ./gradlew :realtime-gateway:bootJar --no-daemon --stacktrace -x test
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

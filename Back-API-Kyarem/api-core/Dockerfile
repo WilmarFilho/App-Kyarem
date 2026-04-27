@@ -10,7 +10,7 @@ WORKDIR /home/gradle/project
 COPY --chown=gradle:gradle . .
 
 # Builda apenas o módulo api-core
-RUN gradle :api-core:bootJar --no-daemon -x test
+RUN chmod +x ./gradlew && ./gradlew :api-core:bootJar --no-daemon --stacktrace -x test
 
 # ──────────────────────────────────────────────────────────────
 # RUNTIME STAGE
