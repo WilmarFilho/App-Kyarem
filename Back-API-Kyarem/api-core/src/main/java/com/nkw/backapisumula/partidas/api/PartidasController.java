@@ -20,7 +20,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -176,6 +178,7 @@ public class PartidasController {
             UUID modalidadeId,
             UUID equipeAId,
             UUID equipeBId,
+            String modalidadeNome,
             String status,
             OffsetDateTime agendadoPara,
             OffsetDateTime iniciadaEm,
@@ -185,6 +188,8 @@ public class PartidasController {
             String fase,
             Integer placarA,
             Integer placarB,
+            Map<String, Object> equipeA,
+            Map<String, Object> equipeB,
             JsonNode snapshotSumula,
             String sumulaPdfUrl,
             String hashIntegridade,
@@ -196,6 +201,7 @@ public class PartidasController {
                     p.getModalidade() == null ? null : p.getModalidade().getId(),
                     p.getEquipeA() == null ? null : p.getEquipeA().getId(),
                     p.getEquipeB() == null ? null : p.getEquipeB().getId(),
+                    p.getModalidade() != null && p.getModalidade().getModalidade() != null ? p.getModalidade().getModalidade().getNome() : null,
                     p.getStatus(),
                     p.getAgendadoPara(),
                     p.getIniciadaEm(),
@@ -205,11 +211,29 @@ public class PartidasController {
                     p.getFase(),
                     p.getPlacarA(),
                     p.getPlacarB(),
+                    toEquipeMap(p.getEquipeA()),
+                    toEquipeMap(p.getEquipeB()),
                     p.getSnapshotSumula(),
                     p.getSumulaPdfUrl(),
                     p.getHashIntegridade(),
                     p.getStatusAntesPausa()
             );
+        }
+
+        private static Map<String, Object> toEquipeMap(com.nkw.backapisumula.competicao.CampeonatoTime equipe) {
+            if (equipe == null || equipe.getTime() == null) {
+                return null;
+            }
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("id", equipe.getId());
+            payload.put("nome", equipe.getNomeEquipe());
+            if (equipe.getTime().getAtletica() != null) {
+                payload.put("atleticaId", equipe.getTime().getAtletica().getId());
+                payload.put("atleticaNome", equipe.getTime().getAtletica().getNome());
+                payload.put("atleticaEscudoUrl", equipe.getTime().getAtletica().getEscudoUrl());
+            }
+            return payload;
         }
     }
 }

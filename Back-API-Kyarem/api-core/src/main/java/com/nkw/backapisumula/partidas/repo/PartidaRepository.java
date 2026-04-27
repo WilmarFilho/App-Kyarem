@@ -13,19 +13,19 @@ public interface PartidaRepository extends JpaRepository<Partida, UUID> {
      * Carrega o grafo necessário para montar os DTOs de Partida sem estourar LazyInitializationException.
      */
     @Override
-    @EntityGraph(attributePaths = {"modalidade", "modalidade.esporte", "equipeA", "equipeB"})
+    @EntityGraph(attributePaths = {"campeonatoModalidade", "campeonatoModalidade.modalidade", "campeonatoModalidade.modalidade.esporte", "campeonatoTimeA", "campeonatoTimeA.time", "campeonatoTimeA.time.atletica", "campeonatoTimeB", "campeonatoTimeB.time", "campeonatoTimeB.time.atletica"})
     List<Partida> findAll();
 
     /**
      * Versão com EntityGraph para endpoints que retornam PartidaResponse.
      */
     @Override
-    @EntityGraph(attributePaths = {"modalidade", "modalidade.esporte", "equipeA", "equipeB"})
+    @EntityGraph(attributePaths = {"campeonatoModalidade", "campeonatoModalidade.modalidade", "campeonatoModalidade.modalidade.esporte", "campeonatoTimeA", "campeonatoTimeA.time", "campeonatoTimeA.time.atletica", "campeonatoTimeB", "campeonatoTimeB.time", "campeonatoTimeB.time.atletica"})
     java.util.Optional<Partida> findById(UUID id);
 
-    List<Partida> findByModalidade_Id(UUID modalidadeId);
+    List<Partida> findByCampeonatoModalidade_Id(UUID modalidadeId);
 
     List<Partida> findByStatus(String status);
 
-    List<Partida> findByModalidade_IdAndStatus(UUID modalidadeId, String status);
+    List<Partida> findByCampeonatoModalidade_IdAndStatus(UUID modalidadeId, String status);
 }

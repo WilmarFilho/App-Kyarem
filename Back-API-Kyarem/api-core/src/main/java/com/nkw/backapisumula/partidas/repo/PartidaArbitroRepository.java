@@ -12,10 +12,13 @@ public interface PartidaArbitroRepository extends JpaRepository<PartidaArbitro, 
 
     @EntityGraph(attributePaths = {
             "partida",
-            "partida.modalidade",
-            "partida.modalidade.esporte",
-            "partida.equipeA",
-            "partida.equipeB"
+            "partida.campeonatoModalidade",
+            "partida.campeonatoModalidade.modalidade",
+            "partida.campeonatoModalidade.modalidade.esporte",
+            "partida.campeonatoTimeA",
+            "partida.campeonatoTimeA.time",
+            "partida.campeonatoTimeB",
+            "partida.campeonatoTimeB.time"
     })
     List<PartidaArbitro> findByPartida_Id(UUID partidaId);
 
@@ -23,10 +26,13 @@ public interface PartidaArbitroRepository extends JpaRepository<PartidaArbitro, 
 
     @EntityGraph(attributePaths = {
             "partida",
-            "partida.modalidade",
-            "partida.modalidade.esporte",
-            "partida.equipeA",
-            "partida.equipeB"
+            "partida.campeonatoModalidade",
+            "partida.campeonatoModalidade.modalidade",
+            "partida.campeonatoModalidade.modalidade.esporte",
+            "partida.campeonatoTimeA",
+            "partida.campeonatoTimeA.time",
+            "partida.campeonatoTimeB",
+            "partida.campeonatoTimeB.time"
     })
     List<PartidaArbitro> findByArbitro_Id(UUID arbitroId);
 

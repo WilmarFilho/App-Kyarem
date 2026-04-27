@@ -4,11 +4,11 @@ import com.nkw.backapisumula.cadastros.Atleta;
 import com.nkw.backapisumula.cadastros.TipoEvento;
 import com.nkw.backapisumula.cadastros.repo.AtletaRepository;
 import com.nkw.backapisumula.cadastros.repo.TipoEventoRepository;
-import com.nkw.backapisumula.competicao.Equipe;
-import com.nkw.backapisumula.competicao.EquipeAtletaInscrito;
-import com.nkw.backapisumula.competicao.Modalidade;
-import com.nkw.backapisumula.competicao.repo.EquipeAtletaInscritoRepository;
-import com.nkw.backapisumula.competicao.repo.EquipeRepository;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
+import com.nkw.backapisumula.competicao.CampeonatoTime;
+import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
+import com.nkw.backapisumula.identity.Profile;
+import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import com.nkw.backapisumula.partidas.EventoPartida;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
@@ -18,14 +18,7 @@ import com.nkw.backapisumula.config.FirebaseCloudMessagingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Map.entry;
 
@@ -46,11 +39,11 @@ public class EventoPartidaService {
         entry("SUBSTITUICAO", "\uD83D\uDD04 Substituição"),
         entry("PENALTI_MARCADO", "Pênalti Marcado"),
         entry("PENALTI", "⚽ Pênalti"),
+        entry("PENALTI_PERDIDO", "Pênalti Perdido"),
         entry("ARREMESO_DE_META", "Arremesso de Meta"),
         entry("TIRO_DE_CANTO", "Tiro de Canto"),
         entry("TIRO_DE_SAIDA", "Tiro de Saída"),
         entry("TIRO_LATERAL", "Tiro Lateral"),
-        entry("PENALTI_PERDIDO", "Pênalti Perdido"),
         entry("TIRO_LIVRE_DIRETO", "Tiro Livre Direto"),
         entry("TIRO_LIVRE_INDIRETO", "Tiro Livre Indireto"),
         entry("INTERVALO", "⏸️ Intervalo"),
@@ -73,18 +66,12 @@ public class EventoPartidaService {
         String nome = friendlyName(ev.getTipoEvento().getNome());
         StringBuilder sb = new StringBuilder(nome);
 
-        // Incluir nome do atleta
-        if (ev.getIsSubstitution() != null && ev.getIsSubstitution()
-                && ev.getAtleta() != null && ev.getAtletaSai() != null) {
-            sb.append(" — Entra: ").append(ev.getAtleta().getNome())
-              .append(", Sai: ").append(ev.getAtletaSai().getNome());
-        } else if (ev.getAtleta() != null) {
+        if (ev.getAtleta() != null) {
             sb.append(" — ").append(ev.getAtleta().getNome());
         }
 
-        // Incluir descrição adicional
-        if (ev.getDescricaoDetalhada() != null && !ev.getDescricaoDetalhada().isBlank()) {
-            sb.append(": ").append(ev.getDescricaoDetalhada());
+        if (ev.getDadosExtras() != null) {
+            sb.append(": ").append(ev.getDadosExtras().toString());
         }
 
         return sb.toString();
@@ -97,49 +84,52 @@ public class EventoPartidaService {
     }
 
     public record AddEventoInput(
-            UUID equipeId,
+            UUID campeonatoTimeId,
             UUID atletaId,
-            UUID atletaSaiId,
-            boolean isSubstitution,
             UUID tipoEventoId,
-            String tempoCronometro,
-            String descricaoDetalhada,
-            String localEventoId   
+            String periodo,
+            String minutoSegundo,
+            Object dadosExtras,
+            String localEventoId
     ) {}
 
     public record AddEventoGeralInput(
             UUID tipoEventoId,
-            String tempoCronometro,
-            String descricaoDetalhada,
+            String periodo,
+            String minutoSegundo,
+            Object dadosExtras,
             String localEventoId,
-            UUID equipeId
+            UUID campeonatoTimeId
     ) {}
 
     private final EventoPartidaRepository repo;
     private final PartidaRepository partidaRepo;
     private final PartidaArbitroRepository partidaArbitroRepo;
-    private final EquipeRepository equipeRepo;
+    private final CampeonatoTimeRepository campeonatoTimeRepo;
     private final AtletaRepository atletaRepo;
     private final TipoEventoRepository tipoEventoRepo;
-    private final EquipeAtletaInscritoRepository inscritoRepo;
     private final FirebaseCloudMessagingService firebaseMessagingService;
+    private final EventPublisherService eventPublisherService;
+    private final ProfileRepository profileRepo;
 
     public EventoPartidaService(EventoPartidaRepository repo,
                                PartidaRepository partidaRepo,
                                PartidaArbitroRepository partidaArbitroRepo,
-                               EquipeRepository equipeRepo,
+                               CampeonatoTimeRepository campeonatoTimeRepo,
                                AtletaRepository atletaRepo,
                                TipoEventoRepository tipoEventoRepo,
-                               EquipeAtletaInscritoRepository inscritoRepo,
-                               FirebaseCloudMessagingService firebaseMessagingService) {
+                               FirebaseCloudMessagingService firebaseMessagingService,
+                               EventPublisherService eventPublisherService,
+                               ProfileRepository profileRepo) {
         this.repo = repo;
         this.partidaRepo = partidaRepo;
         this.partidaArbitroRepo = partidaArbitroRepo;
-        this.equipeRepo = equipeRepo;
+        this.campeonatoTimeRepo = campeonatoTimeRepo;
         this.atletaRepo = atletaRepo;
         this.tipoEventoRepo = tipoEventoRepo;
-        this.inscritoRepo = inscritoRepo;
         this.firebaseMessagingService = firebaseMessagingService;
+        this.eventPublisherService = eventPublisherService;
+        this.profileRepo = profileRepo;
     }
 
     public List<EventoPartida> list(UUID partidaId) {
@@ -151,18 +141,15 @@ public class EventoPartidaService {
                                       UUID eventoId,
                                       UUID userId,
                                       boolean isArbitroOnly,
-                                      UUID equipeId,
+                                      UUID campeonatoTimeId,
                                       UUID atletaId,
-                                      UUID atletaSaiId,
-                                      boolean isSubstitution,
                                       UUID tipoEventoId,
-                                      String tempoCronometro,
-                                      String novaDescricao) {
+                                      String periodo,
+                                      String minutoSegundo) {
 
         Partida partida = partidaRepo.findById(partidaId)
                 .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
 
-        // Não permitir edição em partida fechada
         if (PartidaService.isStatusFechada(partida.getStatus())) {
             throw new IllegalStateException("Não é possível editar eventos de partidas com súmula fechada.");
         }
@@ -178,85 +165,40 @@ public class EventoPartidaService {
             throw new IllegalStateException("Evento não pertence à partida informada.");
         }
 
-        // Valida e atualiza equipe/tipo/atletas usando mesma lógica do add(...)
-        if (equipeId != null) {
-            Equipe equipe = equipeRepo.findById(equipeId)
-                    .orElseThrow(() -> new IllegalStateException("Equipe não encontrada."));
-
-            if (!Objects.equals(equipe.getId(), partida.getEquipeA().getId())
-                    && !Objects.equals(equipe.getId(), partida.getEquipeB().getId())) {
-                throw new IllegalStateException("Equipe do evento deve ser uma das equipes da partida.");
-            }
-            ev.setEquipe(equipe);
+        if (campeonatoTimeId != null) {
+            CampeonatoTime time = campeonatoTimeRepo.findById(campeonatoTimeId)
+                    .orElseThrow(() -> new IllegalStateException("Time não encontrado."));
+            validateTimeNaPartida(partida, time.getId());
+            ev.setCampeonatoTime(time);
         }
 
         if (tipoEventoId != null) {
             TipoEvento tipoEvento = tipoEventoRepo.findById(tipoEventoId)
                     .orElseThrow(() -> new IllegalStateException("Tipo de evento não encontrado."));
-
-            Modalidade modalidade = partida.getModalidade();
-            if (modalidade.getEsporte() == null || tipoEvento.getEsporte() == null) {
-                throw new IllegalStateException("Modalidade/Tipo de evento sem esporte vinculado.");
-            }
-            if (!Objects.equals(modalidade.getEsporte().getId(), tipoEvento.getEsporte().getId())) {
-                throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
-            }
+            validateTipoEventoEsporte(partida, tipoEvento);
             ev.setTipoEvento(tipoEvento);
-        }
-
-        if (isSubstitution) {
-            if (atletaId == null || atletaSaiId == null) {
-                throw new IllegalStateException("Substituição requer atletaId (entra) e atletaSaiId (sai).");
-            }
-            if (Objects.equals(atletaId, atletaSaiId)) {
-                throw new IllegalStateException("Em substituição, atletaId e atletaSaiId devem ser diferentes.");
-            }
         }
 
         if (atletaId != null) {
             Atleta atleta = atletaRepo.findById(atletaId)
                     .orElseThrow(() -> new IllegalStateException("Atleta não encontrado."));
-            boolean inscrito = inscritoRepo.existsByEquipe_IdAndAtleta_Id(equipeId, atletaId);
-            if (!inscrito) {
-                throw new IllegalStateException("Atleta não está inscrito nesta equipe.");
-            }
             ev.setAtleta(atleta);
         } else {
             ev.setAtleta(null);
         }
 
-        if (atletaSaiId != null) {
-            Atleta atletaSai = atletaRepo.findById(atletaSaiId)
-                    .orElseThrow(() -> new IllegalStateException("Atleta (sai) não encontrado."));
-            boolean inscritoSai = inscritoRepo.existsByEquipe_IdAndAtleta_Id(equipeId, atletaSaiId);
-            if (!inscritoSai) {
-                throw new IllegalStateException("Atleta (sai) não está inscrito nesta equipe.");
-            }
-            ev.setAtletaSai(atletaSai);
-        } else {
-            ev.setAtletaSai(null);
-        }
+        if (periodo != null) ev.setPeriodo(periodo);
+        if (minutoSegundo != null && !minutoSegundo.isBlank()) ev.setMinutoSegundo(minutoSegundo);
 
-        ev.setIsSubstitution(isSubstitution);
-
-        if (tempoCronometro != null && !tempoCronometro.isBlank()) {
-            ev.setTempoCronometro(tempoCronometro);
-        }
-
-        ev.setDescricaoDetalhada(novaDescricao);
         return repo.save(ev);
     }
 
     @Transactional
-    public void deleteEvento(UUID partidaId,
-                             UUID eventoId,
-                             UUID userId,
-                             boolean isArbitroOnly) {
+    public void deleteEvento(UUID partidaId, UUID eventoId, UUID userId, boolean isArbitroOnly) {
 
         Partida partida = partidaRepo.findById(partidaId)
                 .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
 
-        // Não permitir exclusão em partida fechada
         if (PartidaService.isStatusFechada(partida.getStatus())) {
             throw new IllegalStateException("Não é possível excluir eventos de partidas com súmula fechada.");
         }
@@ -276,9 +218,8 @@ public class EventoPartidaService {
     }
 
     /**
-     * Cria eventos gerais da partida (sem equipe/atleta), em lote.
-     *
-     * A operação é transacional: se 1 evento falhar, nada é persistido.
+     * Cria eventos gerais da partida (sem time/atleta específico), em lote.
+     * Transacional: se 1 evento falhar, nada é persistido.
      */
     @Transactional
     public List<EventoPartida> addBatchGerais(UUID partidaId,
@@ -290,96 +231,54 @@ public class EventoPartidaService {
             throw new IllegalStateException("Lista de eventos não pode ser vazia.");
         }
 
-        Partida partida = partidaRepo.findById(partidaId)
-                .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
+        Partida partida = getPartidaEmAndamento(partidaId, userId, isArbitroOnly);
+        UUID esporteId = getEsporteIdDaPartida(partida);
 
-        if (!PartidaService.isStatusEmAndamento(partida.getStatus())) {
-            throw new IllegalStateException("Só é possível registrar eventos quando a partida estiver em andamento.");
-        }
-
-        if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
-            throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
-        }
-
-        Modalidade modalidade = partida.getModalidade();
-        if (modalidade == null || modalidade.getEsporte() == null) {
-            throw new IllegalStateException("Modalidade da partida sem esporte vinculado.");
-        }
-        UUID esporteIdDaPartida = modalidade.getEsporte().getId();
-
-        // Carrega tipos em lote
         Set<UUID> tipoEventoIds = new HashSet<>();
         for (AddEventoGeralInput r : reqs) {
-            if (r == null) continue;
-            if (r.tipoEventoId() != null) tipoEventoIds.add(r.tipoEventoId());
+            if (r != null && r.tipoEventoId() != null) tipoEventoIds.add(r.tipoEventoId());
         }
 
-        Map<UUID, TipoEvento> tipos = new HashMap<>();
-        for (TipoEvento te : tipoEventoRepo.findAllById(tipoEventoIds)) {
-            tipos.put(te.getId(), te);
-        }
+        Map<UUID, TipoEvento> tipos = carregarTipos(tipoEventoIds);
 
-        // ── Idempotência ──────────────────────────────────────────────────────────
-        Set<String> localIdsRequisicao = new HashSet<>();
-        for (AddEventoGeralInput r : reqs) {
-            if (r != null && r.localEventoId() != null && !r.localEventoId().isBlank()) {
-                localIdsRequisicao.add(r.localEventoId());
-            }
-        }
+        // Idempotência
+        Set<String> localIdsRequisicao = collectLocalIds(reqs, r -> r.localEventoId());
         Set<String> localIdsJaExistentes = localIdsRequisicao.isEmpty()
             ? Set.of()
             : repo.findExistingLocalEventoIds(localIdsRequisicao);
-        // ─────────────────────────────────────────────────────────────────────────
+
+        Profile author = profileRepo.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Usuário não encontrado."));
 
         List<EventoPartida> toSave = new ArrayList<>(reqs.size());
         for (AddEventoGeralInput r : reqs) {
-            if (r == null) {
-                throw new IllegalStateException("Evento inválido (null) na lista.");
-            }
-            if (r.tipoEventoId() == null) {
-                throw new IllegalStateException("tipoEventoId é obrigatório.");
-            }
-            if (r.tempoCronometro() == null || r.tempoCronometro().isBlank()) {
-                throw new IllegalStateException("tempoCronometro é obrigatório.");
-            }
+            if (r == null) throw new IllegalStateException("Evento inválido (null) na lista.");
+            if (r.tipoEventoId() == null) throw new IllegalStateException("tipoEventoId é obrigatório.");
+            if (r.minutoSegundo() == null || r.minutoSegundo().isBlank()) throw new IllegalStateException("minutoSegundo é obrigatório.");
 
             TipoEvento tipoEvento = tipos.get(r.tipoEventoId());
-            if (tipoEvento == null) {
-                throw new IllegalStateException("Tipo de evento não encontrado: " + r.tipoEventoId());
-            }
-            if (tipoEvento.getEsporte() == null || tipoEvento.getEsporte().getId() == null) {
-                throw new IllegalStateException("Tipo de evento sem esporte vinculado.");
-            }
-            if (!Objects.equals(esporteIdDaPartida, tipoEvento.getEsporte().getId())) {
+            if (tipoEvento == null) throw new IllegalStateException("Tipo de evento não encontrado: " + r.tipoEventoId());
+            if (!Objects.equals(esporteId, tipoEvento.getEsporte() != null ? tipoEvento.getEsporte().getId() : null)) {
                 throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
             }
-
-            // Se for gol, precisa de equipe para atualizar placar -> use /eventos
             if (isGoalEvent(tipoEvento)) {
-                throw new IllegalStateException("Evento '" + tipoEvento.getNome() + "' requer equipeId (use /api/v1/partidas/{partidaId}/eventos). ");
+                throw new IllegalStateException("Evento '" + tipoEvento.getNome() + "' requer campeonatoTimeId (use /api/v1/partidas/{id}/eventos).");
             }
 
-            if (r.localEventoId() != null 
-                && !r.localEventoId().isBlank()
-                && localIdsJaExistentes.contains(r.localEventoId())) {
-                continue;
+            if (r.localEventoId() != null && !r.localEventoId().isBlank()
+                    && localIdsJaExistentes.contains(r.localEventoId())) {
+                continue; // idempotência: já processado
             }
 
             EventoPartida ev = new EventoPartida();
-            ev.setLocalEventoId(r.localEventoId());
-
             ev.setPartida(partida);
             ev.setTipoEvento(tipoEvento);
-            ev.setTempoCronometro(r.tempoCronometro());
-            ev.setDescricaoDetalhada(r.descricaoDetalhada());
-            ev.setIsSubstitution(false);
+            ev.setPeriodo(r.periodo());
+            ev.setMinutoSegundo(r.minutoSegundo());
+            ev.setCriadoPorUser(author);
 
-            // Optional equipeId for events like PAUSA_TECNICA
-            if (r.equipeId() != null) {
-                Equipe equipe = equipeRepo.findById(r.equipeId()).orElse(null);
-                if (equipe != null) {
-                    ev.setEquipe(equipe);
-                }
+            if (r.campeonatoTimeId() != null) {
+                campeonatoTimeRepo.findById(r.campeonatoTimeId()).ifPresent(ev::setCampeonatoTime);
             }
 
             toSave.add(ev);
@@ -387,23 +286,23 @@ public class EventoPartidaService {
 
         List<EventoPartida> saved = repo.saveAll(toSave);
 
-        // Send push notifications
         for (EventoPartida ev : saved) {
-            String topic = "partida_" + partidaId.toString();
-            String title = (partida.getEquipeA() != null ? partida.getEquipeA().getNomeEquipe() : "Equipe A") + " x " + 
-                           (partida.getEquipeB() != null ? partida.getEquipeB().getNomeEquipe() : "Equipe B");
-            String body = buildNotificationBody(ev);
-            firebaseMessagingService.sendNotificationToTopic(topic, title, body);
+            String topic = "partida_" + partidaId;
+            String title = buildMatchTitle(partida);
+            firebaseMessagingService.sendNotificationToTopic(topic, title, buildNotificationBody(ev));
+
+            eventPublisherService.publish("EventoPartida", ev.getId().toString(), "EventoRegistrado", Map.of(
+                "partidaId", partidaId.toString(),
+                "tipoEvento", ev.getTipoEvento().getNome()
+            ));
         }
 
         return saved;
     }
 
     /**
-     * Cria eventos em lote para reduzir quantidade de requisições HTTP.
-     *
-     * Regras/validações seguem a mesma lógica do registro unitário de evento (método add).
-     * A operação é transacional: se 1 evento falhar, nada é persistido.
+     * Cria eventos de equipe/atleta em lote (gols, cartões, substituições, etc).
+     * Transacional: se 1 evento falhar, nada é persistido.
      */
     @Transactional
     public List<EventoPartida> addBatch(UUID partidaId,
@@ -415,205 +314,101 @@ public class EventoPartidaService {
             throw new IllegalStateException("Lista de eventos não pode ser vazia.");
         }
 
-        Partida partida = partidaRepo.findById(partidaId)
-                .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
+        Partida partida = getPartidaEmAndamento(partidaId, userId, isArbitroOnly);
+        UUID esporteId = getEsporteIdDaPartida(partida);
 
-        if (!PartidaService.isStatusEmAndamento(partida.getStatus())) {
-            throw new IllegalStateException("Só é possível registrar eventos quando a partida estiver em andamento.");
+        UUID timeAId = partida.getTimeA() == null ? null : partida.getTimeA().getId();
+        UUID timeBId = partida.getTimeB() == null ? null : partida.getTimeB().getId();
+        if (timeAId == null || timeBId == null) {
+            throw new IllegalStateException("Partida sem times A/B vinculados.");
         }
 
-        if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
-            throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
-        }
-
-        UUID equipeAId = partida.getEquipeA() == null ? null : partida.getEquipeA().getId();
-        UUID equipeBId = partida.getEquipeB() == null ? null : partida.getEquipeB().getId();
-        if (equipeAId == null || equipeBId == null) {
-            throw new IllegalStateException("Partida sem equipes A/B vinculadas.");
-        }
-
-        Modalidade modalidade = partida.getModalidade();
-        if (modalidade == null || modalidade.getEsporte() == null) {
-            throw new IllegalStateException("Modalidade da partida sem esporte vinculado.");
-        }
-        UUID esporteIdDaPartida = modalidade.getEsporte().getId();
-
-        // 1) Carrega em lote Equipes / Tipos de Evento / Atletas para reduzir queries
-        Set<UUID> equipeIds = new HashSet<>();
+        // Carrega em lote
+        Set<UUID> timeIds = new HashSet<>();
         Set<UUID> tipoEventoIds = new HashSet<>();
         Set<UUID> atletaIds = new HashSet<>();
 
         for (AddEventoInput r : reqs) {
             if (r == null) continue;
-            if (r.equipeId() != null) equipeIds.add(r.equipeId());
+            if (r.campeonatoTimeId() != null) timeIds.add(r.campeonatoTimeId());
             if (r.tipoEventoId() != null) tipoEventoIds.add(r.tipoEventoId());
             if (r.atletaId() != null) atletaIds.add(r.atletaId());
-            if (r.atletaSaiId() != null) atletaIds.add(r.atletaSaiId());
         }
 
-        Map<UUID, Equipe> equipes = new HashMap<>();
-        for (Equipe e : equipeRepo.findAllById(equipeIds)) {
-            equipes.put(e.getId(), e);
+        Map<UUID, CampeonatoTime> times = new HashMap<>();
+        for (CampeonatoTime t : campeonatoTimeRepo.findAllById(timeIds)) {
+            times.put(t.getId(), t);
         }
 
-        Map<UUID, TipoEvento> tipos = new HashMap<>();
-        for (TipoEvento te : tipoEventoRepo.findAllById(tipoEventoIds)) {
-            tipos.put(te.getId(), te);
-        }
+        Map<UUID, TipoEvento> tipos = carregarTipos(tipoEventoIds);
 
         Map<UUID, Atleta> atletas = new HashMap<>();
         for (Atleta a : atletaRepo.findAllById(atletaIds)) {
             atletas.put(a.getId(), a);
         }
 
-        // 2) Pré-valida inscrição (por equipe) para evitar N queries (partida tem no máx 2 equipes)
-        Map<UUID, Set<UUID>> atletasPorEquipe = new HashMap<>();
-        for (AddEventoInput r : reqs) {
-            if (r == null) continue;
-            if (r.equipeId() == null) continue;
-            if (r.atletaId() != null) {
-                atletasPorEquipe.computeIfAbsent(r.equipeId(), k -> new HashSet<>()).add(r.atletaId());
-            }
-            if (r.atletaSaiId() != null) {
-                atletasPorEquipe.computeIfAbsent(r.equipeId(), k -> new HashSet<>()).add(r.atletaSaiId());
-            }
-        }
-
-        Map<UUID, Set<UUID>> inscritosPorEquipe = new HashMap<>();
-        for (var entry : atletasPorEquipe.entrySet()) {
-            UUID eqId = entry.getKey();
-            List<UUID> ids = new ArrayList<>(entry.getValue());
-            Set<UUID> inscritos = new HashSet<>(inscritoRepo.findAtletaIdsInscritos(eqId, ids));
-            inscritosPorEquipe.put(eqId, inscritos);
-        }
-
-        // ── Idempotência: coleta os localEventoIds da requisição ──────────────────
-        Set<String> localIdsRequisicao = new HashSet<>();
-        for (AddEventoInput r : reqs) {
-            if (r != null && r.localEventoId() != null && !r.localEventoId().isBlank()) {
-                localIdsRequisicao.add(r.localEventoId());
-            }
-        }
-
-        // Consulta em lote quais já existem no banco
-        Set<String> localIdsJaExistentes = localIdsRequisicao.isEmpty()
+        // Idempotência
+        Set<String> localIdsReq = collectLocalIds(reqs, r -> r.localEventoId());
+        Set<String> localIdsExistentes = localIdsReq.isEmpty()
             ? Set.of()
-            : repo.findExistingLocalEventoIds(localIdsRequisicao);
-        // ─────────────────────────────────────────────────────────────────────────
+            : repo.findExistingLocalEventoIds(localIdsReq);
 
-        // 3) Monta entidades e valida tudo
+        Profile author = profileRepo.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Usuário não encontrado."));
+
         List<EventoPartida> toSave = new ArrayList<>(reqs.size());
         int golsA = 0;
         int golsB = 0;
 
         for (AddEventoInput r : reqs) {
-            if (r == null) {
-                throw new IllegalStateException("Evento inválido (null) na lista.");
-            }
-            if (r.equipeId() == null) {
-                throw new IllegalStateException("equipeId é obrigatório.");
-            }
-            if (r.tipoEventoId() == null) {
-                throw new IllegalStateException("tipoEventoId é obrigatório.");
-            }
-            if (r.tempoCronometro() == null || r.tempoCronometro().isBlank()) {
-                throw new IllegalStateException("tempoCronometro é obrigatório.");
-            }
+            if (r == null) throw new IllegalStateException("Evento inválido (null) na lista.");
+            if (r.campeonatoTimeId() == null) throw new IllegalStateException("campeonatoTimeId é obrigatório.");
+            if (r.tipoEventoId() == null) throw new IllegalStateException("tipoEventoId é obrigatório.");
+            if (r.minutoSegundo() == null || r.minutoSegundo().isBlank()) throw new IllegalStateException("minutoSegundo é obrigatório.");
 
-            Equipe equipe = equipes.get(r.equipeId());
-            if (equipe == null) {
-                throw new IllegalStateException("Equipe não encontrada: " + r.equipeId());
-            }
-
-            // Equipe precisa ser A ou B
-            if (!Objects.equals(r.equipeId(), equipeAId) && !Objects.equals(r.equipeId(), equipeBId)) {
-                throw new IllegalStateException("Equipe do evento deve ser uma das equipes da partida.");
+            CampeonatoTime time = times.get(r.campeonatoTimeId());
+            if (time == null) throw new IllegalStateException("Time não encontrado: " + r.campeonatoTimeId());
+            if (!Objects.equals(r.campeonatoTimeId(), timeAId) && !Objects.equals(r.campeonatoTimeId(), timeBId)) {
+                throw new IllegalStateException("Time do evento deve ser um dos times da partida.");
             }
 
             TipoEvento tipoEvento = tipos.get(r.tipoEventoId());
-            if (tipoEvento == null) {
-                throw new IllegalStateException("Tipo de evento não encontrado: " + r.tipoEventoId());
-            }
-            if (tipoEvento.getEsporte() == null || tipoEvento.getEsporte().getId() == null) {
-                throw new IllegalStateException("Tipo de evento sem esporte vinculado.");
-            }
-            if (!Objects.equals(esporteIdDaPartida, tipoEvento.getEsporte().getId())) {
+            if (tipoEvento == null) throw new IllegalStateException("Tipo de evento não encontrado: " + r.tipoEventoId());
+            if (!Objects.equals(esporteId, tipoEvento.getEsporte() != null ? tipoEvento.getEsporte().getId() : null)) {
                 throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
-            }
-
-            boolean isSub = r.isSubstitution();
-            if (isSub) {
-                if (r.atletaId() == null || r.atletaSaiId() == null) {
-                    throw new IllegalStateException("Substituição requer atletaId (entra) e atletaSaiId (sai).");
-                }
-                if (Objects.equals(r.atletaId(), r.atletaSaiId())) {
-                    throw new IllegalStateException("Em substituição, atletaId e atletaSaiId devem ser diferentes.");
-                }
             }
 
             Atleta atleta = null;
             if (r.atletaId() != null) {
                 atleta = atletas.get(r.atletaId());
-                if (atleta == null) {
-                    throw new IllegalStateException("Atleta não encontrado: " + r.atletaId());
-                }
-
-                Set<UUID> inscritos = inscritosPorEquipe.getOrDefault(r.equipeId(), Set.of());
-                if (!inscritos.contains(r.atletaId())) {
-                    throw new IllegalStateException("Atleta não está inscrito nesta equipe.");
-                }
+                if (atleta == null) throw new IllegalStateException("Atleta não encontrado: " + r.atletaId());
             }
 
-            Atleta atletaSai = null;
-            if (r.atletaSaiId() != null) {
-                atletaSai = atletas.get(r.atletaSaiId());
-                if (atletaSai == null) {
-                    throw new IllegalStateException("Atleta (sai) não encontrado: " + r.atletaSaiId());
-                }
-                Set<UUID> inscritos = inscritosPorEquipe.getOrDefault(r.equipeId(), Set.of());
-                if (!inscritos.contains(r.atletaSaiId())) {
-                    throw new IllegalStateException("Atleta (sai) não está inscrito nesta equipe.");
-                }
-            }
-
-            // Pula silenciosamente eventos já processados (idempotência)
-            if (r.localEventoId() != null 
-                    && !r.localEventoId().isBlank()
-                    && localIdsJaExistentes.contains(r.localEventoId())) {
-                continue; // já foi salvo, ignora sem lançar erro
+            // Idempotência: pula silenciosamente
+            if (r.localEventoId() != null && !r.localEventoId().isBlank()
+                    && localIdsExistentes.contains(r.localEventoId())) {
+                continue;
             }
 
             EventoPartida ev = new EventoPartida();
-            ev.setLocalEventoId(r.localEventoId());
             ev.setPartida(partida);
-            ev.setEquipe(equipe);
+            ev.setCampeonatoTime(time);
             ev.setAtleta(atleta);
-            ev.setAtletaSai(atletaSai);
-            ev.setIsSubstitution(isSub);
             ev.setTipoEvento(tipoEvento);
-            ev.setTempoCronometro(r.tempoCronometro());
-            ev.setDescricaoDetalhada(r.descricaoDetalhada());
+            ev.setPeriodo(r.periodo());
+            ev.setMinutoSegundo(r.minutoSegundo());
+            ev.setCriadoPorUser(author);
             toSave.add(ev);
 
-            // Atualiza placar se for Gol ou Pênalti (vamos somar e persistir 1 vez)
             if (isGoalEvent(tipoEvento)) {
-                if (Objects.equals(r.equipeId(), equipeAId)) {
-                    golsA++;
-                } else {
-                    golsB++;
-                }
-            }
-
-            if (isSub) {
-                System.out.println("[DEBUG addBatch] Substitution detected! equipeId=" + r.equipeId()
-                        + " atletaEntra=" + r.atletaId() + " atletaSai=" + r.atletaSaiId()
-                        + " isSubstitution=" + r.isSubstitution());
-                handleSubstitutionAtivoStatus(r.equipeId(), r.atletaId(), r.atletaSaiId());
+                if (Objects.equals(r.campeonatoTimeId(), timeAId)) golsA++;
+                else golsB++;
             }
         }
 
         List<EventoPartida> saved = repo.saveAll(toSave);
 
+        // Atualiza placar em batch
         if (golsA > 0 || golsB > 0) {
             int a = partida.getPlacarA() == null ? 0 : partida.getPlacarA();
             int b = partida.getPlacarB() == null ? 0 : partida.getPlacarB();
@@ -622,154 +417,90 @@ public class EventoPartidaService {
             partidaRepo.save(partida);
         }
 
-        // Send push notifications
+        // Notificações + eventos Outbox
         for (EventoPartida ev : saved) {
-            String topic = "partida_" + partidaId.toString();
-            String title = (partida.getEquipeA() != null ? partida.getEquipeA().getNomeEquipe() : "Equipe A") + " x " + 
-                           (partida.getEquipeB() != null ? partida.getEquipeB().getNomeEquipe() : "Equipe B");
-            String body = buildNotificationBody(ev);
-            firebaseMessagingService.sendNotificationToTopic(topic, title, body);
+            String topic = "partida_" + partidaId;
+            String title = buildMatchTitle(partida);
+            firebaseMessagingService.sendNotificationToTopic(topic, title, buildNotificationBody(ev));
+
+            eventPublisherService.publish("EventoPartida", ev.getId().toString(), "EventoRegistrado", Map.of(
+                "partidaId", partidaId.toString(),
+                "tipoEvento", ev.getTipoEvento().getNome(),
+                "placarA", partida.getPlacarA(),
+                "placarB", partida.getPlacarB()
+            ));
         }
 
         return saved;
     }
 
-    public EventoPartida add(UUID partidaId,
-                             UUID userId,
-                             boolean isArbitroOnly,
-                             UUID equipeId,
-                             UUID atletaId,
-                             UUID atletaSaiId,
-                             boolean isSubstitution,
-                             UUID tipoEventoId,
-                             String tempoCronometro,
-                             String descricaoDetalhada) {
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
+    private Partida getPartidaEmAndamento(UUID partidaId, UUID userId, boolean isArbitroOnly) {
         Partida partida = partidaRepo.findById(partidaId)
                 .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
-
         if (!PartidaService.isStatusEmAndamento(partida.getStatus())) {
             throw new IllegalStateException("Só é possível registrar eventos quando a partida estiver em andamento.");
         }
-
         if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
             throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
         }
-
-        Equipe equipe = equipeRepo.findById(equipeId)
-                .orElseThrow(() -> new IllegalStateException("Equipe não encontrada."));
-
-        // equipe precisa ser A ou B
-        if (!Objects.equals(equipe.getId(), partida.getEquipeA().getId()) && !Objects.equals(equipe.getId(), partida.getEquipeB().getId())) {
-            throw new IllegalStateException("Equipe do evento deve ser uma das equipes da partida.");
-        }
-
-        TipoEvento tipoEvento = tipoEventoRepo.findById(tipoEventoId)
-                .orElseThrow(() -> new IllegalStateException("Tipo de evento não encontrado."));
-
-        // Tipo de evento deve ser do mesmo esporte da modalidade
-        Modalidade modalidade = partida.getModalidade();
-        if (modalidade.getEsporte() == null || tipoEvento.getEsporte() == null) {
-            throw new IllegalStateException("Modalidade/Tipo de evento sem esporte vinculado.");
-        }
-        if (!Objects.equals(modalidade.getEsporte().getId(), tipoEvento.getEsporte().getId())) {
-            throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
-        }
-
-        if (isSubstitution) {
-            if (atletaId == null || atletaSaiId == null) {
-                throw new IllegalStateException("Substituição requer atletaId (entra) e atletaSaiId (sai).");
-            }
-            if (Objects.equals(atletaId, atletaSaiId)) {
-                throw new IllegalStateException("Em substituição, atletaId e atletaSaiId devem ser diferentes.");
-            }
-        }
-
-        Atleta atleta = null;
-        if (atletaId != null) {
-            atleta = atletaRepo.findById(atletaId)
-                    .orElseThrow(() -> new IllegalStateException("Atleta não encontrado."));
-
-            // valida inscrição do atleta na equipe
-            boolean inscrito = inscritoRepo.existsByEquipe_IdAndAtleta_Id(equipeId, atletaId);
-            if (!inscrito) {
-                throw new IllegalStateException("Atleta não está inscrito nesta equipe.");
-            }
-        }
-
-        Atleta atletaSai = null;
-        if (atletaSaiId != null) {
-            atletaSai = atletaRepo.findById(atletaSaiId)
-                    .orElseThrow(() -> new IllegalStateException("Atleta (sai) não encontrado."));
-            boolean inscritoSai = inscritoRepo.existsByEquipe_IdAndAtleta_Id(equipeId, atletaSaiId);
-            if (!inscritoSai) {
-                throw new IllegalStateException("Atleta (sai) não está inscrito nesta equipe.");
-            }
-        }
-
-        EventoPartida ev = new EventoPartida();
-        ev.setPartida(partida);
-        ev.setEquipe(equipe);
-        ev.setAtleta(atleta);
-        ev.setAtletaSai(atletaSai);
-        ev.setIsSubstitution(isSubstitution);
-        ev.setTipoEvento(tipoEvento);
-        ev.setTempoCronometro(tempoCronometro);
-        ev.setDescricaoDetalhada(descricaoDetalhada);
-
-        EventoPartida saved = repo.save(ev);
-
-        // Atualiza placar se for Gol ou Pênalti convertido
-        if (isGoalEvent(tipoEvento)) {
-            Integer a = partida.getPlacarA() == null ? 0 : partida.getPlacarA();
-            Integer b = partida.getPlacarB() == null ? 0 : partida.getPlacarB();
-
-            if (Objects.equals(equipeId, partida.getEquipeA().getId())) {
-                partida.setPlacarA(a + 1);
-            } else {
-                partida.setPlacarB(b + 1);
-            }
-            partidaRepo.save(partida);
-        }
-
-        if (isSubstitution) {
-            handleSubstitutionAtivoStatus(equipeId, atletaId, atletaSaiId);
-        }
-
-        // Send push notification
-        String topic = "partida_" + partidaId.toString();
-        String title = (partida.getEquipeA() != null ? partida.getEquipeA().getNomeEquipe() : "Equipe A") + " x " + 
-                       (partida.getEquipeB() != null ? partida.getEquipeB().getNomeEquipe() : "Equipe B");
-        String body = buildNotificationBody(saved);
-        firebaseMessagingService.sendNotificationToTopic(topic, title, body);
-
-        return saved;
+        return partida;
     }
 
-    private void handleSubstitutionAtivoStatus(UUID equipeId, UUID entraId, UUID saiId) {
-        System.out.println("[DEBUG handleSubstitutionAtivoStatus] equipeId=" + equipeId
-                + " entraId=" + entraId + " saiId=" + saiId);
-        if (entraId != null) {
-            var entraOpt = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, entraId);
-            System.out.println("[DEBUG handleSubstitutionAtivoStatus] entra found=" + entraOpt.isPresent());
-            EquipeAtletaInscrito entra = entraOpt
-                    .orElseThrow(() -> new IllegalStateException("Atleta (entra) não está inscrito nesta equipe."));
-            System.out.println("[DEBUG handleSubstitutionAtivoStatus] entra BEFORE ativo=" + entra.getAtivo()
-                    + " atletaId=" + entraId + " numero=" + entra.getNumeroCamisa());
-            entra.setAtivo(true);
-            inscritoRepo.save(entra);
-            System.out.println("[DEBUG handleSubstitutionAtivoStatus] entra AFTER ativo=" + entra.getAtivo());
+    private UUID getEsporteIdDaPartida(Partida partida) {
+        if (partida.getModalidade() == null || partida.getModalidade().getEsporte() == null) {
+            throw new IllegalStateException("Modalidade da partida sem esporte vinculado.");
         }
-        if (saiId != null) {
-            var saiOpt = inscritoRepo.findByEquipe_IdAndAtleta_Id(equipeId, saiId);
-            System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai found=" + saiOpt.isPresent());
-            EquipeAtletaInscrito sai = saiOpt
-                    .orElseThrow(() -> new IllegalStateException("Atleta (sai) não está inscrito nesta equipe."));
-            System.out.println("[DEBUG: handleSubstitutionAtivoStatus] sai BEFORE ativo=" + sai.getAtivo()
-                    + " atletaId=" + saiId + " numero=" + sai.getNumeroCamisa());
-            sai.setAtivo(false);
-            inscritoRepo.save(sai);
-            System.out.println("[DEBUG handleSubstitutionAtivoStatus] sai AFTER ativo=" + sai.getAtivo());
+        return partida.getModalidade().getEsporte().getId();
+    }
+
+    private Map<UUID, TipoEvento> carregarTipos(Set<UUID> ids) {
+        Map<UUID, TipoEvento> map = new HashMap<>();
+        for (TipoEvento te : tipoEventoRepo.findAllById(ids)) {
+            map.put(te.getId(), te);
         }
+        return map;
+    }
+
+    private void validateTimeNaPartida(Partida partida, UUID timeId) {
+        UUID timeAId = partida.getTimeA() == null ? null : partida.getTimeA().getId();
+        UUID timeBId = partida.getTimeB() == null ? null : partida.getTimeB().getId();
+        if (!Objects.equals(timeId, timeAId) && !Objects.equals(timeId, timeBId)) {
+            throw new IllegalStateException("Time do evento deve ser um dos times da partida.");
+        }
+    }
+
+    private void validateTipoEventoEsporte(Partida partida, TipoEvento tipoEvento) {
+        UUID esportePartida = partida.getModalidade() != null && partida.getModalidade().getEsporte() != null
+                ? partida.getModalidade().getEsporte().getId() : null;
+        UUID esporteEvento = tipoEvento.getEsporte() != null ? tipoEvento.getEsporte().getId() : null;
+        if (!Objects.equals(esportePartida, esporteEvento)) {
+            throw new IllegalStateException("Tipo de evento não pertence ao esporte da modalidade da partida.");
+        }
+    }
+
+    private String buildMatchTitle(Partida partida) {
+        String nomeA = partida.getTimeA() != null && partida.getTimeA().getTime() != null
+                ? partida.getTimeA().getTime().getNome() : "Time A";
+        String nomeB = partida.getTimeB() != null && partida.getTimeB().getTime() != null
+                ? partida.getTimeB().getTime().getNome() : "Time B";
+        return nomeA + " x " + nomeB;
+    }
+
+    @FunctionalInterface
+    private interface LocalIdExtractor<T> {
+        String extract(T item);
+    }
+
+    private <T> Set<String> collectLocalIds(List<T> reqs, LocalIdExtractor<T> extractor) {
+        Set<String> ids = new HashSet<>();
+        for (T r : reqs) {
+            if (r != null) {
+                String id = extractor.extract(r);
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+        }
+        return ids;
     }
 }

@@ -42,3 +42,8 @@ out/
 
 # Firebase
 firebase-service-account.json
+
+# Deploy Key (Local)
+deploy_kyarem_key
+deploy_kyarem_key.pub
+

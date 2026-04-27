@@ -5,15 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nkw.backapisumula.competicao.Equipe;
-import com.nkw.backapisumula.competicao.Modalidade;
-import com.nkw.backapisumula.competicao.repo.EquipeRepository;
-import com.nkw.backapisumula.competicao.repo.ModalidadeRepository;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
+import com.nkw.backapisumula.competicao.CampeonatoModalidade;
+import com.nkw.backapisumula.competicao.CampeonatoTime;
+import com.nkw.backapisumula.competicao.repo.CampeonatoModalidadeRepository;
+import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
 import com.nkw.backapisumula.partidas.EventoPartida;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
-import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.storage.SupabaseStorageService;
 import org.springframework.stereotype.Service;
@@ -53,21 +53,23 @@ public class PartidaService {
     );
 
     private final PartidaRepository repo;
-    private final ModalidadeRepository modalidadeRepo;
-    private final EquipeRepository equipeRepo;
+    private final CampeonatoModalidadeRepository modalidadeRepo;
+    private final CampeonatoTimeRepository equipeRepo;
     private final PartidaArbitroRepository partidaArbitroRepo;
     private final EventoPartidaRepository eventoRepo;
     private final ObjectMapper objectMapper;
     private final SupabaseStorageService supabaseStorageService;
     private final SumulaOficialPdfService sumulaOficialPdfService;
+    private final EventPublisherService eventPublisherService;
 
     public PartidaService(PartidaRepository repo,
-                          ModalidadeRepository modalidadeRepo,
-                          EquipeRepository equipeRepo,
+                          CampeonatoModalidadeRepository modalidadeRepo,
+                          CampeonatoTimeRepository equipeRepo,
                           PartidaArbitroRepository partidaArbitroRepo,
                           EventoPartidaRepository eventoRepo,
                           SupabaseStorageService supabaseStorageService,
-                          SumulaOficialPdfService sumulaOficialPdfService) {
+                          SumulaOficialPdfService sumulaOficialPdfService,
+                          EventPublisherService eventPublisherService) {
         this.repo = repo;
         this.modalidadeRepo = modalidadeRepo;
         this.equipeRepo = equipeRepo;
@@ -75,15 +77,16 @@ public class PartidaService {
         this.eventoRepo = eventoRepo;
         this.supabaseStorageService = supabaseStorageService;
         this.sumulaOficialPdfService = sumulaOficialPdfService;
+        this.eventPublisherService = eventPublisherService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     }
 
     public List<Partida> list(UUID modalidadeId, String status) {
         if (modalidadeId != null && status != null && !status.isBlank()) {
-            return repo.findByModalidade_IdAndStatus(modalidadeId, status);
+            return repo.findByCampeonatoModalidade_IdAndStatus(modalidadeId, status);
         }
         if (modalidadeId != null) {
-            return repo.findByModalidade_Id(modalidadeId);
+            return repo.findByCampeonatoModalidade_Id(modalidadeId);
         }
         if (status != null && !status.isBlank()) {
             return repo.findByStatus(status);
@@ -109,26 +112,27 @@ public class PartidaService {
         return repo.findById(id).orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
     }
 
+    @Transactional
     public Partida create(UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, String categoria, String fase) {
         if (equipeAId.equals(equipeBId)) {
             throw new IllegalStateException("Equipe A e Equipe B não podem ser a mesma.");
         }
 
-        Modalidade modalidade = modalidadeRepo.findById(modalidadeId)
+        CampeonatoModalidade modalidade = modalidadeRepo.findById(modalidadeId)
                 .orElseThrow(() -> new IllegalStateException("Modalidade não encontrada."));
 
-        Equipe equipeA = equipeRepo.findById(equipeAId)
+        CampeonatoTime equipeA = equipeRepo.findById(equipeAId)
                 .orElseThrow(() -> new IllegalStateException("Equipe A não encontrada."));
-        Equipe equipeB = equipeRepo.findById(equipeBId)
+        CampeonatoTime equipeB = equipeRepo.findById(equipeBId)
                 .orElseThrow(() -> new IllegalStateException("Equipe B não encontrada."));
 
         // valida campeonato/modalidade coerentes
-        validateEquipeCompatibilidade(modalidade, equipeA, equipeB);
+        validateEquipeCompatibilidade(equipeA, equipeB);
 
         Partida p = new Partida();
         p.setModalidade(modalidade);
-        p.setEquipeA(equipeA);
-        p.setEquipeB(equipeB);
+        p.setTimeA(equipeA);
+        p.setTimeB(equipeB);
         p.setLocal(local);
         p.setCategoria(categoria);
         p.setFase(fase);
@@ -137,9 +141,17 @@ public class PartidaService {
         p.setPlacarA(0);
         p.setPlacarB(0);
 
-        return repo.save(p);
+        Partida saved = repo.save(p);
+        
+        eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaCriada", Map.of(
+            "timeAId", equipeAId.toString(),
+            "timeBId", equipeBId.toString()
+        ));
+        
+        return saved;
     }
 
+    @Transactional
     public Partida update(UUID partidaId, UUID userId, boolean isArbitroOnly, UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, JsonNode snapshotSumula, String sumulaPdfUrl, String categoria, String fase) {
         Partida p = getOrThrow(partidaId);
 
@@ -181,28 +193,28 @@ public class PartidaService {
             throw new IllegalStateException("Equipe A e Equipe B não podem ser a mesma.");
         }
 
-        Modalidade modalidade = p.getModalidade();
+        CampeonatoModalidade modalidade = p.getModalidade();
         if (modalidadeId != null) {
             modalidade = modalidadeRepo.findById(modalidadeId)
                     .orElseThrow(() -> new IllegalStateException("Modalidade não encontrada."));
             p.setModalidade(modalidade);
         }
 
-        Equipe equipeA = p.getEquipeA();
+        CampeonatoTime equipeA = p.getTimeA();
         if (equipeAId != null) {
             equipeA = equipeRepo.findById(equipeAId)
                     .orElseThrow(() -> new IllegalStateException("Equipe A não encontrada."));
-            p.setEquipeA(equipeA);
+            p.setTimeA(equipeA);
         }
 
-        Equipe equipeB = p.getEquipeB();
+        CampeonatoTime equipeB = p.getTimeB();
         if (equipeBId != null) {
             equipeB = equipeRepo.findById(equipeBId)
                     .orElseThrow(() -> new IllegalStateException("Equipe B não encontrada."));
-            p.setEquipeB(equipeB);
+            p.setTimeB(equipeB);
         }
 
-        validateEquipeCompatibilidade(modalidade, equipeA, equipeB);
+        validateEquipeCompatibilidade(equipeA, equipeB);
 
         if (agendadoPara != null) p.setAgendadoPara(agendadoPara);
         if (local != null) p.setLocal(local);
@@ -212,6 +224,7 @@ public class PartidaService {
         return repo.save(p);
     }
 
+    @Transactional
     public Partida start(UUID partidaId, UUID userId, boolean isArbitroOnly) {
         Partida p = getOrThrow(partidaId);
 
@@ -228,9 +241,16 @@ public class PartidaService {
 
         p.setStatus(STATUS_PRIMEIRO_TEMPO);
         p.setIniciadaEm(OffsetDateTime.now());
-        return repo.save(p);
+        Partida saved = repo.save(p);
+        
+        eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaIniciada", Map.of(
+            "status", STATUS_PRIMEIRO_TEMPO
+        ));
+
+        return saved;
     }
 
+    @Transactional
     public Partida end(UUID partidaId, UUID userId, boolean isArbitroOnly) {
         Partida p = getOrThrow(partidaId);
 
@@ -272,9 +292,16 @@ public class PartidaService {
         // Atualiza hash com o snapshot e a url do pdf (se existir)
         p.setHashIntegridade(calcHashIntegridade(p.getSnapshotSumula(), p.getSumulaPdfUrl()));
 
-        return repo.save(p);
+        Partida saved = repo.save(p);
+        eventPublisherService.publish("Partida", saved.getId().toString(), "SúmulaFechada", Map.of(
+            "hashIntegridade", saved.getHashIntegridade(),
+            "sumulaPdfUrl", saved.getSumulaPdfUrl()
+        ));
+        
+        return saved;
     }
 
+    @Transactional
     public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status, String statusAntesPausa) {
         Partida p = getOrThrow(partidaId);
 
@@ -318,7 +345,13 @@ public class PartidaService {
             p.setEncerradaEm(OffsetDateTime.now());
         }
 
-        return repo.save(p);
+        Partida saved = repo.save(p);
+        
+        eventPublisherService.publish("Partida", saved.getId().toString(), "StatusAlterado", Map.of(
+            "novoStatus", normalized
+        ));
+
+        return saved;
     }
 
     private String normalizeStatusForDb(String raw) {
@@ -369,23 +402,23 @@ public class PartidaService {
         if (p.getModalidade() != null) {
             ObjectNode modalidade = root.putObject("modalidade");
             modalidade.put("id", p.getModalidade().getId().toString());
-            modalidade.put("nome", p.getModalidade().getNome());
-            if (p.getModalidade().getEsporte() != null) {
+            modalidade.put("nome", p.getModalidade().getModalidade() != null ? p.getModalidade().getModalidade().getNome() : null);
+            if (p.getModalidade().getModalidade() != null && p.getModalidade().getModalidade().getEsporte() != null) {
                 ObjectNode esporte = modalidade.putObject("esporte");
-                esporte.put("id", p.getModalidade().getEsporte().getId().toString());
-                esporte.put("nome", p.getModalidade().getEsporte().getNome());
+                esporte.put("id", p.getModalidade().getModalidade().getEsporte().getId().toString());
+                esporte.put("nome", p.getModalidade().getModalidade().getEsporte().getNome());
             }
         }
 
-        if (p.getEquipeA() != null) {
+        if (p.getTimeA() != null && p.getTimeA().getTime() != null) {
             ObjectNode eqA = root.putObject("equipeA");
-            eqA.put("id", p.getEquipeA().getId().toString());
-            eqA.put("nomeEquipe", p.getEquipeA().getNomeEquipe());
+            eqA.put("id", p.getTimeA().getId().toString());
+            eqA.put("nomeEquipe", p.getTimeA().getTime().getNome());
         }
-        if (p.getEquipeB() != null) {
+        if (p.getTimeB() != null && p.getTimeB().getTime() != null) {
             ObjectNode eqB = root.putObject("equipeB");
-            eqB.put("id", p.getEquipeB().getId().toString());
-            eqB.put("nomeEquipe", p.getEquipeB().getNomeEquipe());
+            eqB.put("id", p.getTimeB().getId().toString());
+            eqB.put("nomeEquipe", p.getTimeB().getTime().getNome());
         }
 
         ArrayNode arbitrosJson = root.putArray("arbitros");
@@ -403,28 +436,22 @@ public class PartidaService {
         eventos.forEach(e -> {
             ObjectNode ev = eventosJson.addObject();
             ev.put("id", e.getId().toString());
-            ev.put("tempo", e.getTempoCronometro());
-            ev.put("descricao", e.getDescricaoDetalhada());
+            ev.put("tempo", e.getMinutoSegundo());
+            ev.put("descricao", e.getDadosExtras() != null ? e.getDadosExtras().toString() : null);
             if (e.getTipoEvento() != null) {
                 ObjectNode tipo = ev.putObject("tipoEvento");
                 tipo.put("id", e.getTipoEvento().getId().toString());
                 tipo.put("nome", e.getTipoEvento().getNome());
             }
-            if (e.getEquipe() != null) {
+            if (e.getCampeonatoTime() != null && e.getCampeonatoTime().getTime() != null) {
                 ObjectNode eq = ev.putObject("equipe");
-                eq.put("id", e.getEquipe().getId().toString());
-                eq.put("nomeEquipe", e.getEquipe().getNomeEquipe());
+                eq.put("id", e.getCampeonatoTime().getId().toString());
+                eq.put("nomeEquipe", e.getCampeonatoTime().getTime().getNome());
             }
-            ev.put("isSubstitution", e.getIsSubstitution() != null ? e.getIsSubstitution() : false);
             if (e.getAtleta() != null) {
                 ObjectNode at = ev.putObject("atleta");
                 at.put("id", e.getAtleta().getId().toString());
                 at.put("nome", e.getAtleta().getNome());
-            }
-            if (e.getAtletaSai() != null) {
-                ObjectNode atSai = ev.putObject("atletaSai");
-                atSai.put("id", e.getAtletaSai().getId().toString());
-                atSai.put("nome", e.getAtletaSai().getNome());
             }
             ev.put("criadoEm", e.getCriadoEm() != null ? e.getCriadoEm().toString() : null);
         });
@@ -470,19 +497,12 @@ public class PartidaService {
         }
     }
 
-    private void validateEquipeCompatibilidade(Modalidade modalidade, Equipe equipeA, Equipe equipeB) {
-        if (equipeA.getModalidade() == null || equipeB.getModalidade() == null) {
-            throw new IllegalStateException("Equipes precisam estar vinculadas a uma modalidade.");
+    private void validateEquipeCompatibilidade(CampeonatoTime equipeA, CampeonatoTime equipeB) {
+        if (equipeA.getCampeonatoModalidade() == null || equipeB.getCampeonatoModalidade() == null) {
+            throw new IllegalStateException("Times precisam estar vinculados a uma modalidade do campeonato.");
         }
-        if (!Objects.equals(equipeA.getModalidade().getId(), modalidade.getId())
-                || !Objects.equals(equipeB.getModalidade().getId(), modalidade.getId())) {
-            throw new IllegalStateException("Equipes devem ser da mesma modalidade da partida.");
-        }
-        if (equipeA.getCampeonato() == null || equipeB.getCampeonato() == null) {
-            throw new IllegalStateException("Equipes precisam estar vinculadas a um campeonato.");
-        }
-        if (!Objects.equals(equipeA.getCampeonato().getId(), equipeB.getCampeonato().getId())) {
-            throw new IllegalStateException("Equipes devem ser do mesmo campeonato.");
+        if (!Objects.equals(equipeA.getCampeonatoModalidade().getId(), equipeB.getCampeonatoModalidade().getId())) {
+            throw new IllegalStateException("Times devem pertencer à mesma modalidade do campeonato.");
         }
     }
 
@@ -509,8 +529,10 @@ public class PartidaService {
         }
     }
 
+    @Transactional
     public void delete(UUID id) {
         Partida p = getOrThrow(id);
         repo.delete(p);
+        eventPublisherService.publish("Partida", id.toString(), "PartidaExcluida", Map.of());
     }
 }

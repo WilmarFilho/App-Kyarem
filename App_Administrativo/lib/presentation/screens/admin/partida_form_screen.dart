@@ -168,13 +168,21 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
       _isLoadingEquipes = true;
       _equipes = [];
     });
+    if (_selectedCampeonatoId == null) {
+      if (mounted) {
+        setState(() => _isLoadingEquipes = false);
+      }
+      return;
+    }
     final equipesResult = await _apiService.listarEquipes(
-      modalidadeId: modalidadeId,
+      campeonatoId: _selectedCampeonatoId,
     );
 
     if (!mounted) return;
     setState(() {
-      _equipes = equipesResult;
+      _equipes = equipesResult
+          .where((e) => e.campeonatoModalidadeId == modalidadeId)
+          .toList();
       // Mantém seleção se a equipe ainda está na lista
       if (_selectedEquipeAId != null &&
           !_equipes.any((e) => e.id == _selectedEquipeAId)) {
@@ -452,7 +460,7 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                           ? _buildLoadingRow('Carregando equipes...')
                           : DropdownButtonFormField<String>(
                               decoration: _inputDecoration(
-                                'Equipe A (Mandante)',
+                                'Time inscrito A',
                               ),
                               value: _safeValue(
                                 _selectedEquipeAId,
@@ -472,8 +480,8 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                                   v == null ? 'Obrigatório' : null,
                               hint: Text(
                                 _selectedModalidadeId == null
-                                    ? 'Selecione a Modalidade primeiro'
-                                    : 'Selecione a Equipe A',
+                                    ? 'Selecione a modalidade do campeonato primeiro'
+                                    : 'Selecione o time inscrito A',
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
                                   fontSize: 14,
@@ -487,7 +495,7 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                           ? const SizedBox.shrink()
                           : DropdownButtonFormField<String>(
                               decoration: _inputDecoration(
-                                'Equipe B (Visitante)',
+                                'Time inscrito B',
                               ),
                               value: _safeValue(
                                 _selectedEquipeBId,
@@ -507,8 +515,8 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                                   v == null ? 'Obrigatório' : null,
                               hint: Text(
                                 _selectedModalidadeId == null
-                                    ? 'Selecione a Modalidade primeiro'
-                                    : 'Selecione a Equipe B',
+                                    ? 'Selecione a modalidade do campeonato primeiro'
+                                    : 'Selecione o time inscrito B',
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
                                   fontSize: 14,

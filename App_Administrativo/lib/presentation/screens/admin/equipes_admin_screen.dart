@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import '../../../services/admin_api_service.dart';
 import 'equipe_form_screen.dart';
-import 'inscritos_equipe_screen.dart';
 
 class EquipesAdminScreen extends StatefulWidget {
   final AdminApiService? apiService;
@@ -101,13 +100,6 @@ class _EquipesAdminScreenState extends State<EquipesAdminScreen>
       MaterialPageRoute(builder: (_) => EquipeFormScreen(equipe: equipe)),
     );
     if (result == true) _carregarEquipes();
-  }
-
-  void _abrirInscritos(Equipe equipe) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => InscritosEquipeScreen(equipe: equipe)),
-    );
   }
 
   @override
@@ -226,7 +218,7 @@ class _EquipesAdminScreenState extends State<EquipesAdminScreen>
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _abrirInscritos(e),
+          onTap: () => _abrirFormulario(equipe: e),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -310,18 +302,6 @@ class _EquipesAdminScreenState extends State<EquipesAdminScreen>
                 // Ações
                 Column(
                   children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.group_add,
-                        color: Color(0xFF2E9E56),
-                        size: 22,
-                      ),
-                      onPressed: () => _abrirInscritos(e),
-                      tooltip: 'Atletas inscritos',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(height: 6),
                     IconButton(
                       icon: Icon(
                         Icons.edit_rounded,

@@ -35,6 +35,10 @@ class Equipe {
   final String nome;
   final String? atleticaEscudoUrl;
   final String atleticaId;
+  final String? campeonatoId;
+  final String? campeonatoModalidadeId;
+  final String? categoria;
+  final String? genero;
   final Atletica? atletica;
   final Modalidade? modalidade;
   final Campeonato? campeonato;
@@ -44,6 +48,10 @@ class Equipe {
     required this.nome,
     this.atleticaEscudoUrl,
     required this.atleticaId,
+    this.campeonatoId,
+    this.campeonatoModalidadeId,
+    this.categoria,
+    this.genero,
     this.atletica,
     this.modalidade,
     this.campeonato,
@@ -78,13 +86,22 @@ class Equipe {
         ?.toString();
 
     Modalidade? modObj;
-    if (map['modalidadeId'] != null || map['modalidadeNome'] != null) {
+    if (map['modalidadeId'] != null ||
+        map['modalidadeNome'] != null ||
+        map['modalidadeCatalogoId'] != null) {
       modObj = Modalidade(
-        id: map['modalidadeId']?.toString() ?? '',
+        id: map['campeonatoModalidadeId']?.toString() ??
+            map['modalidadeId']?.toString() ??
+            '',
         campeonatoId: map['campeonatoId']?.toString() ?? '',
-        esporteId: '',
-        genero: '',
-        esporteNome: map['modalidadeNome']?.toString(),
+        modalidadeCatalogoId:
+            map['modalidadeCatalogoId']?.toString() ??
+            map['modalidadeId']?.toString() ??
+            '',
+        esporteId: map['esporteId']?.toString() ?? '',
+        genero: map['genero']?.toString() ?? '',
+        esporteNome: map['esporteNome']?.toString(),
+        nomeExibicao: map['modalidadeNome']?.toString() ?? map['nome']?.toString(),
       );
     }
 
@@ -102,6 +119,11 @@ class Equipe {
           'Time Desconhecido',
       atleticaEscudoUrl: escudo,
       atleticaId: atleticaId,
+      campeonatoId: (map['campeonatoId'] ?? map['campeonato_id'])?.toString(),
+      campeonatoModalidadeId:
+          (map['campeonatoModalidadeId'] ?? map['campeonato_modalidade_id'])?.toString(),
+      categoria: (map['categoria'])?.toString(),
+      genero: (map['genero'])?.toString(),
       atletica: atleticaId.isEmpty &&
               (atleticaNome == null || atleticaNome.isEmpty) &&
               escudo == null

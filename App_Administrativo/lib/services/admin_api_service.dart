@@ -176,13 +176,35 @@ class AdminApiService {
     String? atleticaId,
   }) async {
     try {
-      final params = <String, dynamic>{};
-      if (campeonatoId != null) params['campeonatoId'] = campeonatoId;
-      if (modalidadeId != null) params['modalidadeId'] = modalidadeId;
-      if (atleticaId != null) params['atleticaId'] = atleticaId;
+      List<dynamic> data = [];
+      if (campeonatoId != null && campeonatoId.isNotEmpty) {
+        final res = await _dio.get('/times/campeonato/$campeonatoId');
+        data = res.data as List;
+      } else if (atleticaId != null && atleticaId.isNotEmpty) {
+        final res = await _dio.get('/times/atletica/$atleticaId');
+        data = res.data as List;
+      } else {
+        final atleticas = await listarAtleticas();
+        final agregadas = <dynamic>[];
+        for (final atletica in atleticas) {
+          final res = await _dio.get('/times/atletica/${atletica.id}');
+          agregadas.addAll(res.data as List);
+        }
+        data = agregadas;
+      }
 
-      final res = await _dio.get('/equipes', queryParameters: params);
-      return (res.data as List).map((e) => Equipe.fromMap(e)).toList();
+      final equipes = data.map((e) => Equipe.fromMap(e)).toList();
+      if (modalidadeId != null && modalidadeId.isNotEmpty) {
+        return equipes
+            .where(
+              (e) =>
+                  e.modalidade?.id == modalidadeId ||
+                  e.campeonatoModalidadeId == modalidadeId ||
+                  e.modalidade?.modalidadeCatalogoId == modalidadeId,
+            )
+            .toList();
+      }
+      return equipes;
     } catch (e) {
       debugPrint("Erro listarEquipes: $e");
       return [];
@@ -191,7 +213,11 @@ class AdminApiService {
 
   Future<Equipe?> criarEquipe(Map<String, dynamic> data) async {
     try {
-      final res = await _dio.post('/equipes', data: data);
+      final res = await _dio.post('/times/atletica', data: {
+        'atleticaId': data['atleticaId'],
+        'modalidadeCatalogoId': data['modalidadeId'],
+        'nome': data['nomeEquipe'] ?? data['nome'],
+      });
       return Equipe.fromMap(res.data);
     } catch (e) {
       debugPrint("Erro criarEquipe: $e");
@@ -201,7 +227,10 @@ class AdminApiService {
 
   Future<Equipe?> atualizarEquipe(String id, Map<String, dynamic> data) async {
     try {
-      final res = await _dio.put('/equipes/$id', data: data);
+      final res = await _dio.put('/times/atletica/$id', data: {
+        'modalidadeCatalogoId': data['modalidadeId'],
+        'nome': data['nomeEquipe'] ?? data['nome'],
+      });
       return Equipe.fromMap(res.data);
     } catch (e) {
       debugPrint("Erro atualizarEquipe: $e");
@@ -211,7 +240,7 @@ class AdminApiService {
 
   Future<bool> excluirEquipe(String id) async {
     try {
-      await _dio.delete('/equipes/$id');
+      await _dio.delete('/times/atletica/$id');
       return true;
     } catch (e) {
       debugPrint("Erro excluirEquipe: $e");
@@ -416,6 +445,16 @@ class AdminApiService {
       return res.data as List;
     } catch (e) {
       debugPrint("Erro listarModalidades: $e");
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> listarModalidadesCatalogo() async {
+    try {
+      final res = await _dio.get('/modalidades-catalogo');
+      return res.data as List;
+    } catch (e) {
+      debugPrint("Erro listarModalidadesCatalogo: $e");
       return [];
     }
   }

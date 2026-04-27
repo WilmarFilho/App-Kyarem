@@ -30,17 +30,33 @@ public class DbRoleJwtAuthConverter implements Converter<Jwt, AbstractAuthentica
     public AbstractAuthenticationToken convert(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        String role = profileRepository.findById(userId)
-                .map(p -> p.getRole() == null ? "" : p.getRole().trim())
-                .filter(s -> !s.isBlank())
-                .orElse("aluno");
+        List<String> authorities = profileRepository.findRolesByUserId(userId).stream()
+                .map(this::mapRoleToAuthority)
+                .distinct()
+                .toList();
 
-        String authority = "ROLE_" + role.toLowerCase(Locale.ROOT);
+        List<SimpleGrantedAuthority> grantedAuthorities = authorities.isEmpty()
+                ? List.of(new SimpleGrantedAuthority("ROLE_user"))
+                : authorities.stream().map(SimpleGrantedAuthority::new).toList();
 
         return new JwtAuthenticationToken(
                 jwt,
-                List.of(new SimpleGrantedAuthority(authority)),
+                grantedAuthorities,
                 jwt.getSubject()
         );
+    }
+
+    private String mapRoleToAuthority(String rawRole) {
+        if (rawRole == null || rawRole.isBlank()) {
+            return "ROLE_user";
+        }
+
+        String role = rawRole.trim().toUpperCase(Locale.ROOT);
+        return switch (role) {
+            case "ADMIN", "ADMIN_PLATAFORMA" -> "ROLE_admin";
+            case "ORGANIZADOR" -> "ROLE_delegado";
+            case "ARBITRO_COMUM", "REFEREE" -> "ROLE_arbitro";
+            default -> "ROLE_" + rawRole.trim().toLowerCase(Locale.ROOT);
+        };
     }
 }

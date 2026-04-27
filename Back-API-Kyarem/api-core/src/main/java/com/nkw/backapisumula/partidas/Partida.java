@@ -1,17 +1,14 @@
 package com.nkw.backapisumula.partidas;
 
+import com.nkw.backapisumula.competicao.CampeonatoModalidade;
+import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.nkw.backapisumula.competicao.Equipe;
-import com.nkw.backapisumula.competicao.Modalidade;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "partidas")
+@Table(name = "partidas", schema = "operational")
 public class Partida {
 
     @Id
@@ -20,91 +17,160 @@ public class Partida {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "modalidade_id")
-    private Modalidade modalidade;
+    @JoinColumn(name = "campeonato_modalidade_id", nullable = false)
+    private CampeonatoModalidade campeonatoModalidade;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipe_a_id")
-    private Equipe equipeA;
+    @JoinColumn(name = "campeonato_time_a_id")
+    private CampeonatoTime campeonatoTimeA;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipe_b_id")
-    private Equipe equipeB;
+    @JoinColumn(name = "campeonato_time_b_id")
+    private CampeonatoTime campeonatoTimeB;
 
-    private String status;
-
-    private String categoria;
-
-    private String fase;
-
-    @Column(name = "iniciada_em")
-    private OffsetDateTime iniciadaEm;
-
-    @Column(name = "agendado_para")
-    private OffsetDateTime agendadoPara;
-
-    private String local;
-
-    @Column(name = "placar_a")
-    private Integer placarA;
-
-    @Column(name = "placar_b")
-    private Integer placarB;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "snapshot_sumula", columnDefinition = "jsonb")
-    private JsonNode snapshotSumula;
-
-    @Column(name = "sumula_pdf_url")
-    private String sumulaPdfUrl;
-
-    @Column(name = "hash_integridade")
-    private String hashIntegridade;
-
-    @Column(name = "encerrada_em")
-    private OffsetDateTime encerradaEm;
+    @Column(nullable = false)
+    private String status = "AGENDADA";
 
     @Column(name = "status_antes_pausa")
     private String statusAntesPausa;
 
+    @Column(name = "data_hora_agendada")
+    private OffsetDateTime dataHoraAgendada;
+
+    @Column(name = "data_hora_inicio")
+    private OffsetDateTime dataHoraInicio;
+
+    @Column(name = "data_hora_fim")
+    private OffsetDateTime dataHoraFim;
+
+    @Column(name = "periodo_atual")
+    private String periodoAtual;
+
+    @Column(name = "cronometro_segundos")
+    private Integer cronometroSegundos = 0;
+
+    @Column(name = "placar_time_a")
+    private Integer placarTimeA = 0;
+
+    @Column(name = "placar_time_b")
+    private Integer placarTimeB = 0;
+
+    @Column(name = "placar_penaltis_time_a")
+    private Integer placarPenaltisTimeA = 0;
+
+    @Column(name = "placar_penaltis_time_b")
+    private Integer placarPenaltisTimeB = 0;
+
+    private String fase;
+
+    private String grupo;
+
+    private String local;
+
+    @Transient
+    private JsonNode snapshotSumula;
+
+    @Transient
+    private String sumulaPdfUrl;
+
+    @Transient
+    private String hashIntegridade;
+
     @Column(name = "criado_em", updatable = false, insertable = false)
     private OffsetDateTime criadoEm;
+
+    @Column(name = "atualizado_em")
+    private OffsetDateTime atualizadoEm;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
-    public Modalidade getModalidade() { return modalidade; }
-    public void setModalidade(Modalidade modalidade) { this.modalidade = modalidade; }
+    public CampeonatoModalidade getCampeonatoModalidade() { return campeonatoModalidade; }
+    public void setCampeonatoModalidade(CampeonatoModalidade campeonatoModalidade) { this.campeonatoModalidade = campeonatoModalidade; }
 
-    public Equipe getEquipeA() { return equipeA; }
-    public void setEquipeA(Equipe equipeA) { this.equipeA = equipeA; }
+    public CampeonatoTime getCampeonatoTimeA() { return campeonatoTimeA; }
+    public void setCampeonatoTimeA(CampeonatoTime campeonatoTimeA) { this.campeonatoTimeA = campeonatoTimeA; }
 
-    public Equipe getEquipeB() { return equipeB; }
-    public void setEquipeB(Equipe equipeB) { this.equipeB = equipeB; }
+    public CampeonatoTime getCampeonatoTimeB() { return campeonatoTimeB; }
+    public void setCampeonatoTimeB(CampeonatoTime campeonatoTimeB) { this.campeonatoTimeB = campeonatoTimeB; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public String getCategoria() { return categoria; }
-    public void setCategoria(String categoria) { this.categoria = categoria; }
+    public String getStatusAntesPausa() { return statusAntesPausa; }
+    public void setStatusAntesPausa(String statusAntesPausa) { this.statusAntesPausa = statusAntesPausa; }
+
+    public OffsetDateTime getDataHoraAgendada() { return dataHoraAgendada; }
+    public void setDataHoraAgendada(OffsetDateTime dataHoraAgendada) { this.dataHoraAgendada = dataHoraAgendada; }
+
+    public OffsetDateTime getDataHoraInicio() { return dataHoraInicio; }
+    public void setDataHoraInicio(OffsetDateTime dataHoraInicio) { this.dataHoraInicio = dataHoraInicio; }
+
+    public OffsetDateTime getDataHoraFim() { return dataHoraFim; }
+    public void setDataHoraFim(OffsetDateTime dataHoraFim) { this.dataHoraFim = dataHoraFim; }
+
+    public String getPeriodoAtual() { return periodoAtual; }
+    public void setPeriodoAtual(String periodoAtual) { this.periodoAtual = periodoAtual; }
+
+    public Integer getCronometroSegundos() { return cronometroSegundos; }
+    public void setCronometroSegundos(Integer cronometroSegundos) { this.cronometroSegundos = cronometroSegundos; }
+
+    public Integer getPlacarTimeA() { return placarTimeA; }
+    public void setPlacarTimeA(Integer placarTimeA) { this.placarTimeA = placarTimeA; }
+
+    public Integer getPlacarTimeB() { return placarTimeB; }
+    public void setPlacarTimeB(Integer placarTimeB) { this.placarTimeB = placarTimeB; }
+
+    public Integer getPlacarPenaltisTimeA() { return placarPenaltisTimeA; }
+    public void setPlacarPenaltisTimeA(Integer placarPenaltisTimeA) { this.placarPenaltisTimeA = placarPenaltisTimeA; }
+
+    public Integer getPlacarPenaltisTimeB() { return placarPenaltisTimeB; }
+    public void setPlacarPenaltisTimeB(Integer placarPenaltisTimeB) { this.placarPenaltisTimeB = placarPenaltisTimeB; }
 
     public String getFase() { return fase; }
     public void setFase(String fase) { this.fase = fase; }
 
-    public OffsetDateTime getIniciadaEm() { return iniciadaEm; }
-    public void setIniciadaEm(OffsetDateTime iniciadaEm) { this.iniciadaEm = iniciadaEm; }
-
-    public OffsetDateTime getAgendadoPara() { return agendadoPara; }
-    public void setAgendadoPara(OffsetDateTime agendadoPara) { this.agendadoPara = agendadoPara; }
+    public String getGrupo() { return grupo; }
+    public void setGrupo(String grupo) { this.grupo = grupo; }
 
     public String getLocal() { return local; }
     public void setLocal(String local) { this.local = local; }
 
-    public Integer getPlacarA() { return placarA; }
-    public void setPlacarA(Integer placarA) { this.placarA = placarA; }
+    public OffsetDateTime getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
 
-    public Integer getPlacarB() { return placarB; }
-    public void setPlacarB(Integer placarB) { this.placarB = placarB; }
+    public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }
+    public void setAtualizadoEm(OffsetDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
+
+    public CampeonatoModalidade getModalidade() { return campeonatoModalidade; }
+    public void setModalidade(CampeonatoModalidade modalidade) { this.campeonatoModalidade = modalidade; }
+
+    public CampeonatoTime getEquipeA() { return campeonatoTimeA; }
+    public void setEquipeA(CampeonatoTime equipeA) { this.campeonatoTimeA = equipeA; }
+
+    public CampeonatoTime getEquipeB() { return campeonatoTimeB; }
+    public void setEquipeB(CampeonatoTime equipeB) { this.campeonatoTimeB = equipeB; }
+
+    public CampeonatoTime getTimeA() { return campeonatoTimeA; }
+    public void setTimeA(CampeonatoTime timeA) { this.campeonatoTimeA = timeA; }
+
+    public CampeonatoTime getTimeB() { return campeonatoTimeB; }
+    public void setTimeB(CampeonatoTime timeB) { this.campeonatoTimeB = timeB; }
+
+    public OffsetDateTime getAgendadoPara() { return dataHoraAgendada; }
+    public void setAgendadoPara(OffsetDateTime agendadoPara) { this.dataHoraAgendada = agendadoPara; }
+
+    public OffsetDateTime getIniciadaEm() { return dataHoraInicio; }
+    public void setIniciadaEm(OffsetDateTime iniciadaEm) { this.dataHoraInicio = iniciadaEm; }
+
+    public OffsetDateTime getEncerradaEm() { return dataHoraFim; }
+    public void setEncerradaEm(OffsetDateTime encerradaEm) { this.dataHoraFim = encerradaEm; }
+
+    public Integer getPlacarA() { return placarTimeA; }
+    public void setPlacarA(Integer placarA) { this.placarTimeA = placarA; }
+
+    public Integer getPlacarB() { return placarTimeB; }
+    public void setPlacarB(Integer placarB) { this.placarTimeB = placarB; }
 
     public JsonNode getSnapshotSumula() { return snapshotSumula; }
     public void setSnapshotSumula(JsonNode snapshotSumula) { this.snapshotSumula = snapshotSumula; }
@@ -115,12 +181,6 @@ public class Partida {
     public String getHashIntegridade() { return hashIntegridade; }
     public void setHashIntegridade(String hashIntegridade) { this.hashIntegridade = hashIntegridade; }
 
-    public OffsetDateTime getEncerradaEm() { return encerradaEm; }
-    public void setEncerradaEm(OffsetDateTime encerradaEm) { this.encerradaEm = encerradaEm; }
-
-    public OffsetDateTime getCriadoEm() { return criadoEm; }
-    public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
-
-    public String getStatusAntesPausa() { return statusAntesPausa; }
-    public void setStatusAntesPausa(String statusAntesPausa) { this.statusAntesPausa = statusAntesPausa; }
+    public String getCategoria() { return grupo; }
+    public void setCategoria(String categoria) { this.grupo = categoria; }
 }

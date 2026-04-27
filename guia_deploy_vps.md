@@ -33,7 +33,7 @@ Para que o GitHub Actions acesse sua VPS de forma segura, você deve usar chaves
    - `deploy_kyarem_key` (Chave **Privada**)
 3. **Na sua VPS:** Adicione o conteúdo da chave **PÚBLICA** dentro do arquivo `~/.ssh/authorized_keys` do usuário que fará o deploy (ex: `root` ou `ubuntu`).
    ```bash
-   echo "CONTEUDO_DA_CHAVE_PUBLICA_AQUI" >> ~/.ssh/authorized_keys
+   echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDn4b4u9FaFd3QFFDjNPBoz+n4eUPG6va8+Ct4XHJxw3 deploy-kyarem" >> ~/.ssh/authorized_keys
    ```
 4. **No GitHub Secrets:** Copie todo o conteúdo da chave **PRIVADA** (o arquivo `deploy_kyarem_key` que começa com `-----BEGIN OPENSSH PRIVATE KEY-----`) e cole como valor da secret `VPS_SSH_KEY` listada abaixo.
 

@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "profiles")
+@Table(name = "profiles", schema = "operational")
 public class Profile {
 
     @Id
@@ -20,7 +20,7 @@ public class Profile {
 
     private String telefone;
 
-    @Column(nullable = false)
+    @Transient
     private String role;
 
     @Column(name = "atualizado_em")

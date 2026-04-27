@@ -17,19 +17,45 @@ public class ProfileService {
     }
 
     public Profile getOrThrow(UUID userId) {
-        return repo.findById(userId)
+        Profile profile = repo.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("Profile não encontrado para o usuário logado."));
+        profile.setRole(resolvePrimaryRole(repo.findRolesByUserId(userId)));
+        return profile;
     }
 
     public List<Profile> listArbitros() {
-        return repo.findByRoleIgnoreCaseOrderByNomeExibicaoAsc("arbitro");
+        return hydrateRoles(repo.findByGlobalRoleOrderByNomeExibicaoAsc("ARBITRO_COMUM"));
     }
 
     public List<Profile> listAll() {
-        return repo.findAllByOrderByNomeExibicaoAsc();
+        return hydrateRoles(repo.findAllByOrderByNomeExibicaoAsc());
     }
 
     public List<Profile> listByRole(String role) {
-        return repo.findByRoleIgnoreCaseOrderByNomeExibicaoAsc(role);
+        return hydrateRoles(repo.findByGlobalRoleOrderByNomeExibicaoAsc(role));
+    }
+
+    private List<Profile> hydrateRoles(List<Profile> profiles) {
+        profiles.forEach(profile -> {
+            List<String> roles = repo.findRolesByUserId(profile.getId());
+            profile.setRole(resolvePrimaryRole(roles));
+        });
+        return profiles;
+    }
+
+    private String resolvePrimaryRole(List<String> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return "user";
+        }
+        if (roles.stream().anyMatch(role -> "ADMIN_PLATAFORMA".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role))) {
+            return "admin";
+        }
+        if (roles.stream().anyMatch(role -> "ORGANIZADOR".equalsIgnoreCase(role))) {
+            return "delegado";
+        }
+        if (roles.stream().anyMatch(role -> "ARBITRO_COMUM".equalsIgnoreCase(role) || "REFEREE".equalsIgnoreCase(role))) {
+            return "arbitro";
+        }
+        return roles.get(0).toLowerCase();
     }
 }

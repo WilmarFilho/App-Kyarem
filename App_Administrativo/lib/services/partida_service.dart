@@ -261,16 +261,6 @@ class PartidaService {
     final cached = _equipesCache[id];
     if (cached != null) return cached;
 
-    try {
-      final response = await _dio.get('/equipes/$id');
-      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-        final equipe = Equipe.fromMap(response.data as Map<String, dynamic>);
-        _equipesCache[id] = equipe;
-        return equipe;
-      }
-    } catch (e) {
-      debugPrint('Erro buscarEquipePorId($id): $e');
-    }
     return null;
   }
 
@@ -291,6 +281,10 @@ class PartidaService {
   Future<List<Partida>> _enriquecerPartidasComEquipes(
     List<Partida> partidas,
   ) async {
+    if (partidas.every((p) => p.equipeA != null && p.equipeB != null)) {
+      return partidas;
+    }
+
     final ids = <String>[];
     for (final p in partidas) {
       ids.add(p.equipeAId);

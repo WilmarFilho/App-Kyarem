@@ -1,0 +1,108 @@
+package com.nkw.backapisumula.competicao;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.nkw.backapisumula.cadastros.Esporte;
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "modalidades_catalogo", schema = "operational")
+public class ModalidadeCatalogo {
+
+    @Id
+    @GeneratedValue
+    @Column(columnDefinition = "uuid")
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "esporte_id", nullable = false)
+    private Esporte esporte;
+
+    @Column(nullable = false)
+    private String nome;
+
+    @Column(nullable = false)
+    private String slug;
+
+    @Column(nullable = false)
+    private String genero;
+
+    @Column(name = "motor_regras", nullable = false)
+    private String motorRegras;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "motor_configs_default", columnDefinition = "jsonb")
+    private JsonNode motorConfigsDefault;
+
+    @Column(nullable = false)
+    private Boolean ativo = true;
+
+    // Getters and Setters
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Esporte getEsporte() {
+        return esporte;
+    }
+
+    public void setEsporte(Esporte esporte) {
+        this.esporte = esporte;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
+    }
+
+    public String getGenero() {
+        return genero;
+    }
+
+    public void setGenero(String genero) {
+        this.genero = genero;
+    }
+
+    public String getMotorRegras() {
+        return motorRegras;
+    }
+
+    public void setMotorRegras(String motorRegras) {
+        this.motorRegras = motorRegras;
+    }
+
+    public JsonNode getMotorConfigsDefault() {
+        return motorConfigsDefault;
+    }
+
+    public void setMotorConfigsDefault(JsonNode motorConfigsDefault) {
+        this.motorConfigsDefault = motorConfigsDefault;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
+    }
+}

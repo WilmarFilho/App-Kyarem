@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "atleticas")
+@Table(name = "atleticas", schema = "operational")
 public class Atletica {
 
     @Id
