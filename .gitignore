@@ -1,0 +1,71 @@
+# ===========================
+# Gradle caches & wrappers
+# ===========================
+.gradle/
+.gradle-user-home/
+gradle-home/
+**/build/
+**/.gradle/
+**/gradle/wrapper/dists/
+**/.gradle-user-home/
+*.part
+
+# ===========================
+# Android
+# ===========================
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/*.keystore
+**/android/*.jks
+
+# ===========================
+# Flutter / Dart
+# ===========================
+**/pubspec.lock
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/flutter_01.png
+**/flutter_export_environment.sh
+
+# ===========================
+# Java / Spring Boot
+# ===========================
+**/target/
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+**/hs_err_pid*
+
+# ===========================
+# IDE
+# ===========================
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.suo
+*.user
+
+# ===========================
+# OS
+# ===========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===========================
+# Docker
+# ===========================
+**/docker-compose.override.yml
+
+# ===========================
+# Logs & temp
+# ===========================
+*.log
+*.tmp
+*.bak
