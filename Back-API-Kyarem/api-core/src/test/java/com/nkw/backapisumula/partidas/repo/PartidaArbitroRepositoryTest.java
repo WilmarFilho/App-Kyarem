@@ -5,7 +5,6 @@ import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.PartidaArbitro;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -18,8 +17,10 @@ import static org.mockito.Mockito.*;
 /**
  * Testes do PartidaArbitroRepository usando Mockito puro.
  *
- * Nota: @DataJpaTest com H2 conflita com o columnDefinition="jsonb" das entidades.
- * Como alternativa, testamos o comportamento do repositório através de verificações
+ * Nota: @DataJpaTest com H2 conflita com o columnDefinition="jsonb" das
+ * entidades.
+ * Como alternativa, testamos o comportamento do repositório através de
+ * verificações
  * de chamada de método. O comportamento real das queries é garantido pelo banco
  * PostgreSQL em ambiente de integração.
  *
@@ -103,8 +104,7 @@ class PartidaArbitroRepositoryTest {
     void findByArbitroId_retornaTodosOsVinculosDoArbitro() {
         List<PartidaArbitro> vinculos = List.of(
                 vinculo(UUID.randomUUID(), UUID.randomUUID(), ARBITRO_ID),
-                vinculo(UUID.randomUUID(), UUID.randomUUID(), ARBITRO_ID)
-        );
+                vinculo(UUID.randomUUID(), UUID.randomUUID(), ARBITRO_ID));
         when(repo.findByArbitro_Id(ARBITRO_ID)).thenReturn(vinculos);
 
         List<PartidaArbitro> resultado = repo.findByArbitro_Id(ARBITRO_ID);
@@ -131,8 +131,7 @@ class PartidaArbitroRepositoryTest {
     void findByPartidaId_retornaArbitrosDaPartida() {
         List<PartidaArbitro> vinculos = List.of(
                 vinculo(UUID.randomUUID(), PARTIDA_ID, ARBITRO_ID),
-                vinculo(UUID.randomUUID(), PARTIDA_ID, UUID.randomUUID())
-        );
+                vinculo(UUID.randomUUID(), PARTIDA_ID, UUID.randomUUID()));
         when(repo.findByPartida_Id(PARTIDA_ID)).thenReturn(vinculos);
 
         List<PartidaArbitro> resultado = repo.findByPartida_Id(PARTIDA_ID);

@@ -28,43 +28,51 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Testes unitários do PartidaService — lógica de negócio crítica (máquina de estados).
+ * Testes unitários do PartidaService — lógica de negócio crítica (máquina de
+ * estados).
  * Usa Mockito: nenhum banco de dados, nenhum contexto Spring.
  *
  * Refatorado em 2026-04 para usar o novo modelo de domínio:
- *   Equipe              → CampeonatoTime
- *   Modalidade          → CampeonatoModalidade (+ ModalidadeCatalogo)
- *   EquipeRepository    → CampeonatoTimeRepository
- *   ModalidadeRepository → CampeonatoModalidadeRepository
- *   + adicionado mock de EventPublisherService (obrigatório no construtor)
+ * Equipe → CampeonatoTime
+ * Modalidade → CampeonatoModalidade (+ ModalidadeCatalogo)
+ * EquipeRepository → CampeonatoTimeRepository
+ * ModalidadeRepository → CampeonatoModalidadeRepository
+ * + adicionado mock de EventPublisherService (obrigatório no construtor)
  */
 @ExtendWith(MockitoExtension.class)
 class PartidaServiceTest {
 
     // ── Mocks dos repositórios e serviços externos ──────────────────────────
-    @Mock private PartidaRepository repo;
-    @Mock private CampeonatoModalidadeRepository modalidadeRepo;
-    @Mock private CampeonatoTimeRepository equipeRepo;
-    @Mock private PartidaArbitroRepository partidaArbitroRepo;
-    @Mock private EventoPartidaRepository eventoRepo;
-    @Mock private SupabaseStorageService supabaseStorageService;
-    @Mock private SumulaOficialPdfService sumulaOficialPdfService;
-    @Mock private EventPublisherService eventPublisherService;
+    @Mock
+    private PartidaRepository repo;
+    @Mock
+    private CampeonatoModalidadeRepository modalidadeRepo;
+    @Mock
+    private CampeonatoTimeRepository equipeRepo;
+    @Mock
+    private PartidaArbitroRepository partidaArbitroRepo;
+    @Mock
+    private EventoPartidaRepository eventoRepo;
+    @Mock
+    private SupabaseStorageService supabaseStorageService;
+    @Mock
+    private SumulaOficialPdfService sumulaOficialPdfService;
+    @Mock
+    private EventPublisherService eventPublisherService;
 
     @InjectMocks
     private PartidaService service;
 
     // ── IDs fixos para os testes ────────────────────────────────────────────
-    private static final UUID PARTIDA_ID    = UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001");
-    private static final UUID EQUIPE_A_ID   = UUID.fromString("bbbbbbbb-0000-0000-0000-000000000002");
-    private static final UUID EQUIPE_B_ID   = UUID.fromString("cccccccc-0000-0000-0000-000000000003");
+    private static final UUID PARTIDA_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001");
+    private static final UUID EQUIPE_A_ID = UUID.fromString("bbbbbbbb-0000-0000-0000-000000000002");
+    private static final UUID EQUIPE_B_ID = UUID.fromString("cccccccc-0000-0000-0000-000000000003");
     private static final UUID MODALIDADE_ID = UUID.fromString("dddddddd-0000-0000-0000-000000000004");
     private static final UUID CAMPEONATO_ID = UUID.fromString("eeeeeeee-0000-0000-0000-000000000005");
-    private static final UUID USUARIO_ID    = UUID.fromString("ffffffff-0000-0000-0000-000000000006");
+    private static final UUID USUARIO_ID = UUID.fromString("ffffffff-0000-0000-0000-000000000006");
 
     // ── Helpers para montar entidades ────────────────────────────────────────
 
@@ -106,9 +114,9 @@ class PartidaServiceTest {
         Partida p = new Partida();
         p.setId(PARTIDA_ID);
         p.setStatus(status);
-        p.setEquipeA(campeonatoTime(EQUIPE_A_ID));   // alias: setEquipeA(CampeonatoTime)
-        p.setEquipeB(campeonatoTime(EQUIPE_B_ID));   // alias: setEquipeB(CampeonatoTime)
-        p.setModalidade(campeonatoModalidade());     // alias: setModalidade(CampeonatoModalidade)
+        p.setEquipeA(campeonatoTime(EQUIPE_A_ID)); // alias: setEquipeA(CampeonatoTime)
+        p.setEquipeB(campeonatoTime(EQUIPE_B_ID)); // alias: setEquipeB(CampeonatoTime)
+        p.setModalidade(campeonatoModalidade()); // alias: setModalidade(CampeonatoModalidade)
         p.setPlacarA(0);
         p.setPlacarB(0);
         return p;
@@ -120,18 +128,16 @@ class PartidaServiceTest {
 
     @Test
     void create_equipesIguais_lancaIllegalStateException() {
-        assertThrows(IllegalStateException.class, () ->
-                service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_A_ID,
-                        null, "Ginásio A", "Masculino", "Grupos"));
+        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_A_ID,
+                null, "Ginásio A", "Masculino", "Grupos"));
     }
 
     @Test
     void create_modalidadeNaoEncontrada_lancaIllegalStateException() {
         when(modalidadeRepo.findById(MODALIDADE_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () ->
-                service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
-                        null, null, null, null));
+        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+                null, null, null, null));
     }
 
     @Test
@@ -139,9 +145,8 @@ class PartidaServiceTest {
         when(modalidadeRepo.findById(MODALIDADE_ID)).thenReturn(Optional.of(campeonatoModalidade()));
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () ->
-                service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
-                        null, null, null, null));
+        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+                null, null, null, null));
     }
 
     @Test
@@ -180,9 +185,8 @@ class PartidaServiceTest {
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.of(eqA));
         when(equipeRepo.findById(EQUIPE_B_ID)).thenReturn(Optional.of(eqB));
 
-        assertThrows(IllegalStateException.class, () ->
-                service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
-                        null, null, null, null));
+        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+                null, null, null, null));
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -273,7 +277,7 @@ class PartidaServiceTest {
         when(repo.findById(PARTIDA_ID)).thenReturn(Optional.of(p));
         when(eventoRepo.findByPartidaIdWithDetails(PARTIDA_ID)).thenReturn(Collections.emptyList());
         when(partidaArbitroRepo.findByPartidaIdWithArbitro(PARTIDA_ID)).thenReturn(Collections.emptyList());
-        when(sumulaOficialPdfService.gerarPdf(PARTIDA_ID)).thenReturn(new byte[]{1, 2, 3});
+        when(sumulaOficialPdfService.gerarPdf(PARTIDA_ID)).thenReturn(new byte[] { 1, 2, 3 });
         when(supabaseStorageService.getPublicUrl(any())).thenReturn("http://fake.url/sumula.pdf");
         when(repo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(eventPublisherService).publish(anyString(), anyString(), anyString(), any(Map.class));

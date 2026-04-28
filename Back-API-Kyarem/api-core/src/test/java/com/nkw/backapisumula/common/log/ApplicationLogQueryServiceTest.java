@@ -36,7 +36,8 @@ class ApplicationLogQueryServiceTest {
         when(repository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(new ApplicationLog())));
 
-        service.list("error", "INTERNAL", 500, UUID.randomUUID(), "req-1", "/api", "ApiExceptionHandler", null, null, null);
+        service.list("error", "INTERNAL", 500, UUID.randomUUID(), "req-1", "/api", "ApiExceptionHandler", null, null,
+                null);
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findAll(any(Specification.class), pageableCaptor.capture());
@@ -50,8 +51,7 @@ class ApplicationLogQueryServiceTest {
     void list_nivelInvalido_lancaErro() {
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> service.list("verbose", null, null, null, null, null, null, null, null, 10)
-        );
+                () -> service.list("verbose", null, null, null, null, null, null, null, null, 10));
 
         assertTrue(ex.getMessage().contains("Nivel de log invalido"));
     }
