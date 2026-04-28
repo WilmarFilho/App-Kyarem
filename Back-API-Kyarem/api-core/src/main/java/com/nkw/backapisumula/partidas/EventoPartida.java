@@ -43,6 +43,10 @@ public class EventoPartida {
 
     private String periodo;
 
+    private Integer minuto;
+
+    private Integer segundo;
+
     @Column(name = "tempo_cronometro")
     private String tempoCronometro;
 
@@ -54,6 +58,9 @@ public class EventoPartida {
 
     @Column(name = "local_evento_id", unique = true)
     private String localEventoId;
+
+    @Column(name = "ordem_evento")
+    private Long ordemEvento;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload_json", columnDefinition = "jsonb")
@@ -87,6 +94,12 @@ public class EventoPartida {
     public String getPeriodo() { return periodo; }
     public void setPeriodo(String periodo) { this.periodo = periodo; }
 
+    public Integer getMinuto() { return minuto; }
+    public void setMinuto(Integer minuto) { this.minuto = minuto; }
+
+    public Integer getSegundo() { return segundo; }
+    public void setSegundo(Integer segundo) { this.segundo = segundo; }
+
     public String getTempoCronometro() { return tempoCronometro; }
     public void setTempoCronometro(String tempoCronometro) { this.tempoCronometro = tempoCronometro; }
 
@@ -99,6 +112,9 @@ public class EventoPartida {
     public String getLocalEventoId() { return localEventoId; }
     public void setLocalEventoId(String localEventoId) { this.localEventoId = localEventoId; }
 
+    public Long getOrdemEvento() { return ordemEvento; }
+    public void setOrdemEvento(Long ordemEvento) { this.ordemEvento = ordemEvento; }
+
     public JsonNode getPayloadJson() { return payloadJson; }
     public void setPayloadJson(JsonNode payloadJson) { this.payloadJson = payloadJson; }
 
@@ -107,6 +123,5 @@ public class EventoPartida {
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
-
 
 }

@@ -1,9 +1,13 @@
 package com.nkw.backapisumula.partidas;
 
+import com.nkw.backapisumula.competicao.Campeonato;
 import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -15,6 +19,10 @@ public class Partida {
     @GeneratedValue
     @Column(columnDefinition = "uuid")
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campeonato_id", nullable = false)
+    private Campeonato campeonato;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campeonato_modalidade_id", nullable = false)
@@ -34,47 +42,49 @@ public class Partida {
     @Column(name = "status_antes_pausa")
     private String statusAntesPausa;
 
-    @Column(name = "data_hora_agendada")
+    @Column(name = "agendado_para")
     private OffsetDateTime dataHoraAgendada;
 
-    @Column(name = "data_hora_inicio")
+    @Column(name = "iniciada_em")
     private OffsetDateTime dataHoraInicio;
 
-    @Column(name = "data_hora_fim")
+    @Column(name = "encerrada_em")
     private OffsetDateTime dataHoraFim;
 
     @Column(name = "periodo_atual")
     private String periodoAtual;
 
-    @Column(name = "cronometro_segundos")
-    private Integer cronometroSegundos = 0;
-
-    @Column(name = "placar_time_a")
+    @Column(name = "placar_a", nullable = false)
     private Integer placarTimeA = 0;
 
-    @Column(name = "placar_time_b")
+    @Column(name = "placar_b", nullable = false)
     private Integer placarTimeB = 0;
-
-    @Column(name = "placar_penaltis_time_a")
-    private Integer placarPenaltisTimeA = 0;
-
-    @Column(name = "placar_penaltis_time_b")
-    private Integer placarPenaltisTimeB = 0;
 
     private String fase;
 
-    private String grupo;
+    private String rodada;
 
+    private String categoria;
+
+    @Column(length = 300)
     private String local;
 
-    @Transient
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "snapshot_sumula", columnDefinition = "jsonb")
     private JsonNode snapshotSumula;
 
-    @Transient
+    @Column(name = "sumula_pdf_url", length = 500)
     private String sumulaPdfUrl;
 
-    @Transient
+    @Column(name = "hash_integridade")
     private String hashIntegridade;
+
+    @Version
+    @Column(name = "versao_estado", nullable = false)
+    private Long versaoEstado = 0L;
+
+    @Column(name = "criado_por", columnDefinition = "uuid")
+    private UUID criadoPor;
 
     @Column(name = "criado_em", updatable = false, insertable = false)
     private OffsetDateTime criadoEm;
@@ -84,6 +94,9 @@ public class Partida {
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
+    public Campeonato getCampeonato() { return campeonato; }
+    public void setCampeonato(Campeonato campeonato) { this.campeonato = campeonato; }
 
     public CampeonatoModalidade getCampeonatoModalidade() { return campeonatoModalidade; }
     public void setCampeonatoModalidade(CampeonatoModalidade campeonatoModalidade) { this.campeonatoModalidade = campeonatoModalidade; }
@@ -112,29 +125,38 @@ public class Partida {
     public String getPeriodoAtual() { return periodoAtual; }
     public void setPeriodoAtual(String periodoAtual) { this.periodoAtual = periodoAtual; }
 
-    public Integer getCronometroSegundos() { return cronometroSegundos; }
-    public void setCronometroSegundos(Integer cronometroSegundos) { this.cronometroSegundos = cronometroSegundos; }
-
     public Integer getPlacarTimeA() { return placarTimeA; }
     public void setPlacarTimeA(Integer placarTimeA) { this.placarTimeA = placarTimeA; }
 
     public Integer getPlacarTimeB() { return placarTimeB; }
     public void setPlacarTimeB(Integer placarTimeB) { this.placarTimeB = placarTimeB; }
 
-    public Integer getPlacarPenaltisTimeA() { return placarPenaltisTimeA; }
-    public void setPlacarPenaltisTimeA(Integer placarPenaltisTimeA) { this.placarPenaltisTimeA = placarPenaltisTimeA; }
-
-    public Integer getPlacarPenaltisTimeB() { return placarPenaltisTimeB; }
-    public void setPlacarPenaltisTimeB(Integer placarPenaltisTimeB) { this.placarPenaltisTimeB = placarPenaltisTimeB; }
-
     public String getFase() { return fase; }
     public void setFase(String fase) { this.fase = fase; }
 
-    public String getGrupo() { return grupo; }
-    public void setGrupo(String grupo) { this.grupo = grupo; }
+    public String getRodada() { return rodada; }
+    public void setRodada(String rodada) { this.rodada = rodada; }
+
+    public String getCategoria() { return categoria; }
+    public void setCategoria(String categoria) { this.categoria = categoria; }
 
     public String getLocal() { return local; }
     public void setLocal(String local) { this.local = local; }
+
+    public JsonNode getSnapshotSumula() { return snapshotSumula; }
+    public void setSnapshotSumula(JsonNode snapshotSumula) { this.snapshotSumula = snapshotSumula; }
+
+    public String getSumulaPdfUrl() { return sumulaPdfUrl; }
+    public void setSumulaPdfUrl(String sumulaPdfUrl) { this.sumulaPdfUrl = sumulaPdfUrl; }
+
+    public String getHashIntegridade() { return hashIntegridade; }
+    public void setHashIntegridade(String hashIntegridade) { this.hashIntegridade = hashIntegridade; }
+
+    public Long getVersaoEstado() { return versaoEstado; }
+    public void setVersaoEstado(Long versaoEstado) { this.versaoEstado = versaoEstado; }
+
+    public UUID getCriadoPor() { return criadoPor; }
+    public void setCriadoPor(UUID criadoPor) { this.criadoPor = criadoPor; }
 
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
@@ -142,6 +164,7 @@ public class Partida {
     public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(OffsetDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 
+    // Backward compatibility aliases
     public CampeonatoModalidade getModalidade() { return campeonatoModalidade; }
     public void setModalidade(CampeonatoModalidade modalidade) { this.campeonatoModalidade = modalidade; }
 
@@ -171,16 +194,5 @@ public class Partida {
 
     public Integer getPlacarB() { return placarTimeB; }
     public void setPlacarB(Integer placarB) { this.placarTimeB = placarB; }
-
-    public JsonNode getSnapshotSumula() { return snapshotSumula; }
-    public void setSnapshotSumula(JsonNode snapshotSumula) { this.snapshotSumula = snapshotSumula; }
-
-    public String getSumulaPdfUrl() { return sumulaPdfUrl; }
-    public void setSumulaPdfUrl(String sumulaPdfUrl) { this.sumulaPdfUrl = sumulaPdfUrl; }
-
-    public String getHashIntegridade() { return hashIntegridade; }
-    public void setHashIntegridade(String hashIntegridade) { this.hashIntegridade = hashIntegridade; }
-
-    public String getCategoria() { return grupo; }
-    public void setCategoria(String categoria) { this.grupo = categoria; }
 }
+
