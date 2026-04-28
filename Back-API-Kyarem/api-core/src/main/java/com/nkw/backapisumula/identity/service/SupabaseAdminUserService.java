@@ -27,10 +27,11 @@ public class SupabaseAdminUserService {
      * Cria um novo usuário no Supabase Auth e retorna o UUID gerado.
      * O trigger do banco cuida de criar o registro em profiles.
      *
-     * @param email       e-mail do novo usuário
-     * @param password    senha inicial
-     * @param nomeExibicao nome de exibição (será gravado no profile via trigger ou update manual)
-     * @param role        papel inicial colocado no metadata do usuário
+     * @param email        e-mail do novo usuário
+     * @param password     senha inicial
+     * @param nomeExibicao nome de exibição (será gravado no profile via trigger ou
+     *                     update manual)
+     * @param role         papel inicial colocado no metadata do usuário
      * @return UUID do usuário criado
      */
     @SuppressWarnings("unchecked")
@@ -48,9 +49,7 @@ public class SupabaseAdminUserService {
                 "email_confirm", true,
                 "user_metadata", Map.of(
                         "nome_exibicao", nomeExibicao,
-                        "role", role
-                )
-        );
+                        "role", role));
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);

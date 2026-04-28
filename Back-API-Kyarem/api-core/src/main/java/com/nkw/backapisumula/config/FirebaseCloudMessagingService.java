@@ -9,7 +9,6 @@ import com.google.firebase.messaging.Notification;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
-import java.io.FileInputStream;
 
 @Service
 public class FirebaseCloudMessagingService {
@@ -20,14 +19,16 @@ public class FirebaseCloudMessagingService {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 System.out.println("No Firebase apps exist yet. Attempting to initialize one.");
-                
+
                 // Tenta carregar o arquivo a partir da pasta resources
                 System.out.println("Looking for 'firebase-service-account.json' in classpath...");
-                InputStream serviceAccount = getClass().getClassLoader().getResourceAsStream("firebase-service-account.json");
-                
+                InputStream serviceAccount = getClass().getClassLoader()
+                        .getResourceAsStream("firebase-service-account.json");
+
                 FirebaseOptions options;
                 if (serviceAccount != null) {
-                    System.out.println("SUCCESS: Found 'firebase-service-account.json' in classpath. Initializing with this file.");
+                    System.out.println(
+                            "SUCCESS: Found 'firebase-service-account.json' in classpath. Initializing with this file.");
                     options = FirebaseOptions.builder()
                             .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                             .build();
@@ -36,14 +37,15 @@ public class FirebaseCloudMessagingService {
                     System.out.println("WARNING: 'firebase-service-account.json' NOT FOUND in classpath.");
                     System.out.println("Attempting to use GOOGLE_APPLICATION_CREDENTIALS environment variable...");
                     String envVar = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-                    System.out.println("GOOGLE_APPLICATION_CREDENTIALS is set to: " + (envVar != null ? envVar : "null"));
-                    
+                    System.out
+                            .println("GOOGLE_APPLICATION_CREDENTIALS is set to: " + (envVar != null ? envVar : "null"));
+
                     options = FirebaseOptions.builder()
                             .setCredentials(GoogleCredentials.getApplicationDefault())
                             .build();
                     System.out.println("SUCCESS: Loaded default application credentials.");
                 }
-                
+
                 System.out.println("Calling FirebaseApp.initializeApp(options)...");
                 FirebaseApp.initializeApp(options);
                 System.out.println("FirebaseApp initialized successfully!");
