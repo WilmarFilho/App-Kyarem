@@ -69,6 +69,7 @@ class PartidaArbitroServiceTest {
         when(repo.existsByPartida_IdAndArbitro_Id(PARTIDA_ID, ARBITRO_ID)).thenReturn(false);
         when(partidaRepo.findById(PARTIDA_ID)).thenReturn(Optional.of(partida()));
         when(profileRepo.findById(ARBITRO_ID)).thenReturn(Optional.of(perfil()));
+        when(profileRepo.findRolesByUserId(ARBITRO_ID)).thenReturn(java.util.List.of("REFEREE"));
         when(repo.save(any(PartidaArbitro.class))).thenReturn(vinculo());
 
         PartidaArbitro resultado = service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal");
@@ -114,6 +115,7 @@ class PartidaArbitroServiceTest {
         when(repo.existsByPartida_IdAndArbitro_Id(PARTIDA_ID, ARBITRO_ID)).thenReturn(false);
         when(partidaRepo.findById(PARTIDA_ID)).thenReturn(Optional.of(partida()));
         when(profileRepo.findById(ARBITRO_ID)).thenReturn(Optional.of(perfil()));
+        when(profileRepo.findRolesByUserId(ARBITRO_ID)).thenReturn(java.util.List.of("REFEREE"));
         when(repo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // Verifica que o objeto salvo tem os dados corretos preenchidos

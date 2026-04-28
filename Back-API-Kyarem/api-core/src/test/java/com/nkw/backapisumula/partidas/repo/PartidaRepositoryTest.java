@@ -1,7 +1,8 @@
 package com.nkw.backapisumula.partidas.repo;
 
-import com.nkw.backapisumula.competicao.Equipe;
-import com.nkw.backapisumula.competicao.Modalidade;
+import com.nkw.backapisumula.competicao.CampeonatoModalidade;
+import com.nkw.backapisumula.competicao.CampeonatoTime;
+import com.nkw.backapisumula.competicao.ModalidadeCatalogo;
 import com.nkw.backapisumula.partidas.Partida;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,10 +19,15 @@ import static org.mockito.Mockito.*;
 /**
  * Testa o comportamento do PartidaRepository usando Mockito.
  *
- * Nota: @DataJpaTest com H2 conflita com columnDefinition="jsonb" nas entidades Partida e Modalidade.
- * Até a configuração de Testcontainers ser adicionada (fase futura), os testes de repository
- * verificam os contratos das queries através de mocks — o comportamento real é validado
- * em ambiente de staging com banco PostgreSQL real.
+ * Nota: @DataJpaTest com H2 conflita com columnDefinition="jsonb" nas entidades.
+ * Até a configuração de Testcontainers ser adicionada (fase futura), os testes de
+ * repository verificam os contratos das queries através de mocks — o comportamento
+ * real é validado em ambiente de staging com banco PostgreSQL real.
+ *
+ * Refatorado em 2026-04 para usar o novo modelo de domínio:
+ *   Equipe        → CampeonatoTime
+ *   Modalidade    → CampeonatoModalidade (+ ModalidadeCatalogo)
+ *   findByModalidade_Id(...) → findByCampeonatoModalidade_Id(...)
  */
 @ExtendWith(MockitoExtension.class)
 class PartidaRepositoryTest {
@@ -29,28 +35,39 @@ class PartidaRepositoryTest {
     @Mock
     private PartidaRepository repo;
 
-    private static final UUID PARTIDA_ID    = UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001");
-    private static final UUID MODAL_ID      = UUID.fromString("dddddddd-0000-0000-0000-000000000004");
+    private static final UUID PARTIDA_ID = UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001");
+    private static final UUID MODAL_ID   = UUID.fromString("dddddddd-0000-0000-0000-000000000004");
+
+    /** Monta uma CampeonatoModalidade com ModalidadeCatalogo embutido para viabilizar getNome(). */
+    private CampeonatoModalidade campeonatoModalidade() {
+        ModalidadeCatalogo catalogo = new ModalidadeCatalogo();
+        catalogo.setId(UUID.randomUUID());
+        catalogo.setNome("Futsal");
+
+        CampeonatoModalidade m = new CampeonatoModalidade();
+        m.setId(MODAL_ID);
+        m.setModalidade(catalogo);
+        return m;
+    }
+
+    private CampeonatoTime campeonatoTime(String nomeExibicao) {
+        CampeonatoTime ct = new CampeonatoTime();
+        ct.setId(UUID.randomUUID());
+        ct.setNomeExibicao(nomeExibicao);
+        return ct;
+    }
 
     private Partida partida(String status) {
-        Modalidade m = new Modalidade();
-        m.setId(MODAL_ID);
-        m.setNome("Futsal");
-
-        Equipe eqA = new Equipe();
-        eqA.setId(UUID.randomUUID());
-        eqA.setNomeEquipe("A");
-
-        Equipe eqB = new Equipe();
-        eqB.setId(UUID.randomUUID());
-        eqB.setNomeEquipe("B");
+        CampeonatoModalidade m  = campeonatoModalidade();
+        CampeonatoTime eqA      = campeonatoTime("A");
+        CampeonatoTime eqB      = campeonatoTime("B");
 
         Partida p = new Partida();
         p.setId(PARTIDA_ID);
         p.setStatus(status);
-        p.setModalidade(m);
-        p.setEquipeA(eqA);
-        p.setEquipeB(eqB);
+        p.setModalidade(m);   // alias em Partida: setModalidade(CampeonatoModalidade)
+        p.setEquipeA(eqA);    // alias em Partida: setEquipeA(CampeonatoTime)
+        p.setEquipeB(eqB);    // alias em Partida: setEquipeB(CampeonatoTime)
         p.setPlacarA(0);
         p.setPlacarB(0);
         return p;
@@ -91,41 +108,41 @@ class PartidaRepositoryTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // findByModalidade_Id
+    // findByCampeonatoModalidade_Id  (antes: findByModalidade_Id)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    void findByModalidadeId_retornaPartidasDaModalidade() {
-        when(repo.findByModalidade_Id(MODAL_ID)).thenReturn(List.of(partida("agendada")));
+    void findByCampeonatoModalidadeId_retornaPartidasDaModalidade() {
+        when(repo.findByCampeonatoModalidade_Id(MODAL_ID)).thenReturn(List.of(partida("agendada")));
 
-        List<Partida> resultado = repo.findByModalidade_Id(MODAL_ID);
+        List<Partida> resultado = repo.findByCampeonatoModalidade_Id(MODAL_ID);
 
         assertEquals(1, resultado.size());
         assertEquals(MODAL_ID, resultado.get(0).getModalidade().getId());
-        verify(repo).findByModalidade_Id(MODAL_ID);
+        verify(repo).findByCampeonatoModalidade_Id(MODAL_ID);
     }
 
     @Test
-    void findByModalidadeId_modalidadeSemPartidas_retornaListaVazia() {
+    void findByCampeonatoModalidadeId_modalidadeSemPartidas_retornaListaVazia() {
         UUID outraModalidade = UUID.randomUUID();
-        when(repo.findByModalidade_Id(outraModalidade)).thenReturn(List.of());
+        when(repo.findByCampeonatoModalidade_Id(outraModalidade)).thenReturn(List.of());
 
-        assertTrue(repo.findByModalidade_Id(outraModalidade).isEmpty());
+        assertTrue(repo.findByCampeonatoModalidade_Id(outraModalidade).isEmpty());
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // findByModalidade_IdAndStatus
+    // findByCampeonatoModalidade_IdAndStatus
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    void findByModalidadeIdAndStatus_retornaPartidasFiltradasCorretamente() {
-        when(repo.findByModalidade_IdAndStatus(MODAL_ID, "agendada"))
+    void findByCampeonatoModalidadeIdAndStatus_retornaPartidasFiltradasCorretamente() {
+        when(repo.findByCampeonatoModalidade_IdAndStatus(MODAL_ID, "agendada"))
                 .thenReturn(List.of(partida("agendada")));
-        when(repo.findByModalidade_IdAndStatus(MODAL_ID, "finalizada"))
+        when(repo.findByCampeonatoModalidade_IdAndStatus(MODAL_ID, "finalizada"))
                 .thenReturn(List.of());
 
-        assertEquals(1, repo.findByModalidade_IdAndStatus(MODAL_ID, "agendada").size());
-        assertEquals(0, repo.findByModalidade_IdAndStatus(MODAL_ID, "finalizada").size());
+        assertEquals(1, repo.findByCampeonatoModalidade_IdAndStatus(MODAL_ID, "agendada").size());
+        assertEquals(0, repo.findByCampeonatoModalidade_IdAndStatus(MODAL_ID, "finalizada").size());
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -141,7 +158,8 @@ class PartidaRepositoryTest {
 
         assertTrue(resultado.isPresent());
         assertEquals(PARTIDA_ID, resultado.get().getId());
-        assertNotNull(resultado.get().getModalidade()); // @EntityGraph carregou
+        // @EntityGraph deve ter carregado campeonatoModalidade → ModalidadeCatalogo
+        assertNotNull(resultado.get().getModalidade());
         assertEquals("Futsal", resultado.get().getModalidade().getNome());
     }
 
@@ -150,9 +168,7 @@ class PartidaRepositoryTest {
         UUID inexistente = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
         when(repo.findById(inexistente)).thenReturn(Optional.empty());
 
-        Optional<Partida> resultado = repo.findById(inexistente);
-
-        assertFalse(resultado.isPresent());
+        assertFalse(repo.findById(inexistente).isPresent());
     }
 
     // ════════════════════════════════════════════════════════════════════════

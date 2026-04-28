@@ -27,3 +27,6 @@ plugins {
 }
 
 include(":app")
+
+
+rootProject.name = "app-administrativo-android"

@@ -8,8 +8,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.nkw.backapisumula.competicao.repo.EquipeRepository;
-import com.nkw.backapisumula.competicao.repo.ModalidadeRepository;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
+import com.nkw.backapisumula.competicao.repo.CampeonatoModalidadeRepository;
+import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
 import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
@@ -19,20 +20,26 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Testa os métodos de verificação de status do PartidaService.
- * validateStatus() não é estático, então usamos uma instância com dependências mockadas.
- * isStatusEmAndamento/Finalizada/Fechada são estáticos e podem ser chamados diretamente.
+ * validateStatus() não é estático — usa uma instância com dependências mockadas.
+ * isStatusEmAndamento / isStatusFinalizada / isStatusFechada são estáticos.
+ *
+ * Refatorado em 2026-04:
+ *   EquipeRepository    → CampeonatoTimeRepository
+ *   ModalidadeRepository → CampeonatoModalidadeRepository
+ *   + adicionado mock de EventPublisherService (agora obrigatório no construtor)
  */
 @ExtendWith(MockitoExtension.class)
 class PartidaStatusHelperTest {
 
-    // Mocks de todos os repositórios necessários para instanciar o service
+    // Mocks de todos os repositórios/serviços necessários para instanciar o PartidaService
     @Mock private PartidaRepository repo;
-    @Mock private ModalidadeRepository modalidadeRepo;
-    @Mock private EquipeRepository equipeRepo;
+    @Mock private CampeonatoModalidadeRepository modalidadeRepo;
+    @Mock private CampeonatoTimeRepository equipeRepo;
     @Mock private PartidaArbitroRepository partidaArbitroRepo;
     @Mock private EventoPartidaRepository eventoRepo;
     @Mock private SupabaseStorageService supabaseStorageService;
     @Mock private SumulaOficialPdfService sumulaOficialPdfService;
+    @Mock private EventPublisherService eventPublisherService;
 
     @InjectMocks
     private PartidaService service; // instância para chamar validateStatus (não-estático)
@@ -60,8 +67,7 @@ class PartidaStatusHelperTest {
 
     @Test
     void isStatusEmAndamento_statusComEspacos_funcionaCorretamente() {
-        // "1° tempo" com maiúscula deve também retornar true (trim + lowercase)
-        // O método usa .trim().toLowerCase(), então testamos isso
+        // trim + toLowerCase devem ser aplicados antes de chamar o método
         assertTrue(PartidaService.isStatusEmAndamento("  1° tempo  ".trim().toLowerCase()));
     }
 
@@ -120,7 +126,6 @@ class PartidaStatusHelperTest {
             "prorrogação", "acréscimo", "pausada", "pênaltis", "finalizada", "fechada"
     })
     void validateStatus_statusValido_naoLancaExcecao(String status) {
-        // validateStatus não é estático → usa a instância injetada
         assertDoesNotThrow(() -> service.validateStatus(status));
     }
 
@@ -138,7 +143,7 @@ class PartidaStatusHelperTest {
 
     @Test
     void validateStatus_null_naoLancaExcecao() {
-        // Null é permitido (método faz early return)
+        // null é permitido — método faz early return sem lançar
         assertDoesNotThrow(() -> service.validateStatus(null));
     }
 }
