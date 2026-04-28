@@ -21,7 +21,7 @@ public class UsuarioRoleGlobal {
     @Column(name = "user_id", columnDefinition = "uuid", nullable = false)
     private UUID userId;
 
-    @Column(nullable = false)
+    @Column(name = "role_codigo", nullable = false)
     private String role;
 
     @Column(name = "criado_em")
