@@ -36,8 +36,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _checkInitialSession() {
     if (_authService.currentSession != null) {
-      Future.microtask(() => Navigator.pushReplacementNamed(context, '/home'));
+      Future.microtask(_redirectIfAuthorized);
     }
+  }
+
+  Future<void> _redirectIfAuthorized() async {
+    final profile = await _authService.getUserProfile();
+    if (!mounted) return;
+
+    if (_authService.canAccessAdminApp(profile)) {
+      Navigator.pushReplacementNamed(context, '/home');
+      return;
+    }
+
+    await _authService.logout();
+    if (!mounted) return;
+    setState(() {
+      _error = 'Acesso restrito. Este app é exclusivo para administradores e árbitros.';
+    });
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -235,7 +251,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        final profile = await _authService.getUserProfile();
+        if (!mounted) return;
+
+        if (_authService.canAccessAdminApp(profile)) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          await _authService.logout();
+          if (!mounted) return;
+          setState(() {
+            _error =
+                'Acesso restrito. Este app é exclusivo para administradores e árbitros.';
+          });
+        }
       }
     } on AuthException catch (e) {
       setState(

@@ -22,7 +22,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     with SingleTickerProviderStateMixin {
   late final AuthService _authService = widget.authService ?? AuthService();
 
-  String _userRole = 'aluno';
+  String _userRole = 'user';
   bool _loading = true;
   bool _notificacoesGerais = true;
   bool _notificacoesPartidas = true;
@@ -32,13 +32,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
   late final AnimationController _animController;
   late final Animation<double> _fadeAnimation;
 
-  bool get _isAdminRole =>
-      _userRole == 'admin' ||
-      _userRole == 'super_admin' ||
-      _userRole == 'delegado';
-
-  bool get _isPresidenteAtletica => _userRole == 'presidente_atletica';
-  bool get _isArbitro => _userRole == 'arbitro';
+  bool get _isAdminRole => _authService.isAdminRole(_userRole);
+  bool get _isPresidenteAtletica => false;
+  bool get _isArbitro => _authService.isArbitroRole(_userRole);
 
   @override
   void initState() {
@@ -63,11 +59,17 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final profile = await _authService.getUserProfile();
+    if (!_authService.canAccessAdminApp(profile)) {
+      await _authService.logout();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      return;
+    }
 
     if (!mounted) return;
 
     setState(() {
-      _userRole = profile['role'] as String? ?? 'aluno';
+      _userRole = profile['role'] as String? ?? 'user';
       _notificacoesGerais = prefs.getBool('admin_notif_gerais') ?? true;
       _notificacoesPartidas = prefs.getBool('admin_notif_partidas') ?? true;
       _notificacoesResultados = prefs.getBool('admin_notif_resultados') ?? true;

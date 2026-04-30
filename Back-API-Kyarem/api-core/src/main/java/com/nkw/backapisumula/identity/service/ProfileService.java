@@ -24,11 +24,7 @@ public class ProfileService {
     }
 
     public List<Profile> listArbitros() {
-        List<Profile> arbitros = repo.findByGlobalRoleOrderByNomeExibicaoAsc("REFEREE");
-        if (!arbitros.isEmpty()) {
-            return hydrateRoles(arbitros);
-        }
-        return hydrateRoles(repo.findByGlobalRoleOrderByNomeExibicaoAsc("ARBITRO_COMUM"));
+        return hydrateRoles(repo.findRefereesOrderByNomeExibicaoAsc());
     }
 
     public List<Profile> listAll() {
@@ -36,6 +32,9 @@ public class ProfileService {
     }
 
     public List<Profile> listByRole(String role) {
+        if ("REFEREE".equalsIgnoreCase(role) || "ARBITRO_COMUM".equalsIgnoreCase(role)) {
+            return listArbitros();
+        }
         return hydrateRoles(repo.findByGlobalRoleOrderByNomeExibicaoAsc(role));
     }
 
@@ -67,5 +66,23 @@ public class ProfileService {
             return "referee";
         }
         return roles.get(0).toLowerCase();
+    }
+
+    public AccessInfo resolveAccess(UUID userId) {
+        Profile profile = getOrThrow(userId);
+        String role = profile.getRole();
+        boolean isAdmin = "admin".equalsIgnoreCase(role);
+        boolean isReferee = "referee".equalsIgnoreCase(role);
+        boolean allowedAdminApp = isAdmin || isReferee;
+        return new AccessInfo(profile, role, isAdmin, isReferee, allowedAdminApp);
+    }
+
+    public record AccessInfo(
+            Profile profile,
+            String role,
+            boolean isAdmin,
+            boolean isReferee,
+            boolean allowedAdminApp
+    ) {
     }
 }

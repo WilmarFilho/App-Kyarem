@@ -168,6 +168,26 @@ Valores:
 - ATHLETE
 - REFEREE
 
+operational.quadro_arbitros
+- vinculo do usuario com o quadro de arbitragem
+- materializa a existencia do papel contextual REFEREE antes de qualquer partida
+
+Campos:
+- id
+- user_id
+- status
+- criado_por
+- criado_em
+- iniciado_em
+- encerrado_em
+- observacoes
+
+Regra:
+- um usuario continua sendo globalmente USER ou ADMIN
+- o fato de ele poder atuar como arbitro fica registrado aqui, e nao em role global
+- um arbitro pode existir no sistema sem estar vinculado a nenhuma partida
+- somente usuarios com registro ATIVO em operational.quadro_arbitros possuem o papel contextual REFEREE
+
 
 5.2 Estrutura esportiva base
 ----------------------------
@@ -314,6 +334,33 @@ Usos:
 Regras importantes:
 - um usuario pode ter mais de um papel na mesma atletica se a regra permitir
 - deve existir no maximo um PRESIDENT ativo por atletica
+
+
+5.4.1 Quadro de arbitragem
+--------------------------
+operational.quadro_arbitros
+- registro operacional dos usuarios aptos a arbitrar
+- separa claramente "ser arbitro" de "estar escalado em uma partida"
+
+Campos:
+- id
+- user_id
+- status                 (ATIVO | INATIVO | SUSPENSO)
+- criado_por
+- criado_em
+- iniciado_em
+- encerrado_em
+- observacoes
+
+Usos:
+- marcar um usuario como arbitro no sistema antes de qualquer escala
+- controlar ativacao, inativacao ou suspensao do arbitro
+- servir como fonte oficial para listar arbitros no app admin
+
+Regra:
+- o usuario permanece com suas roles globais originais
+- o papel contextual REFEREE existe quando houver vinculo ATIVO nesta tabela
+- estar em operational.partida_arbitros nao cria o arbitro; apenas representa uma escala/autorizacao para uma partida especifica
 
 
 5.5 Participacao da atletica no campeonato
@@ -538,11 +585,11 @@ Campos:
 - criado_em
 
 Regra:
-- Admin global vincula a role contextual de REFEREE a um usuario (ex: adicionando-o a Liga ou Quadro de Arbitros).
+- Admin global vincula o usuario ao operational.quadro_arbitros, concedendo o papel contextual REFEREE.
 - Quando o arbitro cria a partida, ele e automaticamente salvo aqui com `is_criador = true`.
 - Apenas o arbitro "criador" da partida (ou um ADMIN) tem permissao para associar outros arbitros a ela.
 - Somente os arbitros listados nesta tabela tem acesso de escrita na sumula.
-- O arbitro_user_id deve possuir a role contextual REFEREE.
+- O arbitro_user_id deve possuir vinculo ATIVO em operational.quadro_arbitros.
 
 
 5.11 Eventos da partida
@@ -1079,6 +1126,10 @@ Contexto de atletica:
 - operational.atleticas 1:N operational.atletica_membros
 - operational.profiles 1:N operational.atletica_membros
 
+Contexto de arbitragem:
+- operational.profiles 1:N operational.quadro_arbitros
+- operational.quadro_arbitros 1:N operational.partida_arbitros (por user_id, de forma logica)
+
 Estrutura esportiva:
 - operational.esportes 1:N operational.modalidades_catalogo
 - operational.modalidades_catalogo 1:N operational.campeonato_modalidades
@@ -1192,7 +1243,7 @@ Evolucao proposta:
 4. unique parcial impede o mesmo atleta em duas atleticas no mesmo campeonato
 
 9.6 Criacao de Partidas e Equipe de Arbitragem (App Administrativo)
-1. Admin interno atribui a role contextual REFEREE a um usuario
+1. Admin interno adiciona o usuario ao operational.quadro_arbitros
 2. O arbitro acessa o app administrativo e cria uma partida (selecionando modalidade e times)
 3. O banco salva a partida e insere o arbitro em `partida_arbitros` como `is_criador = true`
 4. O arbitro "criador" gerencia sua mesa, adicionando outros usuarios (tambem REFEREEs) a partida
@@ -1249,8 +1300,9 @@ Evolucao proposta:
 O novo desenho passa a ter:
 - identidade unica em auth.users
 - profiles como extensao da conta
-- roles globais para USER, ADMIN e REFEREE
-- papeis contextuais para PRESIDENT, DIRECTOR e ATHLETE
+- roles globais para USER e ADMIN
+- papeis contextuais para PRESIDENT, DIRECTOR, ATHLETE e REFEREE
+- quadro de arbitragem proprio para representar arbitros antes de qualquer escala em partida
 - atleticas e times organizados por modalidade_catalogo
 - campeonato com modalidades configuraveis por regras proprias
 - atleta vinculado a usuario, mas operando por entidade esportiva propria

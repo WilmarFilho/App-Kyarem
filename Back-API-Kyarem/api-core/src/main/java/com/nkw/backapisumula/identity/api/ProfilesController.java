@@ -12,6 +12,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -41,6 +43,14 @@ public class ProfilesController {
         this.adminUserService = adminUserService;
         this.profileRepository = profileRepository;
         this.usuarioRoleGlobalRepository = usuarioRoleGlobalRepository;
+    }
+
+    @GetMapping("/me/access")
+    @PreAuthorize("isAuthenticated()")
+    public AccessResponse myAccess(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        var access = profileService.resolveAccess(userId);
+        return AccessResponse.from(access);
     }
 
     /**
@@ -136,6 +146,33 @@ public class ProfilesController {
                     p.getTelefone(),
                     p.getRole(),
                     p.getCriadoEm()
+            );
+        }
+    }
+
+    public record AccessResponse(
+            UUID id,
+            String nomeExibicao,
+            String fotoUrl,
+            String telefone,
+            String email,
+            String role,
+            boolean isAdmin,
+            boolean isReferee,
+            boolean allowedAdminApp
+    ) {
+        public static AccessResponse from(ProfileService.AccessInfo access) {
+            Profile p = access.profile();
+            return new AccessResponse(
+                    p.getId(),
+                    p.getNomeExibicao(),
+                    p.getFotoUrl(),
+                    p.getTelefone(),
+                    p.getEmail(),
+                    access.role(),
+                    access.isAdmin(),
+                    access.isReferee(),
+                    access.allowedAdminApp()
             );
         }
     }

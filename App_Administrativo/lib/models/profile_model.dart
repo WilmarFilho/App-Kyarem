@@ -2,7 +2,7 @@ class Profile {
   final String id;
   final String? nomeExibicao;
   final String? fotoUrl;
-  final String role; // super_admin, admin, arbitro, delegado, presidente_atletica, aluno
+  final String role; // admin, referee, user
   final String? email;
   final String? telefone;
   final String? universidade;
@@ -40,18 +40,12 @@ class Profile {
 
   String get roleLabel {
     switch (role) {
-      case 'super_admin':
-        return 'Super Admin';
       case 'admin':
         return 'Administrador';
-      case 'arbitro':
+      case 'referee':
         return 'Árbitro';
-      case 'delegado':
-        return 'Delegado';
-      case 'presidente_atletica':
-        return 'Presidente de Atlética';
-      case 'aluno':
-        return 'Aluno';
+      case 'user':
+        return 'Usuário';
       default:
         return role;
     }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,10 +8,20 @@ import '../models/profile_model.dart';
 
 class ProfileService {
   final SupabaseClient? _supabaseOverride;
+  final Dio _dio;
 
   SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
 
-  ProfileService({SupabaseClient? supabase}) : _supabaseOverride = supabase;
+  ProfileService({SupabaseClient? supabase, Dio? dio})
+    : _supabaseOverride = supabase,
+      _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: 'http://10.0.2.2:8080/api/v1',
+              connectTimeout: const Duration(seconds: 10),
+            ),
+          );
 
   Future<Profile?> fetchProfile() async {
     try {
@@ -22,6 +33,22 @@ class ProfileService {
           .select()
           .eq('id', user.id)
           .single();
+
+      final token = _supabase.auth.currentSession?.accessToken;
+      if (token != null && token.isNotEmpty) {
+        try {
+          final accessRes = await _dio.get(
+            '/profiles/me/access',
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+          );
+          final access = Map<String, dynamic>.from(accessRes.data as Map);
+          data['role'] = access['role'] ?? 'user';
+        } catch (_) {
+          data['role'] = 'user';
+        }
+      } else {
+        data['role'] = 'user';
+      }
 
       data['email'] = user.email;
       return Profile.fromMap(data);

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Lista árbitros cadastrados (profiles.role = 'arbitro').
+ * Lista árbitros ativos do quadro de arbitragem.
  *
  * Útil para telas administrativas (atribuição de arbitragem, filtros, etc.).
  */

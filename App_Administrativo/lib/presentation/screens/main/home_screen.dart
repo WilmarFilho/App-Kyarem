@@ -37,7 +37,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
   late final AuthService _authService = widget.authService ?? AuthService();
-  late final AdminApiService _adminApiService = widget.adminApiService ?? AdminApiService();
 
   List<Partida> _partidasDestaque = [];
   List<dynamic> _itensListaInferior = [];
@@ -45,21 +44,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _carregandoListaAba = false;
 
   // Perfil do usuário carregado via getUserProfile()
-  String _userRole = 'aluno';
-  String? _atleticaId; // Disponível apenas para presidente_atletica
+  String _userRole = 'user';
 
   // ---- Getters de role ----
-  bool get _isAdminRole =>
-      _userRole == 'admin' ||
-      _userRole == 'super_admin' ||
-      _userRole == 'delegado';
+  bool get _isAdminRole => _authService.isAdminRole(_userRole);
+  bool get _isPresidenteAtletica => false;
+  bool get _isArbitro => _authService.isArbitroRole(_userRole);
 
-  bool get _isPresidenteAtletica => _userRole == 'presidente_atletica';
-  bool get _isArbitro => _userRole == 'arbitro';
-
-  // Qualquer acesso ao painel (admin, delegado, presidente, árbitro)
-  bool get _hasAdminAccess =>
-      _isAdminRole || _isPresidenteAtletica || _isArbitro;
+  bool get _hasAdminAccess => _isAdminRole || _isArbitro;
 
   late AnimationController _mainController;
   late AnimationController _listController;
@@ -123,21 +115,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _carregarTudo() async {
     final profile = await _authService.getUserProfile();
-    final role = profile['role'] as String? ?? 'aluno';
-    String? atleticaId;
-
-    // atleticaId é sempre resolvido via API do backend (nunca vem do Supabase)
-    if (role == 'presidente_atletica') {
-      final userId = _authService.currentUser?.id;
-      if (userId != null) {
-        atleticaId = await _adminApiService.buscarAtleticaDoPresidente(userId);
+    if (!_authService.canAccessAdminApp(profile)) {
+      await _authService.logout();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
+      return;
     }
 
     if (mounted) {
       setState(() {
-        _userRole = role;
-        _atleticaId = atleticaId;
+        _userRole = profile['role'] as String? ?? 'user';
       });
     }
 
@@ -316,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
-                // Admin/delegado: CRUD completo de Campeonatos
+                // Admin: CRUD completo de Campeonatos
                 if (_isAdminRole) ...[
                   _buildAdminShortcut(
                     icon: Icons.emoji_events,
@@ -368,49 +356,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ],
 
-                // Presidente: CRUD de Times + ver Partidas (somente leitura) + Minha Atlética
-                if (_isPresidenteAtletica) ...[
-                  _buildAdminShortcut(
-                    icon: Icons.sports_soccer,
-                    label: 'Partidas',
-                    color: const Color(0xFF2E9E56),
-                    badge: 'Leitura',
-                    onTap: () => _navegarAdmin(
-                      PartidasAdminScreen(
-                        canEdit: false,
-                        atleticaId: _atleticaId,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildAdminShortcut(
-                    icon: Icons.shield,
-                    label: 'Minha Atlética',
-                    color: const Color(0xFF2563EB),
-                    onTap: () => _atleticaId != null
-                        ? _navegarAdmin(
-                            AtleticasAdminScreen(minhaAtleticaId: _atleticaId),
-                          )
-                        : ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text(
-                                'Perfil não vinculado a uma atlética.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildAdminShortcut(
-                    icon: Icons.groups,
-                    label: 'Times',
-                    color: const Color(0xFF7C3AED),
-                    onTap: () => _navegarAdmin(const EquipesAdminScreen()),
-                  ),
-                ],
               ],
             ),
           ),

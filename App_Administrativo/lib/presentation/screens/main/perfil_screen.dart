@@ -32,14 +32,11 @@ class _PerfilScreenState extends State<PerfilScreen>
   late final AnimationController _animController;
   late final Animation<double> _fadeAnimation;
 
-  bool get _isAdminRole =>
-      _profile?.role == 'admin' ||
-      _profile?.role == 'super_admin' ||
-      _profile?.role == 'delegado';
+  bool get _isAdminRole => _profile?.role == 'admin';
 
-  bool get _isPresidenteAtletica => _profile?.role == 'presidente_atletica';
+  bool get _isPresidenteAtletica => false;
 
-  bool get _isArbitro => _profile?.role == 'arbitro';
+  bool get _isArbitro => _profile?.role == 'referee';
 
   @override
   void initState() {

@@ -22,10 +22,29 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     List<Profile> findByGlobalRoleOrderByNomeExibicaoAsc(@Param("role") String role);
 
     @Query("""
-            select urg.role
-            from UsuarioRoleGlobal urg
-            where urg.userId = :userId
-            order by urg.role asc
+            select p
+            from Profile p
+            join QuadroArbitro qa on qa.userId = p.id
+            where qa.status = 'ATIVO'
+            order by p.nomeExibicao asc
             """)
+    List<Profile> findRefereesOrderByNomeExibicaoAsc();
+
+    @Query(value = """
+            select role_name
+            from (
+                select upper(urg.role_codigo) as role_name
+                from operational.usuarios_roles_globais urg
+                where urg.user_id = :userId
+
+                union
+
+                select 'REFEREE' as role_name
+                from operational.quadro_arbitros qa
+                where qa.user_id = :userId
+                  and qa.status = 'ATIVO'
+            ) roles
+            order by role_name asc
+            """, nativeQuery = true)
     List<String> findRolesByUserId(@Param("userId") UUID userId);
 }
