@@ -29,13 +29,15 @@ class PartidaService {
   final Map<String, Equipe> _equipesCache = {};
 
   PartidaService({Dio? dio, SupabaseClient? supabase})
-      : _dio = dio ?? Dio(
+    : _dio =
+          dio ??
+          Dio(
             BaseOptions(
-              baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
+              baseUrl: 'http://10.0.2.2:8080/api/v1',
               connectTimeout: const Duration(seconds: 5),
             ),
           ),
-        _supabaseOverride = supabase {
+      _supabaseOverride = supabase {
     _initInterceptors();
     _initLocalDb().then((_) {
       _startSyncTimer();
@@ -46,8 +48,8 @@ class PartidaService {
   /// Usado por [FakePartidaService] para evitar timers pendentes em testes.
   @visibleForTesting
   PartidaService.forTesting()
-      : _dio = Dio(BaseOptions(baseUrl: 'http://localhost')),
-        _supabaseOverride = null;
+    : _dio = Dio(BaseOptions(baseUrl: 'http://localhost')),
+      _supabaseOverride = null;
   // _initInterceptors, _initLocalDb e _startSyncTimer NÃO são chamados.
 
   // --- INICIALIZAÇÃO DO BANCO LOCAL (SQLITE) ---

@@ -17,13 +17,15 @@ class AdminApiService {
   SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
 
   AdminApiService({Dio? dio, SupabaseClient? supabaseClient})
-      : _dio = dio ?? Dio(
+    : _dio =
+          dio ??
+          Dio(
             BaseOptions(
-              baseUrl: 'https://api.kyarem.nkwflow.com/api/v1',
+              baseUrl: 'http://10.0.2.2:8080/api/v1',
               connectTimeout: const Duration(seconds: 10),
             ),
           ),
-        _supabaseOverride = supabaseClient {
+      _supabaseOverride = supabaseClient {
     _initInterceptors();
   }
 
@@ -213,11 +215,14 @@ class AdminApiService {
 
   Future<Equipe?> criarEquipe(Map<String, dynamic> data) async {
     try {
-      final res = await _dio.post('/times/atletica', data: {
-        'atleticaId': data['atleticaId'],
-        'modalidadeCatalogoId': data['modalidadeId'],
-        'nome': data['nomeEquipe'] ?? data['nome'],
-      });
+      final res = await _dio.post(
+        '/times/atletica',
+        data: {
+          'atleticaId': data['atleticaId'],
+          'modalidadeCatalogoId': data['modalidadeId'],
+          'nome': data['nomeEquipe'] ?? data['nome'],
+        },
+      );
       return Equipe.fromMap(res.data);
     } catch (e) {
       debugPrint("Erro criarEquipe: $e");
@@ -227,10 +232,13 @@ class AdminApiService {
 
   Future<Equipe?> atualizarEquipe(String id, Map<String, dynamic> data) async {
     try {
-      final res = await _dio.put('/times/atletica/$id', data: {
-        'modalidadeCatalogoId': data['modalidadeId'],
-        'nome': data['nomeEquipe'] ?? data['nome'],
-      });
+      final res = await _dio.put(
+        '/times/atletica/$id',
+        data: {
+          'modalidadeCatalogoId': data['modalidadeId'],
+          'nome': data['nomeEquipe'] ?? data['nome'],
+        },
+      );
       return Equipe.fromMap(res.data);
     } catch (e) {
       debugPrint("Erro atualizarEquipe: $e");
@@ -326,7 +334,10 @@ class AdminApiService {
       final body = <String, dynamic>{};
       if (isGoleiro != null) body['isGoleiro'] = isGoleiro;
       if (isCapitao != null) body['isCapitao'] = isCapitao;
-      final res = await _dio.patch('/equipes/$equipeId/inscritos/$inscritoId', data: body);
+      final res = await _dio.patch(
+        '/equipes/$equipeId/inscritos/$inscritoId',
+        data: body,
+      );
       return res.data as Map<String, dynamic>;
     } catch (e) {
       debugPrint("Erro atualizarInscrito: $e");
@@ -338,7 +349,10 @@ class AdminApiService {
     try {
       final params = <String, dynamic>{};
       if (role != null) params['role'] = role;
-      final res = await _dio.get('/profiles', queryParameters: params.isEmpty ? null : params);
+      final res = await _dio.get(
+        '/profiles',
+        queryParameters: params.isEmpty ? null : params,
+      );
       return (res.data as List).cast<Map<String, dynamic>>();
     } catch (e) {
       debugPrint("Erro listarProfiles: $e");
@@ -352,11 +366,10 @@ class AdminApiService {
     required String senha,
   }) async {
     try {
-      final res = await _dio.post('/profiles/criar-presidente', data: {
-        'nomeExibicao': nome,
-        'email': email,
-        'senha': senha,
-      });
+      final res = await _dio.post(
+        '/profiles/criar-presidente',
+        data: {'nomeExibicao': nome, 'email': email, 'senha': senha},
+      );
       return res.data as Map<String, dynamic>;
     } catch (e) {
       debugPrint("Erro criarPresidente: $e");
@@ -377,15 +390,13 @@ class AdminApiService {
 
   Future<EquipeStaff?> criarEquipeStaff(Map<String, dynamic> data) async {
     try {
-      final equipeId = data['equipe_id']?.toString() ?? data['equipeId']?.toString();
+      final equipeId =
+          data['equipe_id']?.toString() ?? data['equipeId']?.toString();
       if (equipeId == null || equipeId.isEmpty) {
         throw ArgumentError('equipe_id é obrigatório para criar staff.');
       }
 
-      final payload = {
-        'nome': data['nome'],
-        'cargo': data['cargo'],
-      };
+      final payload = {'nome': data['nome'], 'cargo': data['cargo']};
       final res = await _dio.post('/equipes/$equipeId/staff', data: payload);
       return EquipeStaff.fromMap(res.data as Map<String, dynamic>);
     } catch (e) {
