@@ -11,8 +11,6 @@ import '../../widgets/home/option_button.dart';
 import '../../widgets/home/home_list.dart';
 import '../game/partida_screen.dart';
 import '../admin/campeonatos_admin_screen.dart';
-import '../admin/atleticas_admin_screen.dart';
-import '../admin/equipes_admin_screen.dart';
 import '../admin/partidas_admin_screen.dart';
 import '../../../services/auth_service.dart';
 
@@ -22,12 +20,21 @@ class HomeScreen extends StatefulWidget {
   final AuthService? authService;
   final AdminApiService? adminApiService;
 
+  // Flags passadas pelo MainScreen para evitar duplicação de chamadas HTTP.
+  // Quando fornecidas, o HomeScreen usa esses valores diretamente.
+  final bool? isAdminOverride;
+  final bool? isArbitroOverride;
+  final bool perfilJaCarregado;
+
   const HomeScreen({
     super.key,
     this.isMainScreenChild = false,
     this.partidaService,
     this.authService,
     this.adminApiService,
+    this.isAdminOverride,
+    this.isArbitroOverride,
+    this.perfilJaCarregado = false,
   });
 
   @override
@@ -35,7 +42,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
+  late final PartidaService _partidaService =
+      widget.partidaService ?? PartidaService();
   late final AuthService _authService = widget.authService ?? AuthService();
 
   List<Partida> _partidasDestaque = [];
@@ -43,13 +51,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _carregandoDestaques = false;
   bool _carregandoListaAba = false;
 
-  // Perfil do usuário carregado via getUserProfile()
-  String _userRole = 'user';
-
-  // ---- Getters de role ----
-  bool get _isAdminRole => _authService.isAdminRole(_userRole);
-  bool get _isPresidenteAtletica => false;
-  bool get _isArbitro => _authService.isArbitroRole(_userRole);
+  // Flags de permissão carregadas via getUserProfile()
+  bool _isAdminRole = false;
+  bool _isPresidenteAtletica = false;
+  bool _isArbitro = false;
 
   bool get _hasAdminAccess => _isAdminRole || _isArbitro;
 
@@ -61,9 +66,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String _abaSelecionada = 'Jogos';
   bool _verMeus = false;
 
+  List<_HomeTabOption> get _tabOptions {
+    if (_isArbitro && !_isAdminRole) {
+      return const [
+        _HomeTabOption(
+          value: 'Jogos',
+          label: 'Partidas',
+          icon: Icons.sports_soccer,
+        ),
+      ];
+    }
+
+    return const [
+      _HomeTabOption(
+        value: 'Jogos',
+        label: 'Partidas',
+        icon: Icons.sports_soccer,
+      ),
+      _HomeTabOption(value: 'Árbitros', label: 'Árbitros', icon: Icons.gavel),
+      _HomeTabOption(
+        value: 'Campeonatos',
+        label: 'Campeonatos',
+        icon: Icons.emoji_events,
+      ),
+    ];
+  }
+
   @override
   void initState() {
     super.initState();
+    // Se o MainScreen já resolveu as flags, usa diretamente.
+    if (widget.isAdminOverride != null) {
+      _isAdminRole = widget.isAdminOverride!;
+    }
+    if (widget.isArbitroOverride != null) {
+      _isArbitro = widget.isArbitroOverride!;
+    }
     _mainController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -74,6 +112,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     _initializeAnimations();
     _carregarTudo();
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Atualiza as flags quando o MainScreen termina de carregar o perfil.
+    bool changed = false;
+    if (widget.isAdminOverride != null &&
+        widget.isAdminOverride != _isAdminRole) {
+      _isAdminRole = widget.isAdminOverride!;
+      changed = true;
+    }
+    if (widget.isArbitroOverride != null &&
+        widget.isArbitroOverride != _isArbitro) {
+      _isArbitro = widget.isArbitroOverride!;
+      changed = true;
+    }
+    if (changed && mounted) setState(() {});
   }
 
   void _initializeAnimations() {
@@ -114,19 +170,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _carregarTudo() async {
-    final profile = await _authService.getUserProfile();
-    if (!_authService.canAccessAdminApp(profile)) {
-      await _authService.logout();
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    // Se o MainScreen já carregou e passou as flags via override,
+    // pula a chamada HTTP duplicada e vai direto para os dados.
+    if (!widget.perfilJaCarregado) {
+      final profile = await _authService.getUserProfile();
+      debugPrint('HomeScreen perfil → isAdmin=${profile['isAdmin']} role=${profile['role']} allowed=${profile['allowedAdminApp']}');
+      if (!_authService.canAccessAdminApp(profile)) {
+        await _authService.logout();
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        }
+        return;
       }
-      return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _userRole = profile['role'] as String? ?? 'user';
-      });
+      if (mounted) {
+        setState(() {
+          // Só atualiza se não há override vindo do pai.
+          if (widget.isAdminOverride == null) {
+            _isAdminRole =
+                profile['isAdmin'] == true ||
+                _authService.isAdminRole(profile['role'] as String? ?? '');
+          }
+          if (widget.isArbitroOverride == null) {
+            _isArbitro =
+                profile['isArbitro'] == true ||
+                _authService.isArbitroRole(profile['role'] as String? ?? '');
+          }
+          if (!_tabOptions.any((tab) => tab.value == _abaSelecionada)) {
+            _abaSelecionada = _tabOptions.first.value;
+          }
+        });
+      }
     }
 
     await Future.wait([
@@ -262,6 +335,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildWhatDoYouWantSection() {
+    // Árbitro puro: não exibe esta seção (ele só pode ver partidas mesmo)
+    if (_isArbitro && !_isAdminRole) return const SizedBox.shrink();
+
     return Column(
       children: [
         const Text(
@@ -269,33 +345,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 28),
         ),
         const SizedBox(height: 15),
-
-        // ── Linha 1: Jogos + Árbitros + (Painel Admin se tiver acesso) ──
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            OptionButton(
-              icon: Icons.sports_soccer,
-              label: 'Partidas',
-              isSelected: _abaSelecionada == 'Jogos',
-              onTap: () => _mudarAba('Jogos'),
-            ),
-            OptionButton(
-              icon: Icons.gavel,
-              label: 'Árbitros',
-              isSelected: _abaSelecionada == 'Árbitros',
-              onTap: () => _mudarAba('Árbitros'),
-            ),
-            OptionButton(
-              icon: Icons.emoji_events,
-              label: 'Campeonatos',
-              isSelected: _abaSelecionada == 'Campeonatos',
-              onTap: () => _mudarAba('Campeonatos'),
-            ),
-          ],
+          children: _tabOptions
+              .map(
+                (tab) => OptionButton(
+                  icon: tab.icon,
+                  label: tab.label,
+                  isSelected: _abaSelecionada == tab.value,
+                  onTap: () => _mudarAba(tab.value),
+                ),
+              )
+              .toList(),
         ),
 
-        // ── Linha 2: Atalhos de gerenciamento (condicional por role) ──
         if (_hasAdminAccess) ...[
           const SizedBox(height: 28),
           SingleChildScrollView(
@@ -327,35 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: const Color(0xFFF85C39),
                     onTap: () => _navegarAdmin(const ArbitrosAdminScreen()),
                   ),
-                  const SizedBox(width: 10),
-                  _buildAdminShortcut(
-                    icon: Icons.shield,
-                    label: 'Atléticas',
-                    color: const Color(0xFFF85C39),
-                    onTap: () => _navegarAdmin(const AtleticasAdminScreen()),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildAdminShortcut(
-                    icon: Icons.groups,
-                    label: 'Times',
-                    color: const Color(0xFFF85C39),
-                    onTap: () => _navegarAdmin(const EquipesAdminScreen()),
-                  ),
                 ],
-
-                // Árbitro: ver partidas (somente leitura)
-                if (_isArbitro) ...[
-                  _buildAdminShortcut(
-                    icon: Icons.sports_soccer,
-                    label: 'Partidas',
-                    color: const Color(0xFF2E9E56),
-                    badge: 'Leitura',
-                    onTap: () => _navegarAdmin(
-                      const PartidasAdminScreen(canEdit: false),
-                    ),
-                  ),
-                ],
-
               ],
             ),
           ),
@@ -452,17 +487,64 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 if (_abaSelecionada == 'Jogos')
-                  GestureDetector(
-                    onTap: () => setState(() => _verMeus = !_verMeus),
-                    child: Text(
-                      _verMeus ? 'Ver Tudo' : 'Ver Meus',
-                      style: TextStyle(
-                        color: _verMeus
-                            ? const Color(0xFFF85C39)
-                            : Colors.grey[600],
-                        fontWeight: FontWeight.bold,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Toggle Ver Meus / Ver Tudo
+                      GestureDetector(
+                        onTap: () => setState(() => _verMeus = !_verMeus),
+                        child: Text(
+                          _verMeus ? 'Ver Tudo' : 'Ver Meus',
+                          style: TextStyle(
+                            color: _verMeus
+                                ? const Color(0xFFF85C39)
+                                : Colors.grey[600],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                      // Botão "Ver detalhes" exclusivo para árbitros
+                      if (_isArbitro && !_isAdminRole) ...[
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: () => _navegarAdmin(
+                            PartidasAdminScreen(canEdit: _isArbitro),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2E9E56).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF2E9E56).withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.open_in_new,
+                                  size: 13,
+                                  color: Color(0xFF2E9E56),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Ver detalhes',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF2E9E56),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
               ],
             ),
@@ -525,4 +607,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       MaterialPageRoute(builder: (_) => PartidaRunningScreen(partida: partida)),
     ).then((_) => _carregarTudo());
   }
+}
+
+class _HomeTabOption {
+  final String value;
+  final String label;
+  final IconData icon;
+
+  const _HomeTabOption({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
 }

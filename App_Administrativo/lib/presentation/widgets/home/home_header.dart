@@ -1,30 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../services/auth_service.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
-  // Função para buscar o nome na tabela 'profiles'
-  Future<String> _fetchUserName() async {
+  /// Busca o nome e o cargo do usuário via backend REST (/profiles/me/access).
+  /// Usa o mesmo AuthService do restante do app — sem queries diretas ao Supabase.
+  Future<_UserInfo> _fetchUserInfo() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return 'Usuário';
+      final profile = await AuthService().getUserProfile();
 
-      final data = await Supabase.instance.client
-          .from('profiles')
-          .select('nome_exibicao')
-          .eq('id', user.id)
-          .single();
+      final nome = profile['nomeExibicao']?.toString() ?? '';
+      final role = profile['role']?.toString().toLowerCase() ?? '';
+      final isAdmin = profile['isAdmin'] == true || role == 'admin';
 
-      return data['nome_exibicao'] ?? 'Árbitro';
+      String cargo;
+      if (isAdmin) {
+        cargo = 'Administrador';
+      } else if (role == 'presidente_atletica') {
+        cargo = 'Presidente';
+      } else {
+        cargo = 'Árbitro';
+      }
+
+      return _UserInfo(nome: nome.isNotEmpty ? nome : cargo, cargo: cargo);
     } catch (e) {
-      debugPrint('Erro ao buscar nome do perfil: $e');
-      return 'Árbitro';
+      debugPrint('Erro ao buscar perfil do usuário: $e');
+      return _UserInfo(nome: 'Usuário', cargo: '');
     }
   }
 
   Future<void> _logout(BuildContext context) async {
-    await Supabase.instance.client.auth.signOut();
+    await AuthService().logout();
     if (context.mounted) {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
@@ -38,16 +45,18 @@ class HomeHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: FutureBuilder<String>(
-              future: _fetchUserName(),
+            child: FutureBuilder<_UserInfo>(
+              future: _fetchUserInfo(),
               builder: (context, snapshot) {
-                final displayUserName = snapshot.data ?? '...';
+                final info = snapshot.data;
+                final nome = info?.nome ?? '...';
+                final cargo = info?.cargo ?? '';
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Olá $displayUserName,',
+                      'Olá $nome,',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -56,15 +65,26 @@ class HomeHeader extends StatelessWidget {
                         color: Color(0xFF1B1B1B),
                       ),
                     ),
-                    const Text(
-                      'Seja bem vindo!',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B1B1B),
+                    if (cargo.isNotEmpty)
+                      Text(
+                        cargo,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFF85C39),
+                        ),
+                      )
+                    else
+                      const Text(
+                        'Seja bem vindo!',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1B1B1B),
+                        ),
                       ),
-                    ),
                   ],
                 );
               },
@@ -101,4 +121,10 @@ class HomeHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class _UserInfo {
+  final String nome;
+  final String cargo;
+  const _UserInfo({required this.nome, required this.cargo});
 }

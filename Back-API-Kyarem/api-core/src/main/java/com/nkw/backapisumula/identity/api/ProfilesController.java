@@ -53,6 +53,57 @@ public class ProfilesController {
         return AccessResponse.from(access);
     }
 
+    /** Atualiza nome de exibição e telefone do usuário autenticado. */
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public AccessResponse updateMe(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpdateMeRequest req
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Profile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Perfil não encontrado."));
+
+        if (req.nomeExibicao() != null && !req.nomeExibicao().isBlank()) {
+            profile.setNomeExibicao(req.nomeExibicao().trim());
+        }
+        if (req.telefone() != null) {
+            profile.setTelefone(req.telefone().isBlank() ? null : req.telefone().trim());
+        }
+        if (req.avatarUrl() != null) {
+            String url = req.avatarUrl().isBlank() ? null : req.avatarUrl().trim();
+            profile.setFotoUrl(url);
+        }
+        profile.setAtualizadoEm(OffsetDateTime.now());
+        profileRepository.save(profile);
+
+        var access = profileService.resolveAccess(userId);
+        return AccessResponse.from(access);
+    }
+
+    public record UpdateMeRequest(String nomeExibicao, String telefone, String avatarUrl) {}
+
+    /** Atualiza apenas o avatar do usuário autenticado. */
+    @PatchMapping("/me/avatar")
+    @PreAuthorize("isAuthenticated()")
+    public AccessResponse updateAvatar(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpdateAvatarRequest req
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Profile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Perfil não encontrado."));
+
+        profile.setFotoUrl(req.avatarUrl());
+        profile.setAtualizadoEm(OffsetDateTime.now());
+        profileRepository.save(profile);
+
+        var access = profileService.resolveAccess(userId);
+        return AccessResponse.from(access);
+    }
+
+    public record UpdateAvatarRequest(String avatarUrl) {}
+
     /**
      * Lista todos os profiles, opcionalmente filtrado por role.
      * GET /api/v1/profiles?role=president

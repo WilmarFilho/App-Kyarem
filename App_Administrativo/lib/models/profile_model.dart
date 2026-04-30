@@ -19,10 +19,15 @@ class Profile {
 
   factory Profile.fromMap(Map<String, dynamic> map) {
     return Profile(
-      id: map['id'],
-      nomeExibicao: map['nome_exibicao'],
-      fotoUrl: map['foto_url'],
-      role: map['role'] ?? 'aluno',
+      id: map['id']?.toString() ?? '',
+      // backend retorna camelCase; Supabase legado retornava snake_case
+      nomeExibicao: map['nomeExibicao'] ?? map['nome_exibicao'],
+      fotoUrl:
+          map['fotoUrl'] ??
+          map['foto_url'] ??
+          map['avatarUrl'] ??
+          map['avatar_url'],
+      role: map['role'] ?? 'user',
       email: map['email'],
       telefone: map['telefone'],
       universidade: map['universidade'],

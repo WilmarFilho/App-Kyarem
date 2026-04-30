@@ -485,6 +485,37 @@ class AdminApiService {
 
   // ============== ÁRBITROS ==============
 
+  /// POST /api/v1/arbitros
+  /// Vincula um usuário existente ao quadro de arbitragem.
+  Future<bool> associarArbitro(String userId) async {
+    try {
+      await _dio.post('/arbitros', data: {'userId': userId});
+      return true;
+    } catch (e) {
+      debugPrint("Erro associarArbitro: $e");
+      return false;
+    }
+  }
+
+  /// POST /api/v1/arbitros/criar
+  /// Cria um novo usuário auth e já o vincula ao quadro de arbitragem.
+  Future<Arbitro?> criarEAssociarArbitro({
+    required String nome,
+    required String email,
+    required String senha,
+  }) async {
+    try {
+      final res = await _dio.post(
+        '/arbitros/criar',
+        data: {'nome': nome, 'email': email, 'senha': senha},
+      );
+      return Arbitro.fromMap(res.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint("Erro criarEAssociarArbitro: $e");
+      return null;
+    }
+  }
+
   /// GET /api/v1/arbitros — lista todos os árbitros (role='arbitro').
   Future<List<Arbitro>> listarArbitros() async {
     try {

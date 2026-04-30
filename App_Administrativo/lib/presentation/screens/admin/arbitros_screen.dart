@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 import '../../../services/admin_api_service.dart';
+import '../../../services/auth_service.dart';
 import 'arbitro_detalhe_screen.dart';
 
 class ArbitrosAdminScreen extends StatefulWidget {
@@ -15,6 +16,8 @@ class ArbitrosAdminScreen extends StatefulWidget {
 class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
     with SingleTickerProviderStateMixin {
   late final AdminApiService _api = widget.apiService ?? AdminApiService();
+  final _authService = AuthService();
+  bool _canEdit = false;
   final TextEditingController _searchCtrl = TextEditingController();
 
   List<Arbitro> _todos = [];
@@ -30,7 +33,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
       duration: const Duration(milliseconds: 500),
     );
     _searchCtrl.addListener(_filtrar);
-    _carregar();
+    _resolverPermissaoECarregar();
   }
 
   @override
@@ -38,6 +41,18 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
     _animCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  /// Resolve a permissão do usuário via backend antes de carregar a lista.
+  Future<void> _resolverPermissaoECarregar() async {
+    final profile = await _authService.getUserProfile();
+    final isAdmin =
+        profile['isAdmin'] == true ||
+        _authService.isAdminRole(profile['role'] as String? ?? '');
+    if (mounted) {
+      setState(() => _canEdit = isAdmin || _canEdit);
+    }
+    await _carregar();
   }
 
   Future<void> _carregar() async {
@@ -105,7 +120,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                     fontWeight: FontWeight.normal,
                   ),
                 ),
-                if (!widget.canEdit) ...[
+                if (!_canEdit) ...[
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -219,6 +234,20 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
           ],
         ),
       ),
+      floatingActionButton: _canEdit
+          ? FloatingActionButton.extended(
+              onPressed: _showAddArbitroDialog,
+              backgroundColor: const Color(0xFFF85C39),
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Adicionar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -229,10 +258,10 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
           context,
           MaterialPageRoute(
             builder: (_) =>
-                ArbitroDetalheScreen(arbitro: arbitro, canEdit: widget.canEdit),
+                ArbitroDetalheScreen(arbitro: arbitro, canEdit: _canEdit),
           ),
         );
-        _carregar();
+        _resolverPermissaoECarregar();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -307,14 +336,18 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.gavel,
+                        Icon(
+                          arbitro.role.toUpperCase() == 'ADMIN'
+                              ? Icons.admin_panel_settings
+                              : Icons.gavel,
                           size: 12,
                           color: Color(0xFFF85C39),
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          'Árbitro',
+                        Text(
+                          arbitro.role.toUpperCase() == 'ADMIN'
+                              ? 'Administrador'
+                              : 'Árbitro',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFFF85C39),
@@ -360,29 +393,340 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
     );
   }
 
+  void _showAddArbitroDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Adicionar Árbitro',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.person_search,
+                  color: Color(0xFFF85C39),
+                ),
+                title: const Text('Vincular usuário existente'),
+                subtitle: const Text('Busque um usuário já cadastrado no app'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showVincularExistenteBottomSheet();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_add, color: Color(0xFFF85C39)),
+                title: const Text('Criar novo usuário'),
+                subtitle: const Text(
+                  'Cadastre um novo árbitro com email e senha',
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showCriarNovoArbitroDialog();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showVincularExistenteBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return _VincularExistenteView(api: _api, onVincular: _carregar);
+      },
+    );
+  }
+
+  void _showCriarNovoArbitroDialog() {
+    final nomeCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final senhaCtrl = TextEditingController();
+    bool loading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Criar novo árbitro'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nomeCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome completo',
+                      ),
+                    ),
+                    TextField(
+                      controller: emailCtrl,
+                      decoration: const InputDecoration(labelText: 'E-mail'),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    TextField(
+                      controller: senhaCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Senha (mín. 6 chars)',
+                      ),
+                      obscureText: true,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                if (!loading)
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancelar'),
+                  ),
+                loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
+                      )
+                    : ElevatedButton(
+                        onPressed: () async {
+                          if (nomeCtrl.text.isEmpty ||
+                              emailCtrl.text.isEmpty ||
+                              senhaCtrl.text.isEmpty)
+                            return;
+                          setState(() => loading = true);
+                          final arbitro = await _api.criarEAssociarArbitro(
+                            nome: nomeCtrl.text.trim(),
+                            email: emailCtrl.text.trim(),
+                            senha: senhaCtrl.text,
+                          );
+                          setState(() => loading = false);
+                          if (arbitro != null) {
+                            if (context.mounted) {
+                              Navigator.pop(ctx);
+                              _resolverPermissaoECarregar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Árbitro criado com sucesso!'),
+                                ),
+                              );
+                            }
+                          } else {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Erro ao criar árbitro.'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF85C39),
+                        ),
+                        child: const Text(
+                          'Criar e Vincular',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildEmpty() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.gavel_outlined, size: 72, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            _searchCtrl.text.isNotEmpty
-                ? 'Nenhum árbitro encontrado'
-                : 'Nenhum árbitro cadastrado',
-            style: TextStyle(
-              color: Colors.grey.shade800,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: const EdgeInsets.all(52.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.gavel_outlined, size: 72, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              _searchCtrl.text.isNotEmpty
+                  ? 'Nenhum árbitro encontrado'
+                  : 'Nenhum árbitro cadastrado',
+              style: TextStyle(
+                color: Colors.grey.shade800,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Árbitros com role="arbitro" aparecerão aqui',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Os usuários vinculados ao quadro de arbitragem aparecerão aqui',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VincularExistenteView extends StatefulWidget {
+  final AdminApiService api;
+  final VoidCallback onVincular;
+  const _VincularExistenteView({required this.api, required this.onVincular});
+
+  @override
+  State<_VincularExistenteView> createState() => _VincularExistenteViewState();
+}
+
+class _VincularExistenteViewState extends State<_VincularExistenteView> {
+  final _searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> _usuarios = [];
+  List<Map<String, dynamic>> _filtrados = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_filtrar);
+    _carregar();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _carregar() async {
+    final list = await widget.api.listarProfiles();
+    if (!mounted) return;
+    setState(() {
+      _usuarios = list;
+      _filtrados = list;
+      _isLoading = false;
+    });
+  }
+
+  void _filtrar() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    setState(() {
+      _filtrados = q.isEmpty
+          ? _usuarios
+          : _usuarios.where((u) {
+              final nome = (u['nomeExibicao'] ?? '').toString().toLowerCase();
+              final email = (u['email'] ?? '').toString().toLowerCase();
+              return nome.contains(q) || email.contains(q);
+            }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          children: [
+            const Text(
+              'Vincular usuário existente',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Buscar por nome ou e-mail',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFF85C39),
+                      ),
+                    )
+                  : _filtrados.isEmpty
+                  ? const Center(child: Text('Nenhum usuário encontrado.'))
+                  : ListView.separated(
+                      itemCount: _filtrados.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (ctx, i) {
+                        final u = _filtrados[i];
+                        final nome = u['nomeExibicao'] ?? 'Sem nome';
+                        final role = u['role'] ?? 'USER';
+                        return ListTile(
+                          title: Text(
+                            nome,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text('Role: $role'),
+                          trailing: ElevatedButton(
+                            onPressed: () async {
+                              final ok = await widget.api.associarArbitro(
+                                u['id'],
+                              );
+                              if (mounted) {
+                                if (ok) {
+                                  Navigator.pop(context);
+                                  widget.onVincular();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Vinculado com sucesso!'),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Erro ao vincular usuário.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF85C39),
+                            ),
+                            child: const Text(
+                              'Vincular',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

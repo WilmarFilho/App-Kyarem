@@ -1,9 +1,18 @@
 package com.nkw.backapisumula.identity.api;
 
 import com.nkw.backapisumula.identity.Profile;
+import com.nkw.backapisumula.identity.QuadroArbitro;
+import com.nkw.backapisumula.identity.repo.ProfileRepository;
+import com.nkw.backapisumula.identity.repo.QuadroArbitroRepository;
 import com.nkw.backapisumula.identity.service.ProfileService;
+import com.nkw.backapisumula.identity.service.SupabaseAdminUserService;
 import com.nkw.backapisumula.partidas.PartidaArbitro;
 import com.nkw.backapisumula.partidas.service.PartidaArbitroService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,10 +31,16 @@ public class ArbitrosController {
 
     private final ProfileService profileService;
     private final PartidaArbitroService partidaArbitroService;
+    private final QuadroArbitroRepository quadroArbitroRepository;
+    private final SupabaseAdminUserService adminUserService;
+    private final ProfileRepository profileRepository;
 
-    public ArbitrosController(ProfileService profileService, PartidaArbitroService partidaArbitroService) {
+    public ArbitrosController(ProfileService profileService, PartidaArbitroService partidaArbitroService, QuadroArbitroRepository quadroArbitroRepository, SupabaseAdminUserService adminUserService, ProfileRepository profileRepository) {
         this.profileService = profileService;
         this.partidaArbitroService = partidaArbitroService;
+        this.quadroArbitroRepository = quadroArbitroRepository;
+        this.adminUserService = adminUserService;
+        this.profileRepository = profileRepository;
     }
 
     /** Lista todos os árbitros cadastrados. */
@@ -50,6 +65,80 @@ public class ArbitrosController {
     }
 
     // ── Records de resposta ──────────────────────────────────────────────
+
+    /**
+     * Vincula um usuário existente ao quadro de arbitragem.
+     */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
+    public void vincularExistente(@RequestBody VincularRequest req) {
+        profileRepository.findById(req.userId())
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
+
+        quadroArbitroRepository.findByUserId(req.userId()).ifPresentOrElse(
+                qa -> {
+                    if (!"ATIVO".equals(qa.getStatus())) {
+                        qa.setStatus("ATIVO");
+                        quadroArbitroRepository.save(qa);
+                    }
+                },
+                () -> {
+                    QuadroArbitro qa = new QuadroArbitro();
+                    qa.setId(UUID.randomUUID());
+                    qa.setUserId(req.userId());
+                    qa.setStatus("ATIVO");
+                    qa.setCriadoEm(OffsetDateTime.now());
+                    quadroArbitroRepository.save(qa);
+                }
+        );
+    }
+
+    /**
+     * Cria um novo usuário auth e já o vincula ao quadro de arbitragem.
+     */
+    @PostMapping("/criar")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
+    public ArbitroResponse criarEAssociar(@Valid @RequestBody CriarArbitroRequest req) {
+        // 1. Cria o auth user
+        UUID userId = adminUserService.createAuthUser(
+                req.email(),
+                req.senha(),
+                req.nome(),
+                "USER"
+        );
+
+        // 2. Aguarda o trigger criar o Profile
+        Profile profile = null;
+        for (int i = 0; i < 4; i++) {
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            profile = profileRepository.findById(userId).orElse(null);
+            if (profile != null) break;
+        }
+
+        if (profile == null) {
+            throw new IllegalStateException("Falha ao criar o profile do usuário pelo trigger.");
+        }
+
+        // 3. Vincula ao quadro de arbitragem
+        QuadroArbitro qa = new QuadroArbitro();
+        qa.setId(UUID.randomUUID());
+        qa.setUserId(userId);
+        qa.setStatus("ATIVO");
+        qa.setCriadoEm(OffsetDateTime.now());
+        quadroArbitroRepository.save(qa);
+
+        return ArbitroResponse.from(profile);
+    }
+
+    public record VincularRequest(UUID userId) {}
+
+    public record CriarArbitroRequest(
+            @NotBlank @Email String email,
+            @NotBlank @Size(min = 6) String senha,
+            @NotBlank String nome
+    ) {}
 
     public record ArbitroResponse(
             UUID id,

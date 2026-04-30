@@ -1,26 +1,24 @@
+/*
+
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
-import '../../../services/admin_api_service.dart';
-import 'atletica_form_screen.dart';
+import '../App_Administrativo/lib/services/admin_api_service.dart';
+import 'equipe_form_screen.dart';
 
-class AtleticasAdminScreen extends StatefulWidget {
-  final String? minhaAtleticaId;
+class EquipesAdminScreen extends StatefulWidget {
   final AdminApiService? apiService;
-
-  const AtleticasAdminScreen({super.key, this.minhaAtleticaId, this.apiService});
+  const EquipesAdminScreen({super.key, this.apiService});
 
   @override
-  State<AtleticasAdminScreen> createState() => _AtleticasAdminScreenState();
+  State<EquipesAdminScreen> createState() => _EquipesAdminScreenState();
 }
 
-class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
+class _EquipesAdminScreenState extends State<EquipesAdminScreen>
     with SingleTickerProviderStateMixin {
   late final AdminApiService _apiService = widget.apiService ?? AdminApiService();
-  List<Atletica> _atleticas = [];
+  List<Equipe> _equipes = [];
   bool _isLoading = true;
   late AnimationController _animController;
-
-  bool get _modoPresidente => widget.minhaAtleticaId != null;
 
   @override
   void initState() {
@@ -29,7 +27,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _carregarAtleticas();
+    _carregarEquipes();
   }
 
   @override
@@ -38,39 +36,28 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     super.dispose();
   }
 
-  Future<void> _carregarAtleticas() async {
+  Future<void> _carregarEquipes() async {
     setState(() => _isLoading = true);
-
-    List<Atletica> lista;
-    if (_modoPresidente) {
-      // Busca somente a atlética do presidente
-      final atletica = await _apiService.buscarAtletica(
-        widget.minhaAtleticaId!,
-      );
-      lista = atletica != null ? [atletica] : [];
-    } else {
-      lista = await _apiService.listarAtleticas();
-    }
-
+    final lista = await _apiService.listarEquipes();
     setState(() {
-      _atleticas = lista;
+      _equipes = lista;
       _isLoading = false;
     });
     _animController.reset();
     _animController.forward();
   }
 
-  Future<void> _deletarAtletica(String id, String nome) async {
+  Future<void> _deletarEquipe(String id, String nome) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Excluir Atlética?',
+          'Excluir Time?',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.',
+          'Isso removerá o time "$nome" e todos os atletas inscritos.\nDeseja continuar?',
         ),
         actions: [
           TextButton(
@@ -92,11 +79,11 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     );
 
     if (confirmar == true) {
-      final sucesso = await _apiService.excluirAtletica(id);
+      final sucesso = await _apiService.excluirEquipe(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(sucesso ? 'Atlética excluída!' : 'Erro ao excluir.'),
+            content: Text(sucesso ? 'Time excluído!' : 'Erro ao excluir.'),
             backgroundColor: sucesso ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -104,17 +91,17 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
             ),
           ),
         );
-        if (sucesso) _carregarAtleticas();
+        if (sucesso) _carregarEquipes();
       }
     }
   }
 
-  void _abrirFormulario({Atletica? atletica}) async {
+  void _abrirFormulario({Equipe? equipe}) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AtleticaFormScreen(atletica: atletica)),
+      MaterialPageRoute(builder: (_) => EquipeFormScreen(equipe: equipe)),
     );
-    if (result == true) _carregarAtleticas();
+    if (result == true) _carregarEquipes();
   }
 
   @override
@@ -138,81 +125,54 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _modoPresidente ? 'MINHA ATLÉTICA' : 'ATLÉTICAS',
-              style: const TextStyle(
+              'TIMES',
+              style: TextStyle(
                 fontFamily: 'Bebas Neue',
                 fontSize: 22,
                 color: Colors.white,
                 letterSpacing: 1,
               ),
             ),
-            Row(
-              children: [
-                Text(
-                  _modoPresidente ? 'Edição permitida' : 'Gerenciamento',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-                if (_modoPresidente) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      '✏️ Sua atlética',
-                      style: TextStyle(fontSize: 10, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ],
+            Text(
+              'Gerenciamento',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _carregarAtleticas,
+            onPressed: _carregarEquipes,
           ),
         ],
       ),
-      // FAB só aparece para admin/delegado, não para presidente
-      floatingActionButton: _modoPresidente
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _abrirFormulario(),
-              backgroundColor: const Color(0xFFF85C39),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
-                'Nova',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _abrirFormulario(),
+        backgroundColor: const Color(0xFFF85C39),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Novo Time',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: Color(0xFFF85C39)),
               )
-            : _atleticas.isEmpty
+            : _equipes.isEmpty
             ? _buildEmptyState()
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                itemCount: _atleticas.length,
+                itemCount: _equipes.length,
                 itemBuilder: (context, index) {
                   final delay = index * 0.08;
                   final animation = CurvedAnimation(
@@ -230,7 +190,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                         begin: const Offset(0, 0.2),
                         end: Offset.zero,
                       ).animate(animation),
-                      child: _buildAtleticaCard(_atleticas[index]),
+                      child: _buildEquipeCard(_equipes[index]),
                     ),
                   );
                 },
@@ -239,13 +199,8 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     );
   }
 
-  Widget _buildAtleticaCard(Atletica a) {
-    final cor = a.corPrincipal != null
-        ? Color(
-            int.tryParse('0xFF${a.corPrincipal!.replaceAll('#', '')}') ??
-                0xFF2563EB,
-          )
-        : const Color(0xFF2563EB);
+  Widget _buildEquipeCard(Equipe e) {
+    final escudoUrl = e.atleticaEscudoUrl ?? e.atletica?.escudoUrl;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -254,7 +209,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: cor.withValues(alpha: 0.15),
+            color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -265,31 +220,35 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _abrirFormulario(atletica: a),
+          onTap: () => _abrirFormulario(equipe: e),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Escudo com cor da atlética
+                // Escudo da atlética
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: cor.withValues(alpha: 0.1),
+                    color: const Color(0xFF7C3AED).withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: cor.withValues(alpha: 0.3),
+                      color: const Color(0xFF7C3AED).withValues(alpha: 0.3),
                       width: 1.5,
                     ),
-                    image: a.escudoUrl != null && a.escudoUrl!.isNotEmpty
+                    image: escudoUrl != null && escudoUrl.isNotEmpty
                         ? DecorationImage(
-                            image: NetworkImage(a.escudoUrl!),
+                            image: NetworkImage(escudoUrl),
                             fit: BoxFit.cover,
                           )
                         : null,
                   ),
-                  child: a.escudoUrl == null || a.escudoUrl!.isEmpty
-                      ? Icon(Icons.shield, color: cor, size: 30)
+                  child: escudoUrl == null || escudoUrl.isEmpty
+                      ? const Icon(
+                          Icons.groups,
+                          color: Color(0xFF7C3AED),
+                          size: 28,
+                        )
                       : null,
                 ),
                 const SizedBox(width: 14),
@@ -298,79 +257,74 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        a.nome,
+                        e.nome,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 17,
+                          fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (a.sigla != null && a.sigla!.isNotEmpty)
+                      Text(
+                        e.atletica?.nome ?? 'Sem Atlética',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      if (e.modalidade?.nome != null &&
+                          e.modalidade!.nome.isNotEmpty)
+                        Row(
+                          children: [
                             Container(
+                              margin: const EdgeInsets.only(top: 4),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 3,
+                                vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: cor.withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFF7C3AED,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                a.sigla!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: cor,
+                                e.modalidade!.nome,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF7C3AED),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          if (a.corPrincipal != null &&
-                              a.corPrincipal!.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: cor,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                            ),
                           ],
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                 ),
+                // Ações
                 Column(
                   children: [
-                    // Editar: disponível para todos (admin e presidente)
                     IconButton(
                       icon: Icon(
                         Icons.edit_rounded,
                         color: Colors.blue.shade400,
                         size: 22,
                       ),
-                      onPressed: () => _abrirFormulario(atletica: a),
+                      onPressed: () => _abrirFormulario(equipe: e),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-                    // Excluir: apenas para admin/delegado, não para presidente
-                    if (!_modoPresidente) ...[
-                      const SizedBox(height: 8),
-                      IconButton(
-                        icon: Icon(
-                          Icons.delete_rounded,
-                          color: Colors.red.shade400,
-                          size: 22,
-                        ),
-                        onPressed: () => _deletarAtletica(a.id, a.nome),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                    const SizedBox(height: 6),
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_rounded,
+                        color: Colors.red.shade400,
+                        size: 22,
                       ),
-                    ],
+                      onPressed: () => _deletarEquipe(e.id, e.nome),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ],
                 ),
               ],
@@ -382,41 +336,14 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
   }
 
   Widget _buildEmptyState() {
-    if (_modoPresidente) {
-      // Estado especial para presidente sem atlética configurada
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.shield_outlined, size: 72, color: Colors.black38),
-            const SizedBox(height: 16),
-            const Text(
-              'Atlética não encontrada',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Seu perfil ainda não está vinculado\na uma atlética. Contate o administrador.',
-              style: TextStyle(color: Colors.black54, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shield_outlined, size: 72, color: Colors.black38),
+          Icon(Icons.groups_outlined, size: 72, color: Colors.black38),
           const SizedBox(height: 16),
           const Text(
-            'Nenhuma Atlética',
+            'Nenhum Time',
             style: TextStyle(
               color: Colors.black87,
               fontSize: 18,
@@ -425,7 +352,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Toque em "Nova" para cadastrar',
+            'Toque em "Novo Time" para criar',
             style: TextStyle(color: Colors.black54, fontSize: 14),
           ),
         ],
@@ -433,3 +360,6 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     );
   }
 }
+
+
+*/

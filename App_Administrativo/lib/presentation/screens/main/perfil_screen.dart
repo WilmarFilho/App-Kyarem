@@ -275,14 +275,6 @@ class _PerfilScreenState extends State<PerfilScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Seu acesso administrativo',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  color: Color(0xFF4B4B4B),
-                ),
-              ),
-              Text(
                 'PERFIL',
                 style: TextStyle(
                   fontFamily: 'Bebas Neue',

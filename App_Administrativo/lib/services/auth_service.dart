@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -61,13 +62,14 @@ class AuthService {
         'allowedAdminApp': data['allowedAdminApp'] == true,
       };
     } catch (e) {
+      debugPrint('⚠️ AuthService.getUserProfile ERRO: $e');
       return _defaultProfile();
     }
   }
 
-  bool isAdminRole(String role) => role == 'admin';
+  bool isAdminRole(String role) => role.toLowerCase() == 'admin';
 
-  bool isArbitroRole(String role) => role == 'referee';
+  bool isArbitroRole(String role) => role.toLowerCase() == 'referee';
 
   bool canAccessAdminApp(Map<String, dynamic> profile) =>
       profile['allowedAdminApp'] == true;

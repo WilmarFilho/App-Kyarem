@@ -1,6 +1,8 @@
+/*
+
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
-import '../../../services/admin_api_service.dart';
+import '../App_Administrativo/lib/services/admin_api_service.dart';
 
 class EquipeFormScreen extends StatefulWidget {
   final Equipe? equipe;
@@ -251,3 +253,5 @@ class _EquipeFormScreenState extends State<EquipeFormScreen> {
     );
   }
 }
+
+*/

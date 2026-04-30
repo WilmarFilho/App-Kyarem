@@ -19,11 +19,10 @@ class _MainScreenState extends State<MainScreen> {
   bool _isNavigatingFromTab = false;
 
   final AuthService _authService = AuthService();
-  String _userRole = 'user';
-
-  bool get _isAdminRole => _authService.isAdminRole(_userRole);
-  bool get _isPresidenteAtletica => false;
-  bool get _isArbitro => _authService.isArbitroRole(_userRole);
+  bool _isAdminRole = false;
+  bool _isPresidenteAtletica = false;
+  bool _isArbitro = false;
+  bool _perfilCarregado = false;
 
   @override
   void initState() {
@@ -35,6 +34,9 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _carregarPerfil() async {
     final profile = await _authService.getUserProfile();
+
+    debugPrint('MainScreen perfil → isAdmin=${profile['isAdmin']} isArbitro=${profile['isArbitro']} role=${profile['role']} allowed=${profile['allowedAdminApp']}');
+
     if (!_authService.canAccessAdminApp(profile)) {
       await _authService.logout();
       if (!mounted) return;
@@ -44,7 +46,11 @@ class _MainScreenState extends State<MainScreen> {
 
     if (mounted) {
       setState(() {
-        _userRole = profile['role'] as String? ?? 'user';
+        _isAdminRole = profile['isAdmin'] == true ||
+            _authService.isAdminRole(profile['role'] as String? ?? '');
+        _isArbitro = profile['isArbitro'] == true ||
+            _authService.isArbitroRole(profile['role'] as String? ?? '');
+        _perfilCarregado = true;
       });
     }
   }
@@ -86,9 +92,16 @@ class _MainScreenState extends State<MainScreen> {
             controller: _pageController,
             onPageChanged: _onPageChanged,
             physics: const BouncingScrollPhysics(),
-            children: const [
-              HomeScreen(isMainScreenChild: true),
-              ConfiguracoesScreen(isMainScreenChild: true),
+            children: [
+              // Passa as flags de permissão diretamente ao HomeScreen
+              // para evitar duplicação de chamadas HTTP e inconsistência de estado.
+              HomeScreen(
+                isMainScreenChild: true,
+                isAdminOverride: _isAdminRole,
+                isArbitroOverride: _isArbitro,
+                perfilJaCarregado: _perfilCarregado,
+              ),
+              const ConfiguracoesScreen(isMainScreenChild: true),
             ],
           ),
           BottomNavigationWidget(

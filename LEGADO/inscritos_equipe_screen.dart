@@ -1,7 +1,9 @@
+/*
+
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
-import '../../../services/admin_api_service.dart';
+import '../App_Administrativo/lib/services/admin_api_service.dart';
 import 'atleta_form_screen.dart';
 
 class InscritosEquipeScreen extends StatefulWidget {
@@ -669,3 +671,6 @@ class _ModalVincularAtletasState extends State<ModalVincularAtletas> {
     );
   }
 }
+
+
+*/

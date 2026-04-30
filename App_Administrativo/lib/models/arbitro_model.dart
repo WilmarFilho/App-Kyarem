@@ -4,12 +4,14 @@ class Arbitro {
   final String nome;
   final String? fotoUrl;
   final String? telefone;
+  final String role;
 
   Arbitro({
     required this.id,
     required this.nome,
     this.fotoUrl,
     this.telefone,
+    this.role = 'referee',
   });
 
   factory Arbitro.fromMap(Map<String, dynamic> map) {
@@ -18,6 +20,7 @@ class Arbitro {
       nome: map['nomeExibicao'] ?? map['nome'] ?? 'Sem nome',
       fotoUrl: map['fotoUrl'] ?? map['foto_url'],
       telefone: map['telefone'],
+      role: map['role'] ?? 'referee',
     );
   }
 }

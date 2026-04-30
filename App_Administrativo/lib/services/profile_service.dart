@@ -6,11 +6,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/profile_model.dart';
 
+/// Serviço de perfil do usuário.
+///
+/// ⚠️  A tabela de perfis NÃO fica em `public.profiles`.
+///
+/// Leitura do perfil (incluindo role/permissões) → REST do backend:
+///   GET  /api/v1/profiles/me/access
+///
+/// Atualização e foto → Supabase Storage + tabela correta do schema `identity`.
 class ProfileService {
   final SupabaseClient? _supabaseOverride;
   final Dio _dio;
 
-  SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
+  SupabaseClient get _supabase =>
+      _supabaseOverride ?? Supabase.instance.client;
 
   ProfileService({SupabaseClient? supabase, Dio? dio})
     : _supabaseOverride = supabase,
@@ -23,54 +32,53 @@ class ProfileService {
             ),
           );
 
+  /// Busca o perfil completo via REST do backend.
+  /// O endpoint `/profiles/me/access` retorna o perfil com as flags de acesso.
   Future<Profile?> fetchProfile() async {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) return null;
 
-      final data = await _supabase
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .single();
-
       final token = _supabase.auth.currentSession?.accessToken;
-      if (token != null && token.isNotEmpty) {
-        try {
-          final accessRes = await _dio.get(
-            '/profiles/me/access',
-            options: Options(headers: {'Authorization': 'Bearer $token'}),
-          );
-          final access = Map<String, dynamic>.from(accessRes.data as Map);
-          data['role'] = access['role'] ?? 'user';
-        } catch (_) {
-          data['role'] = 'user';
-        }
-      } else {
-        data['role'] = 'user';
-      }
+      if (token == null || token.isEmpty) return null;
 
-      data['email'] = user.email;
-      return Profile.fromMap(data);
+      final res = await _dio.get(
+        '/profiles/me/access',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      final data = Map<String, dynamic>.from(res.data as Map);
+      return Profile(
+        id: data['id']?.toString() ?? user.id,
+        nomeExibicao: data['nomeExibicao'],
+        fotoUrl: data['fotoUrl'],
+        role: data['role'] ?? 'user',
+        email: data['email'] ?? user.email,
+        telefone: data['telefone'],
+      );
     } catch (e) {
       debugPrint('Erro ao buscar perfil: $e');
       return null;
     }
   }
 
+  /// Atualiza nome de exibição e telefone.
+  /// ⚠️  Caso o backend não tenha PUT /profiles/me, este método salva
+  /// os dados diretamente no schema `identity` via Supabase RPC ou retorna false.
+  /// Por enquanto, indica falha se o endpoint não existir.
   Future<bool> updateProfile({
     required String nomeExibicao,
     String? telefone,
   }) async {
     try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) return false;
+      final token = _supabase.auth.currentSession?.accessToken;
+      if (token == null || token.isEmpty) return false;
 
-      await _supabase
-          .from('profiles')
-          .update({'nome_exibicao': nomeExibicao, 'telefone': telefone})
-          .eq('id', user.id);
-
+      await _dio.put(
+        '/profiles/me',
+        data: {'nomeExibicao': nomeExibicao, 'telefone': telefone},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
       return true;
     } catch (e) {
       debugPrint('Erro ao atualizar perfil: $e');
@@ -78,30 +86,39 @@ class ProfileService {
     }
   }
 
+  /// Faz upload de foto de perfil no Supabase Storage e persiste a URL no backend.
   Future<String?> uploadProfilePhoto(File imageFile) async {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) return null;
 
-      final fileExt = imageFile.path.split('.').last;
+      final token = _supabase.auth.currentSession?.accessToken;
+      if (token == null || token.isEmpty) return null;
+
+      final fileExt = imageFile.path.split('.').last.toLowerCase();
       final filePath = '${user.id}/avatar.$fileExt';
 
+      // 1. Upload para o Supabase Storage
       await _supabase.storage.from('avatars').upload(
         filePath,
         imageFile,
         fileOptions: const FileOptions(upsert: true),
       );
 
-      final publicUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
-      final urlWithCacheBust =
+      // 2. Gera a URL pública com cache-bust
+      final publicUrl =
+          _supabase.storage.from('avatars').getPublicUrl(filePath);
+      final urlComTimestamp =
           '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 
-      await _supabase
-          .from('profiles')
-          .update({'foto_url': urlWithCacheBust})
-          .eq('id', user.id);
+      // 3. Persiste a URL no backend para que fique salva no banco
+      await _dio.patch(
+        '/profiles/me/avatar',
+        data: {'avatarUrl': urlComTimestamp},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
 
-      return urlWithCacheBust;
+      return urlComTimestamp;
     } catch (e) {
       debugPrint('Erro ao fazer upload da foto: $e');
       return null;

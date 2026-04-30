@@ -1,9 +1,10 @@
+/*
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
-import '../../../services/admin_api_service.dart';
-import '../../widgets/presidente_selector_modal.dart';
+import '../App_Administrativo/lib/services/admin_api_service.dart';
+import '../App_Administrativo/lib/presentation/widgets/presidente_selector_modal.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class AtleticaFormScreen extends StatefulWidget {
@@ -643,3 +644,5 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
     );
   }
 }
+
+*/

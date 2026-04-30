@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     await _authService.logout();
     if (!mounted) return;
     setState(() {
-      _error = 'Acesso restrito. Este app é exclusivo para administradores e árbitros.';
+      _error = 'Este app é exclusivo para admins e árbitros.';
     });
   }
 

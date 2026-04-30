@@ -1,9 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/presentation/screens/admin/arbitros_screen.dart';
-import 'package:kyarem_eventos/presentation/screens/admin/atleta_form_screen.dart';
 import '../../screens/admin/campeonato_form_screen.dart';
-import '../../screens/admin/atletica_form_screen.dart';
-import '../../screens/admin/equipe_form_screen.dart';
 import '../../screens/admin/partida_form_screen.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
@@ -94,11 +91,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                 ),
               ),
 
-              // Árbitro: não pode criar nada
-              if (widget.isArbitro)
-                _buildReadOnlyMessage()
-              // Admin/Delegado: criação completa
-              else if (widget.isAdmin)
+              if (widget.isAdmin)
                 Column(
                   children: [
                     Row(
@@ -106,11 +99,11 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                       children: [
                         Expanded(
                           child: _buildAddOptionItem(
-                            Icons.sports_soccer,
-                            'Partida',
-                            const Color(0xFF2E9E56),
-                            onTap: () => _navegar(const PartidaFormScreen()),
-                          ),
+                        Icons.sports_soccer,
+                        'Partida',
+                        const Color(0xFF2E9E56),
+                        onTap: () => _navegar(const PartidaFormScreen()),
+                      ),
                         ),
                         Expanded(
                           child: _buildAddOptionItem(
@@ -118,36 +111,6 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                             'Campeonato',
                             const Color(0xFFE6A817),
                             onTap: () => _navegar(const CampeonatoFormScreen()),
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildAddOptionItem(
-                            Icons.shield,
-                            'Atlética',
-                            const Color(0xFF2563EB),
-                            onTap: () => _navegar(const AtleticaFormScreen()),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _buildAddOptionItem(
-                            Icons.groups,
-                            'Time',
-                            const Color(0xFF7C3AED),
-                            onTap: () => _navegar(const EquipeFormScreen()),
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildAddOptionItem(
-                            Icons.person,
-                            'Atleta',
-                            const Color(0xFFD946EF),
-                            onTap: () => _navegar(const AtletaFormScreen()),
                           ),
                         ),
                         Expanded(
@@ -162,20 +125,20 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                     ),
                   ],
                 )
-              // Presidente: apenas Times
-              else if (widget.isPresidenteAtletica)
+              else if (widget.isArbitro)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildAddOptionItem(
-                      Icons.groups,
-                      'Time',
-                      const Color(0xFF7C3AED),
-                      onTap: () => _navegar(const EquipeFormScreen()),
+                    Expanded(
+                      child: _buildAddOptionItem(
+                        Icons.sports_soccer,
+                        'Partida',
+                        const Color(0xFF2E9E56),
+                        onTap: () => _navegar(const PartidaFormScreen()),
+                        fullWidth: true,
+                      ),
                     ),
                   ],
                 )
-              // Usuário comum: sem permissão
               else
                 _buildReadOnlyMessage(),
             ],
@@ -198,7 +161,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
           Icon(Icons.lock_outline, color: Colors.grey.shade500, size: 22),
           const SizedBox(width: 10),
           Text(
-            'Você tem acesso somente\nleitura ao sistema.',
+            'Você não tem permissão\npara criar registros aqui.',
             style: TextStyle(
               color: Colors.grey.shade600,
               fontSize: 13,
@@ -216,13 +179,18 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
     String label,
     Color color, {
     VoidCallback? onTap,
+    bool fullWidth = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            width: fullWidth ? double.infinity : null,
+            padding: EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: fullWidth ? 0 : 16,
+            ),
             decoration: BoxDecoration(
               color: onTap != null
                   ? color.withValues(alpha: 0.12)
@@ -232,22 +200,42 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                   ? Border.all(color: color.withValues(alpha: 0.3), width: 1.5)
                   : null,
             ),
-            child: Icon(
-              icon,
-              color: onTap != null ? color : Colors.grey.shade400,
-              size: 28,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: onTap != null ? color : Colors.grey.shade400,
+                  size: 28,
+                ),
+                if (fullWidth) ...[
+                  const SizedBox(width: 12),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: onTap != null ? color : Colors.grey.shade400,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: onTap != null ? Colors.black87 : Colors.grey.shade400,
+          if (!fullWidth) ...[
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: onTap != null ? Colors.black87 : Colors.grey.shade400,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
