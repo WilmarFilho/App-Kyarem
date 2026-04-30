@@ -6,12 +6,21 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Service
 public class FirebaseCloudMessagingService {
+
+    private static final String FIREBASE_SERVICE_ACCOUNT_ENV = "FIREBASE_SERVICE_ACCOUNT_PATH";
+    private static final String GOOGLE_APPLICATION_CREDENTIALS_ENV = "GOOGLE_APPLICATION_CREDENTIALS";
 
     @PostConstruct
     public void initialize() {
@@ -19,32 +28,9 @@ public class FirebaseCloudMessagingService {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 System.out.println("No Firebase apps exist yet. Attempting to initialize one.");
-
-                // Tenta carregar o arquivo a partir da pasta resources
-                System.out.println("Looking for 'firebase-service-account.json' in classpath...");
-                InputStream serviceAccount = getClass().getClassLoader()
-                        .getResourceAsStream("firebase-service-account.json");
-
-                FirebaseOptions options;
-                if (serviceAccount != null) {
-                    System.out.println(
-                            "SUCCESS: Found 'firebase-service-account.json' in classpath. Initializing with this file.");
-                    options = FirebaseOptions.builder()
-                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                            .build();
-                } else {
-                    // Tenta usar a variável GOOGLE_APPLICATION_CREDENTIALS
-                    System.out.println("WARNING: 'firebase-service-account.json' NOT FOUND in classpath.");
-                    System.out.println("Attempting to use GOOGLE_APPLICATION_CREDENTIALS environment variable...");
-                    String envVar = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-                    System.out
-                            .println("GOOGLE_APPLICATION_CREDENTIALS is set to: " + (envVar != null ? envVar : "null"));
-
-                    options = FirebaseOptions.builder()
-                            .setCredentials(GoogleCredentials.getApplicationDefault())
-                            .build();
-                    System.out.println("SUCCESS: Loaded default application credentials.");
-                }
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(loadCredentials())
+                        .build();
 
                 System.out.println("Calling FirebaseApp.initializeApp(options)...");
                 FirebaseApp.initializeApp(options);
@@ -58,6 +44,71 @@ public class FirebaseCloudMessagingService {
             e.printStackTrace();
         }
         System.out.println("========== FIREBASE INITIALIZATION END ==========");
+    }
+
+    private GoogleCredentials loadCredentials() throws Exception {
+        GoogleCredentials envCredentials = tryLoadFromEnvironmentPath(FIREBASE_SERVICE_ACCOUNT_ENV);
+        if (envCredentials != null) {
+            return envCredentials;
+        }
+
+        envCredentials = tryLoadFromEnvironmentPath(GOOGLE_APPLICATION_CREDENTIALS_ENV);
+        if (envCredentials != null) {
+            return envCredentials;
+        }
+
+        Path workingDirectory = Paths.get("").toAbsolutePath().normalize();
+        List<Path> candidatePaths = List.of(
+                workingDirectory.resolve("firebase-service-account.json"),
+                workingDirectory.resolve("../firebase-service-account.json").normalize(),
+                workingDirectory.resolve("../config/firebase-service-account.json").normalize(),
+                workingDirectory.resolve("../secrets/firebase-service-account.json").normalize(),
+                workingDirectory.resolve("../../firebase-service-account.json").normalize());
+
+        for (Path candidatePath : candidatePaths) {
+            System.out.println("Looking for Firebase credentials at: " + candidatePath);
+            if (Files.exists(candidatePath)) {
+                try (InputStream inputStream = new FileInputStream(candidatePath.toFile())) {
+                    System.out.println("SUCCESS: Loaded Firebase credentials from local file.");
+                    return GoogleCredentials.fromStream(inputStream);
+                }
+            }
+        }
+
+        System.out.println("Looking for 'firebase-service-account.json' in classpath...");
+        ClassPathResource classPathResource = new ClassPathResource("firebase-service-account.json");
+        if (classPathResource.exists()) {
+            try (InputStream inputStream = classPathResource.getInputStream()) {
+                System.out.println("SUCCESS: Found 'firebase-service-account.json' in classpath.");
+                return GoogleCredentials.fromStream(inputStream);
+            }
+        }
+
+        System.out.println("Attempting to use Google application default credentials...");
+        GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
+        System.out.println("SUCCESS: Loaded Google application default credentials.");
+        return credentials;
+    }
+
+    private GoogleCredentials tryLoadFromEnvironmentPath(String envVarName) throws Exception {
+        String envPath = System.getenv(envVarName);
+        if (envPath == null || envPath.isBlank()) {
+            System.out.println(envVarName + " is not set.");
+            return null;
+        }
+
+        Path path = Paths.get(envPath);
+        System.out.println("Attempting to load Firebase credentials from "
+                + envVarName + ": " + path.toAbsolutePath());
+        if (!Files.exists(path)) {
+            System.out.println("WARNING: Path from " + envVarName + " was not found.");
+            return null;
+        }
+
+        try (InputStream inputStream = new FileInputStream(path.toFile())) {
+            System.out.println("SUCCESS: Loaded Firebase credentials from " + envVarName + ".");
+            return GoogleCredentials.fromStream(inputStream);
+        }
     }
 
     public void sendNotificationToTopic(String topic, String title, String body) {

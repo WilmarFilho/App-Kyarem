@@ -69,3 +69,7 @@ Desktop.ini
 *.log
 *.tmp
 *.bak
+
+firebase-service-account.json
+.env
+.env.prod
