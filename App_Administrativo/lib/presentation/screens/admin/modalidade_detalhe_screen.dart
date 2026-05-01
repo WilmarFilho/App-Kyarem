@@ -12,7 +12,8 @@ class ModalidadeDetalheScreen extends StatefulWidget {
   const ModalidadeDetalheScreen({super.key, required this.modalidade});
 
   @override
-  State<ModalidadeDetalheScreen> createState() => _ModalidadeDetalheScreenState();
+  State<ModalidadeDetalheScreen> createState() =>
+      _ModalidadeDetalheScreenState();
 }
 
 class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
@@ -65,7 +66,9 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
     if (disponiveis.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Essa modalidade ja esta associada a todos os campeonatos cadastrados.'),
+          content: Text(
+            'Essa modalidade ja esta associada a todos os campeonatos cadastrados.',
+          ),
         ),
       );
       return;
@@ -76,7 +79,6 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
     final categoriaCtrl = TextEditingController();
     String genero = _modalidade.genero;
     bool loading = false;
-    bool attemptedSubmit = false;
 
     try {
       final created = await showDialog<ModalidadeCampeonato?>(
@@ -110,14 +112,25 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
                                 _mostrarModalSelecao(
                                   context: context,
                                   titulo: 'Selecione o Campeonato',
-                                  opcoes: disponiveis.map((c) => _OpcaoSelect(valor: c.id, rotulo: c.nome)).toList(),
+                                  opcoes: disponiveis
+                                      .map(
+                                        (c) => _OpcaoSelect(
+                                          valor: c.id,
+                                          rotulo: c.nome,
+                                        ),
+                                      )
+                                      .toList(),
                                   selecionado: campeonatoId,
-                                  onChanged: (val) => setStateModal(() => campeonatoId = val),
+                                  onChanged: (val) =>
+                                      setStateModal(() => campeonatoId = val),
                                 );
                               },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
                             borderRadius: BorderRadius.circular(12),
@@ -126,10 +139,18 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                disponiveis.firstWhere((c) => c.id == campeonatoId, orElse: () => disponiveis.first).nome,
+                                disponiveis
+                                    .firstWhere(
+                                      (c) => c.id == campeonatoId,
+                                      orElse: () => disponiveis.first,
+                                    )
+                                    .nome,
                                 style: const TextStyle(fontSize: 16),
                               ),
-                              const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.black54,
+                              ),
                             ],
                           ),
                         ),
@@ -169,17 +190,31 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
                                   context: context,
                                   titulo: 'Selecione o Gênero',
                                   opcoes: const [
-                                    _OpcaoSelect(valor: 'MASCULINO', rotulo: 'Masculino'),
-                                    _OpcaoSelect(valor: 'FEMININO', rotulo: 'Feminino'),
-                                    _OpcaoSelect(valor: 'MISTO', rotulo: 'Misto'),
+                                    _OpcaoSelect(
+                                      valor: 'MASCULINO',
+                                      rotulo: 'Masculino',
+                                    ),
+                                    _OpcaoSelect(
+                                      valor: 'FEMININO',
+                                      rotulo: 'Feminino',
+                                    ),
+                                    _OpcaoSelect(
+                                      valor: 'MISTO',
+                                      rotulo: 'Misto',
+                                    ),
                                   ],
                                   selecionado: genero,
-                                  onChanged: (val) => setStateModal(() => genero = val ?? genero),
+                                  onChanged: (val) => setStateModal(
+                                    () => genero = val ?? genero,
+                                  ),
                                 );
                               },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
                             borderRadius: BorderRadius.circular(12),
@@ -191,7 +226,10 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
                                 _labelGenero(genero),
                                 style: const TextStyle(fontSize: 16),
                               ),
-                              const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.black54,
+                              ),
                             ],
                           ),
                         ),
@@ -218,30 +256,38 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
                     )
                   : ElevatedButton(
                       onPressed: () async {
-                        if (campeonatoId == null || campeonatoId!.isEmpty) return;
-                        attemptedSubmit = true;
+                        if (campeonatoId == null || campeonatoId!.isEmpty)
+                          return;
                         setStateModal(() => loading = true);
                         try {
-                          final result = await _api.associarModalidadeAoCampeonato({
-                            'campeonatoId': campeonatoId,
-                            'modalidadeCatalogoId': _modalidade.id,
-                            'nomeExibicao': nomeExibicaoCtrl.text.trim().isEmpty
-                                ? _modalidade.nome
-                                : nomeExibicaoCtrl.text.trim(),
-                            'categoria': categoriaCtrl.text.trim().isEmpty
-                                ? null
-                                : categoriaCtrl.text.trim(),
-                            'genero': genero,
-                            'status': 'ATIVA',
-                          });
+                          final result = await _api
+                              .associarModalidadeAoCampeonato({
+                                'campeonatoId': campeonatoId,
+                                'modalidadeCatalogoId': _modalidade.id,
+                                'nomeExibicao':
+                                    nomeExibicaoCtrl.text.trim().isEmpty
+                                    ? _modalidade.nome
+                                    : nomeExibicaoCtrl.text.trim(),
+                                'categoria': categoriaCtrl.text.trim().isEmpty
+                                    ? null
+                                    : categoriaCtrl.text.trim(),
+                                'genero': genero,
+                                'status': 'ATIVA',
+                              });
                           if (!context.mounted) return;
                           Navigator.pop(dialogContext, result);
                         } catch (e) {
                           setStateModal(() => loading = false);
                           if (!context.mounted) return;
-                          String errorMsg = e.toString().replaceAll('Exception: ', '');
+                          String errorMsg = e.toString().replaceAll(
+                            'Exception: ',
+                            '',
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+                            SnackBar(
+                              content: Text(errorMsg),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       },
@@ -302,7 +348,9 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'Associacao removida.' : 'Nao foi possivel remover a associacao.',
+          ok
+              ? 'Associacao removida.'
+              : 'Nao foi possivel remover a associacao.',
         ),
       ),
     );
@@ -586,7 +634,10 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
               padding: const EdgeInsets.all(20),
               child: Text(
                 titulo,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Flexible(
@@ -603,12 +654,17 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
                         color: const Color(0xFFF85C39).withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check_circle_outline, color: Color(0xFFF85C39)),
+                      child: const Icon(
+                        Icons.check_circle_outline,
+                        color: Color(0xFFF85C39),
+                      ),
                     ),
                     title: Text(
                       opcao.rotulo,
                       style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     trailing: isSelected
