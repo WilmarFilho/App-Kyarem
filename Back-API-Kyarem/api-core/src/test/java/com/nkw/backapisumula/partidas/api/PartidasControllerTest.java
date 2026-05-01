@@ -137,7 +137,7 @@ class PartidasControllerTest {
     @Test
     @WithMockUser(roles = "admin")
     void create_roleAdmin_retorna201() throws Exception {
-        when(service.create(any(), any(), any(), any(), any(), any(), any()))
+        when(service.create(any(), anyBoolean(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(partida("agendada"));
 
         String body = objectMapper.writeValueAsString(new PartidasController.CreatePartidaRequest(
@@ -154,7 +154,7 @@ class PartidasControllerTest {
     @Test
     @WithMockUser(roles = "delegado")
     void create_roleDelegado_retorna201() throws Exception {
-        when(service.create(any(), any(), any(), any(), any(), any(), any()))
+        when(service.create(any(), anyBoolean(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(partida("agendada"));
 
         String body = objectMapper.writeValueAsString(new PartidasController.CreatePartidaRequest(

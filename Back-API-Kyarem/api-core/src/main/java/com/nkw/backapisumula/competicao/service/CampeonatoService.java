@@ -29,6 +29,7 @@ public class CampeonatoService {
         c.setNome(c.getNome().trim());
         if (c.getNivel() != null) c.setNivel(c.getNivel().trim());
         if (c.getEscudoUrl() != null) c.setEscudoUrl(c.getEscudoUrl().trim());
+        if (c.getStatus() == null) c.setStatus("AGENDADO");
         c.setCriadoEm(OffsetDateTime.now());
         return repo.save(c);
     }
@@ -40,6 +41,7 @@ public class CampeonatoService {
         if (patch.getDataInicio() != null) c.setDataInicio(patch.getDataInicio());
         if (patch.getDataFim() != null) c.setDataFim(patch.getDataFim());
         if (patch.getEscudoUrl() != null) c.setEscudoUrl(patch.getEscudoUrl().trim());
+        if (patch.getStatus() != null) c.setStatus(patch.getStatus().trim());
         return repo.save(c);
     }
 

@@ -5,9 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
+import 'package:kyarem_eventos/models/atletica_membro_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 import 'package:kyarem_eventos/models/equipe_staff_model.dart';
+import 'package:kyarem_eventos/models/esporte_model.dart';
+import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
 
 class AdminApiService {
   final Dio _dio;
@@ -168,6 +171,59 @@ class AdminApiService {
     } catch (e) {
       debugPrint("Erro excluirAtletica: $e");
       return false;
+    }
+  }
+
+  Future<List<AtleticaMembro>> listarMembrosAtletica(String atleticaId) async {
+    try {
+      final res = await _dio.get('/atleticas/$atleticaId/membros');
+      return (res.data as List)
+          .map((e) => AtleticaMembro.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint("Erro listarMembrosAtletica: $e");
+      return [];
+    }
+  }
+
+  Future<AtleticaMembro?> associarMembroAtletica({
+    required String atleticaId,
+    required String userId,
+    required String papelCodigo,
+  }) async {
+    try {
+      final res = await _dio.post(
+        '/atleticas/$atleticaId/membros',
+        data: {'userId': userId, 'papelCodigo': papelCodigo},
+      );
+      return AtleticaMembro.fromMap(res.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint("Erro associarMembroAtletica: $e");
+      return null;
+    }
+  }
+
+  Future<AtleticaMembro?> criarEAssociarMembroAtletica({
+    required String atleticaId,
+    required String nomeExibicao,
+    required String email,
+    required String senha,
+    required String papelCodigo,
+  }) async {
+    try {
+      final res = await _dio.post(
+        '/atleticas/$atleticaId/membros/criar-user',
+        data: {
+          'nomeExibicao': nomeExibicao,
+          'email': email,
+          'senha': senha,
+          'papelCodigo': papelCodigo,
+        },
+      );
+      return AtleticaMembro.fromMap(res.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint("Erro criarEAssociarMembroAtletica: $e");
+      return null;
     }
   }
 
@@ -463,9 +519,58 @@ class AdminApiService {
   Future<List<dynamic>> listarModalidadesCatalogo() async {
     try {
       final res = await _dio.get('/modalidades-catalogo');
-      return res.data as List;
+      return (res.data as List)
+          .map((e) => ModalidadeCatalogo.fromMap(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint("Erro listarModalidadesCatalogo: $e");
+      return [];
+    }
+  }
+
+  Future<ModalidadeCatalogo?> criarModalidadeCatalogo(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final res = await _dio.post('/modalidades-catalogo', data: data);
+      return ModalidadeCatalogo.fromMap(res.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint("Erro criarModalidadeCatalogo: $e");
+      return null;
+    }
+  }
+
+  Future<ModalidadeCatalogo?> atualizarModalidadeCatalogo(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final res = await _dio.put('/modalidades-catalogo/$id', data: data);
+      return ModalidadeCatalogo.fromMap(res.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint("Erro atualizarModalidadeCatalogo: $e");
+      return null;
+    }
+  }
+
+  Future<bool> excluirModalidadeCatalogo(String id) async {
+    try {
+      await _dio.delete('/modalidades-catalogo/$id');
+      return true;
+    } catch (e) {
+      debugPrint("Erro excluirModalidadeCatalogo: $e");
+      return false;
+    }
+  }
+
+  Future<List<Esporte>> listarEsportes() async {
+    try {
+      final res = await _dio.get('/esportes');
+      return (res.data as List)
+          .map((e) => Esporte.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint("Erro listarEsportes: $e");
       return [];
     }
   }

@@ -60,14 +60,31 @@ public class PartidasController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('admin','director','referee')")
-    public PartidaResponse create(@Valid @RequestBody CreatePartidaRequest req) {
-        Partida p = service.create(req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.categoria(), req.fase());
+    @PreAuthorize("hasAnyRole('admin','referee')")
+    public PartidaResponse create(
+            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreatePartidaRequest req
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        boolean hasRefereeRole = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_referee"));
+        Partida p = service.create(
+                userId,
+                hasRefereeRole,
+                req.modalidadeId(),
+                req.equipeAId(),
+                req.equipeBId(),
+                req.agendadoPara(),
+                req.local(),
+                req.categoria(),
+                req.fase()
+        );
         return PartidaResponse.from(p);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin','director','referee')")
+    @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse update(@PathVariable UUID id,
                                  Authentication authentication,
                                  @AuthenticationPrincipal Jwt jwt,
@@ -79,7 +96,7 @@ public class PartidasController {
     }
 
     @GetMapping(value = "/{id}/sumula-oficial.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    @PreAuthorize("hasAnyRole('admin','director','referee')")
+    @PreAuthorize("hasAnyRole('admin','referee')")
     public ResponseEntity<byte[]> getOfficialPdf(@PathVariable UUID id) {
         byte[] pdf = sumulaOficialPdfService.gerarPdf(id);
         return ResponseEntity.ok()
@@ -89,7 +106,7 @@ public class PartidasController {
     }
 
     @PostMapping("/{id}/start")
-    @PreAuthorize("hasAnyRole('admin','director','referee')")
+    @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse start(@PathVariable UUID id,
                                  Authentication authentication,
                                  @AuthenticationPrincipal Jwt jwt) {
@@ -99,7 +116,7 @@ public class PartidasController {
     }
 
     @PostMapping("/{id}/end")
-    @PreAuthorize("hasAnyRole('admin','director','referee')")
+    @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse end(@PathVariable UUID id,
                                Authentication authentication,
                                @AuthenticationPrincipal Jwt jwt) {
@@ -110,7 +127,7 @@ public class PartidasController {
 
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('admin','director','referee')")
+    @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse updateStatus(@PathVariable UUID id,
                                         Authentication authentication,
                                         @AuthenticationPrincipal Jwt jwt,
@@ -123,14 +140,14 @@ public class PartidasController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyRole('admin','director')")
+    @PreAuthorize("hasRole('admin')")
     public void delete(@PathVariable UUID id) {
         service.delete(id);
     }
 
     private boolean isArbitroOnly(Authentication authentication) {
         boolean isAdminOrDirector = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_admin") || a.getAuthority().equals("ROLE_director"));
+                a.getAuthority().equals("ROLE_admin"));
         boolean isReferee = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_referee"));
         return isReferee && !isAdminOrDirector;
     }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
+import '../../screens/admin/atletica_detalhe_screen.dart';
 import '../../screens/admin/partida_form_screen.dart';
 import '../../screens/main/arbitro_detalhe_screen.dart';
 import '../../screens/admin/campeonato_form_screen.dart';
+import '../../screens/admin/modalidade_form_screen.dart';
 
 class HomeListItem extends StatelessWidget {
-  final dynamic item; // Pode ser Partida, Arbitro ou Campeonato
+  final dynamic item;
   final String type;
 
   const HomeListItem({super.key, required this.item, required this.type});
@@ -40,6 +43,14 @@ class HomeListItem extends StatelessWidget {
                 item.runtimeType.toString() != 'Arbitro'))) {
       titulo = item.nome;
       leading = const Icon(Icons.emoji_events, color: Colors.amber);
+    } else if (type == 'Atléticas') {
+      titulo = item.nome;
+      subTitulo = item.sigla?.toString();
+      leading = const Icon(Icons.shield, color: Color(0xFFF85C39));
+    } else if (type == 'Modalidades' && item is ModalidadeCatalogo) {
+      titulo = item.nome;
+      subTitulo = item.esporteNome;
+      leading = const Icon(Icons.sports, color: Color(0xFFF85C39));
     } else {
       titulo = 'Carregando...';
       leading = const Icon(Icons.sync, color: Colors.grey);
@@ -113,6 +124,20 @@ class HomeListItem extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => CampeonatoFormScreen(campeonato: item),
+              ),
+            );
+          } else if (type == 'Atléticas') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AtleticaDetalheScreen(atletica: item),
+              ),
+            );
+          } else if (type == 'Modalidades' && item is ModalidadeCatalogo) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ModalidadeFormScreen(modalidade: item),
               ),
             );
           }

@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/presentation/screens/admin/arbitros_screen.dart';
+import '../../screens/admin/atletica_form_screen.dart';
 import '../../screens/admin/campeonato_form_screen.dart';
+import '../../screens/admin/modalidade_form_screen.dart';
 import '../../screens/admin/partida_form_screen.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
@@ -121,6 +123,29 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
                             onTap: () => _navegar(const ArbitrosAdminScreen()),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.shield,
+                            'Atlética',
+                            const Color(0xFF2563EB),
+                            onTap: () => _navegar(const AtleticaFormScreen()),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildAddOptionItem(
+                            Icons.sports,
+                            'Modalidade',
+                            const Color(0xFF7C3AED),
+                            onTap: () => _navegar(const ModalidadeFormScreen()),
+                          ),
+                        ),
+                        const Expanded(child: SizedBox()),
                       ],
                     ),
                   ],

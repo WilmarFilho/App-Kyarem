@@ -1,6 +1,8 @@
 package com.nkw.backapisumula.competicao.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.nkw.backapisumula.cadastros.Esporte;
+import com.nkw.backapisumula.cadastros.repo.EsporteRepository;
 import com.nkw.backapisumula.competicao.Campeonato;
 import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.ModalidadeCatalogo;
@@ -23,20 +25,82 @@ public class ModalidadesController {
         private final CampeonatoModalidadeRepository campeonatoModalidadeRepository;
         private final CampeonatoRepository campeonatoRepository;
         private final ModalidadeCatalogoRepository modalidadeCatalogoRepository;
+        private final EsporteRepository esporteRepository;
 
         public ModalidadesController(CampeonatoModalidadeRepository campeonatoModalidadeRepository,
                         CampeonatoRepository campeonatoRepository,
-                        ModalidadeCatalogoRepository modalidadeCatalogoRepository) {
+                        ModalidadeCatalogoRepository modalidadeCatalogoRepository,
+                        EsporteRepository esporteRepository) {
                 this.campeonatoModalidadeRepository = campeonatoModalidadeRepository;
                 this.campeonatoRepository = campeonatoRepository;
                 this.modalidadeCatalogoRepository = modalidadeCatalogoRepository;
+                this.esporteRepository = esporteRepository;
         }
 
         @GetMapping("/api/v1/modalidades-catalogo")
         public List<ModalidadeCatalogoResponse> listCatalogo() {
-                return modalidadeCatalogoRepository.findAll().stream()
+                return modalidadeCatalogoRepository.findAllByOrderByNomeAsc().stream()
                                 .map(ModalidadeCatalogoResponse::from)
                                 .toList();
+        }
+
+        @GetMapping("/api/v1/modalidades-catalogo/{id}")
+        @PreAuthorize("hasAuthority('ROLE_admin')")
+        public ModalidadeCatalogoResponse getCatalogo(@PathVariable UUID id) {
+                ModalidadeCatalogo modalidadeCatalogo = modalidadeCatalogoRepository.findById(id)
+                                .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
+                return ModalidadeCatalogoResponse.from(modalidadeCatalogo);
+        }
+
+        @PostMapping("/api/v1/modalidades-catalogo")
+        @ResponseStatus(HttpStatus.CREATED)
+        @PreAuthorize("hasAuthority('ROLE_admin')")
+        public ModalidadeCatalogoResponse createCatalogo(@Valid @RequestBody CreateModalidadeCatalogoRequest request) {
+                ModalidadeCatalogo modalidadeCatalogo = new ModalidadeCatalogo();
+                Esporte esporte = esporteRepository.findById(request.esporteId())
+                                .orElseThrow(() -> new IllegalStateException("Esporte não encontrado."));
+                modalidadeCatalogo.setEsporte(esporte);
+                modalidadeCatalogo.setNome(request.nome());
+                modalidadeCatalogo.setSlug(request.slug());
+                modalidadeCatalogo.setGenero(request.genero());
+                modalidadeCatalogo.setMotorRegras(request.motorRegras());
+                modalidadeCatalogo.setMotorConfigsDefault(request.motorConfigsDefault());
+                modalidadeCatalogo.setEventosBaseJson(request.eventosBaseJson());
+                modalidadeCatalogo.setAtivo(request.ativo() == null ? Boolean.TRUE : request.ativo());
+                return ModalidadeCatalogoResponse.from(modalidadeCatalogoRepository.save(modalidadeCatalogo));
+        }
+
+        @PutMapping("/api/v1/modalidades-catalogo/{id}")
+        @PreAuthorize("hasAuthority('ROLE_admin')")
+        public ModalidadeCatalogoResponse updateCatalogo(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody UpdateModalidadeCatalogoRequest request) {
+                ModalidadeCatalogo modalidadeCatalogo = modalidadeCatalogoRepository.findById(id)
+                                .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
+
+                if (request.esporteId() != null) {
+                        Esporte esporte = esporteRepository.findById(request.esporteId())
+                                        .orElseThrow(() -> new IllegalStateException("Esporte não encontrado."));
+                        modalidadeCatalogo.setEsporte(esporte);
+                }
+                if (request.nome() != null) modalidadeCatalogo.setNome(request.nome());
+                if (request.slug() != null) modalidadeCatalogo.setSlug(request.slug());
+                if (request.genero() != null) modalidadeCatalogo.setGenero(request.genero());
+                if (request.motorRegras() != null) modalidadeCatalogo.setMotorRegras(request.motorRegras());
+                if (request.motorConfigsDefault() != null) modalidadeCatalogo.setMotorConfigsDefault(request.motorConfigsDefault());
+                if (request.eventosBaseJson() != null) modalidadeCatalogo.setEventosBaseJson(request.eventosBaseJson());
+                if (request.ativo() != null) modalidadeCatalogo.setAtivo(request.ativo());
+
+                return ModalidadeCatalogoResponse.from(modalidadeCatalogoRepository.save(modalidadeCatalogo));
+        }
+
+        @DeleteMapping("/api/v1/modalidades-catalogo/{id}")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        @PreAuthorize("hasAuthority('ROLE_admin')")
+        public void deleteCatalogo(@PathVariable UUID id) {
+                ModalidadeCatalogo modalidadeCatalogo = modalidadeCatalogoRepository.findById(id)
+                                .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
+                modalidadeCatalogoRepository.delete(modalidadeCatalogo);
         }
 
         @GetMapping("/api/v1/campeonatos/{campeonatoId}/modalidades")
@@ -58,7 +122,7 @@ public class ModalidadesController {
 
         @PostMapping("/api/v1/modalidades")
         @ResponseStatus(HttpStatus.CREATED)
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
+        @PreAuthorize("hasAuthority('ROLE_admin')")
         public ModalidadeResponse create(@Valid @RequestBody CreateModalidadeRequest request) {
                 Campeonato campeonato = campeonatoRepository.findById(request.campeonatoId())
                                 .orElseThrow(() -> new IllegalStateException("Campeonato não encontrado."));
@@ -87,7 +151,7 @@ public class ModalidadesController {
         }
 
         @PutMapping("/api/v1/modalidades/{id}")
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
+        @PreAuthorize("hasAuthority('ROLE_admin')")
         public ModalidadeResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateModalidadeRequest request) {
                 CampeonatoModalidade modalidade = campeonatoModalidadeRepository.findById(id)
                                 .orElseThrow(() -> new IllegalStateException(
@@ -141,6 +205,28 @@ public class ModalidadesController {
                         Boolean permiteProrrogacao,
                         Boolean permitePenaltis,
                         String status) {
+        }
+
+        public record CreateModalidadeCatalogoRequest(
+                        @NotNull UUID esporteId,
+                        @NotNull String nome,
+                        @NotNull String slug,
+                        @NotNull String genero,
+                        @NotNull String motorRegras,
+                        @JsonObject(allowNull = true) JsonNode motorConfigsDefault,
+                        @JsonObject(allowNull = true) JsonNode eventosBaseJson,
+                        Boolean ativo) {
+        }
+
+        public record UpdateModalidadeCatalogoRequest(
+                        UUID esporteId,
+                        String nome,
+                        String slug,
+                        String genero,
+                        String motorRegras,
+                        @JsonObject(allowNull = true) JsonNode motorConfigsDefault,
+                        @JsonObject(allowNull = true) JsonNode eventosBaseJson,
+                        Boolean ativo) {
         }
 
         public record UpdateModalidadeRequest(
@@ -211,7 +297,11 @@ public class ModalidadesController {
                         String esporteNome,
                         String nome,
                         String slug,
-                        String genero) {
+                        String genero,
+                        String motorRegras,
+                        JsonNode motorConfigsDefault,
+                        JsonNode eventosBaseJson,
+                        Boolean ativo) {
                 public static ModalidadeCatalogoResponse from(ModalidadeCatalogo modalidadeCatalogo) {
                         return new ModalidadeCatalogoResponse(
                                         modalidadeCatalogo.getId(),
@@ -223,7 +313,11 @@ public class ModalidadesController {
                                                         : null,
                                         modalidadeCatalogo.getNome(),
                                         modalidadeCatalogo.getSlug(),
-                                        modalidadeCatalogo.getGenero());
+                                        modalidadeCatalogo.getGenero(),
+                                        modalidadeCatalogo.getMotorRegras(),
+                                        modalidadeCatalogo.getMotorConfigsDefault(),
+                                        modalidadeCatalogo.getEventosBaseJson(),
+                                        modalidadeCatalogo.getAtivo());
                 }
         }
 }

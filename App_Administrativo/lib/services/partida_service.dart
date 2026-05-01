@@ -12,6 +12,7 @@ import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import '../models/arbitro_model.dart';
 import '../models/campeonato_model.dart';
+import '../models/modalidade_catalogo_model.dart';
 import '../models/tipo_evento_model.dart';
 
 class PartidaService {
@@ -396,6 +397,34 @@ class PartidaService {
     return [];
   }
 
+  Future<List<Atletica>> listarTodasAtleticas() async {
+    try {
+      final response = await _dio.get('/atleticas');
+      if (response.statusCode == 200) {
+        return (response.data as List)
+            .map((m) => Atletica.fromMap(m as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("Erro listarTodasAtleticas: $e");
+    }
+    return [];
+  }
+
+  Future<List<ModalidadeCatalogo>> listarTodasModalidadesCatalogo() async {
+    try {
+      final response = await _dio.get('/modalidades-catalogo');
+      if (response.statusCode == 200) {
+        return (response.data as List)
+            .map((m) => ModalidadeCatalogo.fromMap(m as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("Erro listarTodasModalidadesCatalogo: $e");
+    }
+    return [];
+  }
+
   Future<List<TipoEventoEsporte>> buscarTiposDeEventoDaPartida(
     String modalidadeId,
   ) async {
@@ -436,6 +465,10 @@ class PartidaService {
         return await listarTodosArbitros();
       case 'Campeonatos':
         return await listarTodosCampeonatos();
+      case 'Atléticas':
+        return await listarTodasAtleticas();
+      case 'Modalidades':
+        return await listarTodasModalidadesCatalogo();
       default:
         return [];
     }

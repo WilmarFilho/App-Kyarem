@@ -25,6 +25,7 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
 
   File? _selectedImage;
   String? _currentEscudoUrl;
+  String? _selectedStatus;
   bool _isSaving = false;
   bool _isUploading = false;
 
@@ -44,6 +45,7 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
       text: _formatDate(widget.campeonato?.dataFim),
     );
     _currentEscudoUrl = widget.campeonato?.escudoUrl;
+    _selectedStatus = widget.campeonato?.status ?? 'AGENDADO';
   }
 
   String _formatDate(DateTime? dt) {
@@ -99,6 +101,7 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
           ? _dataFimController.text
           : null,
       'escudoUrl': escudoUrl ?? '',
+      'status': _selectedStatus,
     };
 
     bool sucesso = false;
@@ -136,6 +139,136 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
     );
     if (selecionada != null) {
       controller.text = _formatDate(selecionada);
+    }
+  }
+
+  void _mostrarModalStatus() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'Status do Campeonato',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            _buildOpcaoStatus(
+              titulo: 'Agendado',
+              valor: 'AGENDADO',
+              icone: Icons.schedule,
+              cor: Colors.blue,
+            ),
+            _buildOpcaoStatus(
+              titulo: 'Em Andamento',
+              valor: 'EM_ANDAMENTO',
+              icone: Icons.play_circle_outline,
+              cor: Colors.green,
+            ),
+            _buildOpcaoStatus(
+              titulo: 'Finalizado',
+              valor: 'FINALIZADO',
+              icone: Icons.check_circle_outline,
+              cor: Colors.grey[700]!,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpcaoStatus({
+    required String titulo,
+    required String valor,
+    required IconData icone,
+    required Color cor,
+  }) {
+    final bool selecionado = _selectedStatus == valor;
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: cor.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icone, color: cor),
+      ),
+      title: Text(
+        titulo,
+        style: TextStyle(
+          fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: selecionado
+          ? Icon(Icons.check, color: Theme.of(context).primaryColor)
+          : null,
+      onTap: () {
+        setState(() {
+          _selectedStatus = valor;
+        });
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  String _obterTextoStatus() {
+    switch (_selectedStatus) {
+      case 'AGENDADO':
+        return 'Agendado';
+      case 'EM_ANDAMENTO':
+        return 'Em Andamento';
+      case 'FINALIZADO':
+        return 'Finalizado';
+      default:
+        return 'Agendado';
+    }
+  }
+
+  Color _obterCorStatus() {
+    switch (_selectedStatus) {
+      case 'AGENDADO':
+        return Colors.blue;
+      case 'EM_ANDAMENTO':
+        return Colors.green;
+      case 'FINALIZADO':
+        return Colors.grey[700]!;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  IconData _obterIconeStatus() {
+    switch (_selectedStatus) {
+      case 'AGENDADO':
+        return Icons.schedule;
+      case 'EM_ANDAMENTO':
+        return Icons.play_circle_outline;
+      case 'FINALIZADO':
+        return Icons.check_circle_outline;
+      default:
+        return Icons.schedule;
     }
   }
 
@@ -299,6 +432,8 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Nível (ex: Estadual, Nacional, etc)',
                   ),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Obrigatório' : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
@@ -309,6 +444,8 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                   ),
                   readOnly: true,
                   onTap: () => _selecionarData(_dataInicioController),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Obrigatório' : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
@@ -319,6 +456,71 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                   ),
                   readOnly: true,
                   onTap: () => _selecionarData(_dataFimController),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Obrigatório' : null,
+                ),
+                const SizedBox(height: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Status',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _mostrarModalStatus,
+                      borderRadius: BorderRadius.circular(15),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: Colors.grey[300]!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: _obterCorStatus().withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _obterIconeStatus(),
+                                color: _obterCorStatus(),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _obterTextoStatus(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.black54,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 _buildImagePicker(),

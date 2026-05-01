@@ -10,6 +10,7 @@ import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.nkw.backapisumula.competicao.repo.CampeonatoModalidadeRepository;
 import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
+import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import com.nkw.backapisumula.partidas.EventoPartida;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
@@ -57,6 +58,7 @@ public class PartidaService {
     private final CampeonatoTimeRepository equipeRepo;
     private final PartidaArbitroRepository partidaArbitroRepo;
     private final EventoPartidaRepository eventoRepo;
+    private final ProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
     private final SupabaseStorageService supabaseStorageService;
     private final SumulaOficialPdfService sumulaOficialPdfService;
@@ -67,6 +69,7 @@ public class PartidaService {
                           CampeonatoTimeRepository equipeRepo,
                           PartidaArbitroRepository partidaArbitroRepo,
                           EventoPartidaRepository eventoRepo,
+                          ProfileRepository profileRepository,
                           SupabaseStorageService supabaseStorageService,
                           SumulaOficialPdfService sumulaOficialPdfService,
                           EventPublisherService eventPublisherService) {
@@ -75,6 +78,7 @@ public class PartidaService {
         this.equipeRepo = equipeRepo;
         this.partidaArbitroRepo = partidaArbitroRepo;
         this.eventoRepo = eventoRepo;
+        this.profileRepository = profileRepository;
         this.supabaseStorageService = supabaseStorageService;
         this.sumulaOficialPdfService = sumulaOficialPdfService;
         this.eventPublisherService = eventPublisherService;
@@ -113,7 +117,17 @@ public class PartidaService {
     }
 
     @Transactional
-    public Partida create(UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, String categoria, String fase) {
+    public Partida create(
+            UUID creatorUserId,
+            boolean addCreatorAsReferee,
+            UUID modalidadeId,
+            UUID equipeAId,
+            UUID equipeBId,
+            OffsetDateTime agendadoPara,
+            String local,
+            String categoria,
+            String fase
+    ) {
         if (equipeAId.equals(equipeBId)) {
             throw new IllegalStateException("Equipe A e Equipe B não podem ser a mesma.");
         }
@@ -130,6 +144,7 @@ public class PartidaService {
         validateEquipeCompatibilidade(equipeA, equipeB);
 
         Partida p = new Partida();
+        p.setCampeonato(modalidade.getCampeonato());
         p.setModalidade(modalidade);
         p.setTimeA(equipeA);
         p.setTimeB(equipeB);
@@ -140,8 +155,22 @@ public class PartidaService {
         p.setStatus(STATUS_AGENDADA);
         p.setPlacarA(0);
         p.setPlacarB(0);
+        p.setCriadoPor(creatorUserId);
+        p.setAtualizadoEm(OffsetDateTime.now());
 
         Partida saved = repo.save(p);
+
+        if (addCreatorAsReferee) {
+            com.nkw.backapisumula.partidas.PartidaArbitro criadorVinculo = new com.nkw.backapisumula.partidas.PartidaArbitro();
+            criadorVinculo.setPartida(saved);
+            criadorVinculo.setArbitro(profileRepository.findById(creatorUserId)
+                    .orElseThrow(() -> new IllegalStateException("Perfil do árbitro criador não encontrado.")));
+            criadorVinculo.setFuncao("PRINCIPAL");
+            criadorVinculo.setIsCriador(true);
+            criadorVinculo.setAdicionadoPor(creatorUserId);
+            criadorVinculo.setCriadoEm(OffsetDateTime.now());
+            partidaArbitroRepo.save(criadorVinculo);
+        }
         
         eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaCriada", Map.of(
             "timeAId", equipeAId.toString(),

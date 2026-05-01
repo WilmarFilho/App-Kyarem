@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
-import 'package:kyarem_eventos/presentation/screens/admin/arbitros_screen.dart';
 import '../../../services/partida_service.dart';
 import '../../../services/admin_api_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
@@ -10,8 +9,11 @@ import '../../widgets/home/partida_card.dart';
 import '../../widgets/home/option_button.dart';
 import '../../widgets/home/home_list.dart';
 import '../game/partida_screen.dart';
-import '../admin/campeonatos_admin_screen.dart';
 import '../admin/partidas_admin_screen.dart';
+import '../admin/campeonatos_admin_screen.dart';
+import '../admin/arbitros_screen.dart';
+import '../admin/atleticas_admin_screen.dart';
+import '../admin/modalidades_admin_screen.dart';
 import '../../../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -174,11 +176,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // pula a chamada HTTP duplicada e vai direto para os dados.
     if (!widget.perfilJaCarregado) {
       final profile = await _authService.getUserProfile();
-      debugPrint('HomeScreen perfil → isAdmin=${profile['isAdmin']} role=${profile['role']} allowed=${profile['allowedAdminApp']}');
+      debugPrint(
+        'HomeScreen perfil → isAdmin=${profile['isAdmin']} role=${profile['role']} allowed=${profile['allowedAdminApp']}',
+      );
       if (!_authService.canAccessAdminApp(profile)) {
         await _authService.logout();
         if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/login',
+            (route) => false,
+          );
         }
         return;
       }
@@ -345,8 +353,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 28),
         ),
         const SizedBox(height: 15),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 44,
+          runSpacing: 14,
           children: _tabOptions
               .map(
                 (tab) => OptionButton(
@@ -380,15 +390,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     icon: Icons.sports_soccer,
                     label: 'Partidas',
                     color: const Color(0xFFF85C39),
-                    onTap: () =>
-                        _navegarAdmin(const PartidasAdminScreen(canEdit: true)),
+                    onTap: () => _navegarAdmin(
+                      PartidasAdminScreen(canEdit: _isAdminRole),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   _buildAdminShortcut(
                     icon: Icons.gavel,
                     label: 'Árbitros',
                     color: const Color(0xFFF85C39),
-                    onTap: () => _navegarAdmin(const ArbitrosAdminScreen()),
+                    onTap: () => _navegarAdmin(
+                      ArbitrosAdminScreen(canEdit: _isAdminRole),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.shield,
+                    label: 'Atléticas',
+                    color: const Color(0xFFF85C39),
+                    onTap: () => _navegarAdmin(const AtleticasAdminScreen()),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildAdminShortcut(
+                    icon: Icons.sports,
+                    label: 'Modalidades',
+                    color: const Color(0xFFF85C39),
+                    onTap: () => _navegarAdmin(const ModalidadesAdminScreen()),
                   ),
                 ],
               ],
@@ -516,10 +543,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2E9E56).withValues(alpha: 0.12),
+                              color: const Color(
+                                0xFF2E9E56,
+                              ).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color(0xFF2E9E56).withValues(alpha: 0.5),
+                                color: const Color(
+                                  0xFF2E9E56,
+                                ).withValues(alpha: 0.5),
                               ),
                             ),
                             child: const Row(

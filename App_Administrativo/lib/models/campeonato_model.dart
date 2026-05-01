@@ -5,6 +5,7 @@ class Campeonato {
   final DateTime? dataInicio;
   final DateTime? dataFim;
   final String? escudoUrl;
+  final String? status;
 
   Campeonato({
     required this.id,
@@ -13,6 +14,7 @@ class Campeonato {
     this.dataInicio,
     this.dataFim,
     this.escudoUrl,
+    this.status,
   });
 
   factory Campeonato.fromMap(Map<String, dynamic> map) {
@@ -20,8 +22,8 @@ class Campeonato {
       id: map['id'] ?? '',
       nome: map['nome'] ?? 'Sem nome',
       
-      // Suporta 'nivelCampeonato' (API) ou 'nivel_campeonato' (Supabase)
-      nivel: map['nivelCampeonato'] ?? map['nivel_campeonato'],
+      // Suporta 'nivel' (API) ou 'nivel_campeonato' (Supabase)
+      nivel: map['nivel'] ?? map['nivelCampeonato'] ?? map['nivel_campeonato'],
       
       // Tratamento de data para 'dataInicio' (API) ou 'data_inicio' (Supabase)
       dataInicio: _parseDate(map['dataInicio'] ?? map['data_inicio']),
@@ -29,6 +31,7 @@ class Campeonato {
       // Tratamento de data para 'dataFim' (API) ou 'data_fim' (Supabase)
       dataFim: _parseDate(map['dataFim'] ?? map['data_fim']),
       escudoUrl: map['escudoUrl'] ?? map['escudo_url'],
+      status: map['status'],
     );
   }
 

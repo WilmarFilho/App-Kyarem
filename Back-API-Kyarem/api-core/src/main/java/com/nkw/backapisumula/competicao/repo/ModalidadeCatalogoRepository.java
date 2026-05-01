@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface ModalidadeCatalogoRepository extends JpaRepository<ModalidadeCatalogo, UUID> {
+    java.util.List<ModalidadeCatalogo> findAllByOrderByNomeAsc();
 }
