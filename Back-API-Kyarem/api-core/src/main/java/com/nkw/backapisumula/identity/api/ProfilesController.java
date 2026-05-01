@@ -104,6 +104,65 @@ public class ProfilesController {
 
     public record UpdateAvatarRequest(String avatarUrl) {}
 
+    /** Obtém as preferências de notificação do usuário autenticado. */
+    @GetMapping("/me/notifications/prefs")
+    @PreAuthorize("isAuthenticated()")
+    public NotificationPrefsResponse getNotifPrefs(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Profile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Perfil não encontrado."));
+
+        return new NotificationPrefsResponse(
+                profile.getNotifTodasPartidas() != null ? profile.getNotifTodasPartidas() : true,
+                profile.getNotifMinhasPartidas() != null ? profile.getNotifMinhasPartidas() : true,
+                profile.getFcmToken()
+        );
+    }
+
+    /** Atualiza as preferências de notificação. */
+    @PatchMapping("/me/notifications/prefs")
+    @PreAuthorize("isAuthenticated()")
+    public NotificationPrefsResponse updateNotifPrefs(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpdateNotifPrefsRequest req
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Profile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Perfil não encontrado."));
+
+        if (req.notifTodasPartidas() != null) profile.setNotifTodasPartidas(req.notifTodasPartidas());
+        if (req.notifMinhasPartidas() != null) profile.setNotifMinhasPartidas(req.notifMinhasPartidas());
+
+        profile.setAtualizadoEm(OffsetDateTime.now());
+        profileRepository.save(profile);
+
+        return new NotificationPrefsResponse(
+                profile.getNotifTodasPartidas(),
+                profile.getNotifMinhasPartidas(),
+                profile.getFcmToken()
+        );
+    }
+
+    /** Atualiza o token FCM (pode ser null para limpar ao fazer logout). */
+    @PatchMapping("/me/notifications/token")
+    @PreAuthorize("isAuthenticated()")
+    public void updateFcmToken(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpdateFcmTokenRequest req
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Profile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Perfil não encontrado."));
+
+        profile.setFcmToken(req.fcmToken());
+        profile.setAtualizadoEm(OffsetDateTime.now());
+        profileRepository.save(profile);
+    }
+
+    public record UpdateNotifPrefsRequest(Boolean notifTodasPartidas, Boolean notifMinhasPartidas) {}
+    public record NotificationPrefsResponse(Boolean notifTodasPartidas, Boolean notifMinhasPartidas, String fcmToken) {}
+    public record UpdateFcmTokenRequest(String fcmToken) {}
+
     /**
      * Lista todos os profiles, opcionalmente filtrado por role.
      * GET /api/v1/profiles?role=president

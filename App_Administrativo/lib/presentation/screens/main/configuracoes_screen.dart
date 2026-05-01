@@ -284,7 +284,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                                 icon: Icons.sports_outlined,
                                 title: 'Minhas partidas',
                                 subtitle:
-                                    'Receba avisos só das partidas em que você é árbitro',
+                                    'Receba avisos das partidas que você é árbitro',
                                 value: _notifMinhasPartidas,
                                 onChanged: _toggleNotifMinhasPartidas,
                               ),

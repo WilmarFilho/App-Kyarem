@@ -30,6 +30,15 @@ public class Profile {
     @Transient
     private String role;
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
+    @Column(name = "notif_todas_partidas")
+    private Boolean notifTodasPartidas = true;
+
+    @Column(name = "notif_minhas_partidas")
+    private Boolean notifMinhasPartidas = true;
+
     @Column(name = "atualizado_em")
     private OffsetDateTime atualizadoEm;
 
@@ -64,6 +73,15 @@ public class Profile {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getFcmToken() { return fcmToken; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+
+    public Boolean getNotifTodasPartidas() { return notifTodasPartidas; }
+    public void setNotifTodasPartidas(Boolean notifTodasPartidas) { this.notifTodasPartidas = notifTodasPartidas; }
+
+    public Boolean getNotifMinhasPartidas() { return notifMinhasPartidas; }
+    public void setNotifMinhasPartidas(Boolean notifMinhasPartidas) { this.notifMinhasPartidas = notifMinhasPartidas; }
 
     public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(OffsetDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }

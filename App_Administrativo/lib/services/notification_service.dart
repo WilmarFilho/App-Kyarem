@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -28,7 +29,18 @@ class NotificationService {
   static const String _prefTodasPartidas = 'notif_todas_partidas';
   static const String _prefMinhasPartidas = 'notif_minhas_partidas';
 
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: 'http://10.0.2.2:8080/api/v1',
+      connectTimeout: const Duration(seconds: 10),
+    ),
+  );
+
   bool _initialized = false;
+
+  Future<String?> _getToken() async {
+    return Supabase.instance.client.auth.currentSession?.accessToken;
+  }
 
   // ============================================================
   // INICIALIZAÇÃO
@@ -86,28 +98,32 @@ class NotificationService {
     }
   }
 
-  /// Salva o token FCM do dispositivo no perfil Supabase do usuario logado.
   Future<void> _registerFcmToken() async {
     try {
-      final token = await _messaging.getToken();
+      final fcmToken = await _messaging.getToken();
+      if (fcmToken == null) return;
+
+      debugPrint('[FCM] Token: $fcmToken');
+
+      final token = await _getToken();
       if (token == null) return;
 
-      debugPrint('[FCM] Token: $token');
-
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
-
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'fcm_token': token})
-          .eq('id', userId);
+      await _dio.patch(
+        '/profiles/me/notifications/token',
+        data: {'fcmToken': fcmToken},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
 
       // Atualizar token quando rotacionado pelo Firebase
       _messaging.onTokenRefresh.listen((newToken) async {
-        await Supabase.instance.client
-            .from('profiles')
-            .update({'fcm_token': newToken})
-            .eq('id', userId);
+        final currentToken = await _getToken();
+        if (currentToken != null) {
+          await _dio.patch(
+            '/profiles/me/notifications/token',
+            data: {'fcmToken': newToken},
+            options: Options(headers: {'Authorization': 'Bearer $currentToken'}),
+          );
+        }
       });
     } catch (e) {
       debugPrint('[FCM] Erro ao registrar token: $e');
@@ -167,16 +183,16 @@ class NotificationService {
   /// Fallback para SharedPreferences se banco nao acessivel.
   Future<({bool todasPartidas, bool minhasPartidas})> loadPrefs() async {
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        final data = await Supabase.instance.client
-            .from('profiles')
-            .select('notif_todas_partidas, notif_minhas_partidas')
-            .eq('id', userId)
-            .single();
+      final token = await _getToken();
+      if (token != null) {
+        final response = await _dio.get(
+          '/profiles/me/notifications/prefs',
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
 
-        final todas = data['notif_todas_partidas'] as bool? ?? true;
-        final minhas = data['notif_minhas_partidas'] as bool? ?? true;
+        final data = response.data;
+        final todas = data['notifTodasPartidas'] as bool? ?? true;
+        final minhas = data['notifMinhasPartidas'] as bool? ?? true;
 
         // Cache local
         final prefs = await SharedPreferences.getInstance();
@@ -203,15 +219,16 @@ class NotificationService {
     required bool minhasPartidas,
   }) async {
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        await Supabase.instance.client
-            .from('profiles')
-            .update({
-              'notif_todas_partidas': todasPartidas,
-              'notif_minhas_partidas': minhasPartidas,
-            })
-            .eq('id', userId);
+      final token = await _getToken();
+      if (token != null) {
+        await _dio.patch(
+          '/profiles/me/notifications/prefs',
+          data: {
+            'notifTodasPartidas': todasPartidas,
+            'notifMinhasPartidas': minhasPartidas,
+          },
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
       }
     } catch (e) {
       debugPrint('[FCM] Erro ao salvar prefs: $e');
@@ -225,12 +242,13 @@ class NotificationService {
   /// Limpa o token FCM do banco ao fazer logout.
   Future<void> clearFcmToken() async {
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        await Supabase.instance.client
-            .from('profiles')
-            .update({'fcm_token': null})
-            .eq('id', userId);
+      final token = await _getToken();
+      if (token != null) {
+        await _dio.patch(
+          '/profiles/me/notifications/token',
+          data: {'fcmToken': null},
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
       }
       await _messaging.deleteToken();
     } catch (e) {
