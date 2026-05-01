@@ -77,11 +77,11 @@ public class CampeonatosController {
         String ext = (originalName != null && originalName.contains("."))
                 ? originalName.substring(originalName.lastIndexOf('.'))
                 : ".jpg";
-        String path = "campeonatos/" + UUID.randomUUID() + ext;
+        String path = UUID.randomUUID() + ext;
         String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
 
-        imageUploadService.uploadImage("avatars", path, file.getBytes(), contentType);
-        String publicUrl = imageUploadService.getPublicUrl("avatars", path);
+        imageUploadService.uploadImage("campeonatos", path, file.getBytes(), contentType);
+        String publicUrl = imageUploadService.getPublicUrl("campeonatos", path);
 
         return Map.of("url", publicUrl);
     }

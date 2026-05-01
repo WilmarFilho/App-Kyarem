@@ -91,7 +91,7 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
 
     final data = {
       'nome': _nomeController.text,
-      'nivelCampeonato': _nivelController.text,
+      'nivel': _nivelController.text,
       'dataInicio': _dataInicioController.text.isNotEmpty
           ? _dataInicioController.text
           : null,

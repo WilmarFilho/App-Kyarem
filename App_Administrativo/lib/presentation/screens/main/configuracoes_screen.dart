@@ -322,23 +322,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                           ),
                           const SizedBox(height: 18),
                           _buildSection(
-                            title: 'Experiência',
-                            subtitle: 'Ajustes visuais e de uso do painel.',
+                            title: 'Sobre o App',
+                            subtitle: 'Veja informações sobre a versão atual',
                             children: [
-                              _buildSwitchTile(
-                                icon: Icons.view_compact_alt_outlined,
-                                title: 'Modo compacto',
-                                subtitle:
-                                    'Reduz espaços e destaca informação densa',
-                                value: _modoCompacto,
-                                onChanged: (value) async {
-                                  setState(() => _modoCompacto = value);
-                                  await _savePreference(
-                                    'admin_modo_compacto',
-                                    value,
-                                  );
-                                },
-                              ),
                               const SizedBox(height: 12),
                               _buildStaticInfoTile(
                                 icon: Icons.verified_outlined,
@@ -647,13 +633,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                 children: [
                   Text(
                     title,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111111),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111111),
+                    ),
                   ),
-                ),
                   Text(
                     subtitle,
                     style: const TextStyle(
