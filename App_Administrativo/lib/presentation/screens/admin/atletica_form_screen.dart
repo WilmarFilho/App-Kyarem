@@ -17,13 +17,14 @@ class AtleticaFormScreen extends StatefulWidget {
 class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final AdminApiService _apiService = AdminApiService();
+  final ImagePicker _picker = ImagePicker();
 
   late final TextEditingController _nomeController;
   late final TextEditingController _siglaController;
-  
+
   Color _selectedColor = const Color(0xFFF85C39);
-  
-  final ImagePicker _picker = ImagePicker();
+  String? _selectedStatus;
+
   File? _selectedImage;
   String? _currentEscudoUrl;
 
@@ -34,16 +35,17 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
   void initState() {
     super.initState();
     _nomeController = TextEditingController(text: widget.atletica?.nome ?? '');
-    _siglaController = TextEditingController(text: widget.atletica?.sigla ?? '');
-    
+    _siglaController = TextEditingController(
+      text: widget.atletica?.sigla ?? '',
+    );
     _currentEscudoUrl = widget.atletica?.escudoUrl;
+    _selectedStatus = widget.atletica?.status ?? 'ATIVA';
 
-    if (widget.atletica?.corPrincipal != null && widget.atletica!.corPrincipal!.isNotEmpty) {
+    if (widget.atletica?.corPrincipal != null &&
+        widget.atletica!.corPrincipal!.isNotEmpty) {
       try {
         String hex = widget.atletica!.corPrincipal!.replaceAll('#', '');
-        if (hex.length == 6) {
-          hex = 'FF$hex';
-        }
+        if (hex.length == 6) hex = 'FF$hex';
         _selectedColor = Color(int.parse(hex, radix: 16));
       } catch (_) {}
     }
@@ -57,11 +59,14 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
     if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
+      setState(() => _selectedImage = File(image.path));
     }
   }
 
@@ -71,36 +76,169 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
       builder: (BuildContext context) {
         Color tempColor = _selectedColor;
         return AlertDialog(
-          title: const Text('Selecione uma cor'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text('Selecione a cor principal'),
           content: SingleChildScrollView(
             child: BlockPicker(
               pickerColor: _selectedColor,
-              onColorChanged: (Color color) {
-                tempColor = color;
-              },
+              onColorChanged: (Color color) => tempColor = color,
             ),
           ),
           actions: [
             TextButton(
               child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF85C39)),
-              child: const Text('Selecionar', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF85C39),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               onPressed: () {
-                setState(() {
-                  _selectedColor = tempColor;
-                });
+                setState(() => _selectedColor = tempColor);
                 Navigator.of(context).pop();
               },
+              child: const Text(
+                'Selecionar',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
       },
     );
+  }
+
+  void _mostrarModalStatus() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'Status da Atlética',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            _buildOpcaoStatus(
+              titulo: 'Ativa',
+              valor: 'ATIVA',
+              icone: Icons.check_circle_outline,
+              cor: Colors.green,
+            ),
+            _buildOpcaoStatus(
+              titulo: 'Inativa',
+              valor: 'INATIVA',
+              icone: Icons.pause_circle_outline,
+              cor: Colors.orange,
+            ),
+            _buildOpcaoStatus(
+              titulo: 'Suspensa',
+              valor: 'SUSPENSA',
+              icone: Icons.block,
+              cor: Colors.red,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpcaoStatus({
+    required String titulo,
+    required String valor,
+    required IconData icone,
+    required Color cor,
+  }) {
+    final bool selecionado = _selectedStatus == valor;
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: cor.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icone, color: cor),
+      ),
+      title: Text(
+        titulo,
+        style: TextStyle(
+          fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: selecionado
+          ? const Icon(Icons.check, color: Color(0xFFF85C39))
+          : null,
+      onTap: () {
+        setState(() => _selectedStatus = valor);
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  String _obterTextoStatus() {
+    switch (_selectedStatus) {
+      case 'ATIVA':
+        return 'Ativa';
+      case 'INATIVA':
+        return 'Inativa';
+      case 'SUSPENSA':
+        return 'Suspensa';
+      default:
+        return 'Ativa';
+    }
+  }
+
+  Color _obterCorStatus() {
+    switch (_selectedStatus) {
+      case 'ATIVA':
+        return Colors.green;
+      case 'INATIVA':
+        return Colors.orange;
+      case 'SUSPENSA':
+        return Colors.red;
+      default:
+        return Colors.green;
+    }
+  }
+
+  IconData _obterIconeStatus() {
+    switch (_selectedStatus) {
+      case 'ATIVA':
+        return Icons.check_circle_outline;
+      case 'INATIVA':
+        return Icons.pause_circle_outline;
+      case 'SUSPENSA':
+        return Icons.block;
+      default:
+        return Icons.check_circle_outline;
+    }
   }
 
   Future<void> _salvar() async {
@@ -109,7 +247,6 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
 
     String? escudoUrl = _currentEscudoUrl;
 
-    // Se selecionou uma nova imagem, faz upload primeiro
     if (_selectedImage != null) {
       setState(() => _isUploading = true);
       escudoUrl = await _apiService.uploadEscudoAtletica(_selectedImage!);
@@ -125,11 +262,15 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
       }
     }
 
+    final corHex =
+        '#${_selectedColor.value.toRadixString(16).substring(2, 8).toUpperCase()}';
+
     final payload = {
       'nome': _nomeController.text.trim(),
       'sigla': _siglaController.text.trim(),
-      'corPrincipal': '#${_selectedColor.value.toRadixString(16).substring(2, 8).toUpperCase()}',
+      'corPrincipal': corHex,
       'escudoUrl': escudoUrl,
+      'status': _selectedStatus ?? 'ATIVA',
     };
 
     final sucesso = widget.atletica == null
@@ -144,75 +285,109 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Erro ao salvar atlética.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Erro ao salvar atlética.')));
   }
 
   Widget _buildImagePicker() {
-    return Center(
-      child: Stack(
-        children: [
-          Container(
-            width: 120,
-            height: 120,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Escudo / Logo',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            width: double.infinity,
+            height: 160,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.shade300, width: 2),
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5),
             ),
-            child: ClipOval(
-              child: _selectedImage != null
-                  ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                  : (_currentEscudoUrl != null && _currentEscudoUrl!.isNotEmpty)
-                      ? Image.network(_currentEscudoUrl!, fit: BoxFit.cover)
-                      : Icon(Icons.shield, size: 50, color: Colors.grey.shade400),
+            child: _buildImageContent(),
+          ),
+        ),
+        if (_selectedImage != null ||
+            (_currentEscudoUrl != null && _currentEscudoUrl!.isNotEmpty))
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedImage = null;
+                  _currentEscudoUrl = null;
+                });
+              },
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 18,
+              ),
+              label: const Text('Remover', style: TextStyle(color: Colors.red)),
             ),
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF85C39),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-          if (_selectedImage != null || _currentEscudoUrl != null)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedImage = null;
-                    _currentEscudoUrl = null;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 16),
-                ),
-              ),
-            ),
-        ],
-      ),
+      ],
+    );
+  }
+
+  Widget _buildImageContent() {
+    if (_selectedImage != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Image.file(
+          _selectedImage!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 160,
+        ),
+      );
+    }
+    if (_currentEscudoUrl != null && _currentEscudoUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Image.network(
+          _currentEscudoUrl!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 160,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+        ),
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 48,
+          color: Colors.grey[400],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Toque para selecionar um escudo',
+          style: TextStyle(color: Colors.grey[500], fontSize: 13),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.atletica != null;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -245,32 +420,99 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 5),
+              ),
+            ],
           ),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildImagePicker(),
-                const SizedBox(height: 24),
                 TextFormField(
                   controller: _nomeController,
-                  decoration: _inputDecoration('Nome da atlética'),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Obrigatório' : null,
+                  decoration: _inputDecoration('Nome da Atlética'),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 15),
                 TextFormField(
                   controller: _siglaController,
                   decoration: _inputDecoration('Sigla'),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Obrigatório' : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 15),
+
+                // ── Status selector ──────────────────────────────────────
+                const Text(
+                  'Status',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: _mostrarModalStatus,
+                  borderRadius: BorderRadius.circular(15),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: _obterCorStatus().withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _obterIconeStatus(),
+                            color: _obterCorStatus(),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _obterTextoStatus(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.black54,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                // ── Color picker ─────────────────────────────────────────
                 const Text(
                   'Cor Principal',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.black54,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -280,8 +522,8 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                     height: 55,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
                       children: [
@@ -300,31 +542,57 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                           style: const TextStyle(fontSize: 16),
                         ),
                         const Spacer(),
-                        const Icon(Icons.color_lens, color: Colors.grey),
+                        const Icon(Icons.color_lens, color: Colors.black54),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+
+                const SizedBox(height: 20),
+                _buildImagePicker(),
+                const SizedBox(height: 30),
+
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: 50,
                   child: ElevatedButton(
                     onPressed: (_isSaving || _isUploading) ? null : _salvar,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF85C39),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(15),
                       ),
                     ),
                     child: (_isSaving || _isUploading)
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _isUploading
+                                    ? 'Enviando escudo...'
+                                    : 'Salvando...',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          )
                         : Text(
                             isEditing ? 'Salvar alterações' : 'Criar atlética',
                             style: const TextStyle(
                               color: Colors.white,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
                             ),
                           ),
                   ),

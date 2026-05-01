@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -108,7 +110,7 @@ class PartidasControllerTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // POST /api/v1/partidas — somente admin, delegado, árbitro
+    // POST /api/v1/partidas — somente admin e arbitro
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -135,7 +137,6 @@ class PartidasControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "admin")
     void create_roleAdmin_retorna201() throws Exception {
         when(service.create(any(), anyBoolean(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(partida("agendada"));
@@ -144,6 +145,8 @@ class PartidasControllerTest {
                 MODAL_ID, EQUIPE_A_ID, EQUIPE_B_ID, null, "Ginásio A", "Masculino", "Grupos"));
 
         mockMvc.perform(post("/api/v1/partidas")
+                        .with(jwt().jwt(jwt -> jwt.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("ROLE_admin")))
                         .with(csrf()) // necessário para POST/PUT/DELETE com Spring Security
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -152,8 +155,7 @@ class PartidasControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "delegado")
-    void create_roleDelegado_retorna201() throws Exception {
+    void create_roleReferee_retorna201() throws Exception {
         when(service.create(any(), anyBoolean(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(partida("agendada"));
 
@@ -161,6 +163,8 @@ class PartidasControllerTest {
                 MODAL_ID, EQUIPE_A_ID, EQUIPE_B_ID, null, null, null, null));
 
         mockMvc.perform(post("/api/v1/partidas")
+                        .with(jwt().jwt(jwt -> jwt.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("ROLE_referee")))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))

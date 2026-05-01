@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../services/auth_service.dart';
+import '../../../services/notification_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
@@ -24,10 +24,8 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
 
   String _userRole = 'user';
   bool _loading = true;
-  bool _notificacoesGerais = true;
-  bool _notificacoesPartidas = true;
-  bool _notificacoesResultados = true;
-  bool _modoCompacto = false;
+  bool _notifTodasPartidas = true;
+  bool _notifMinhasPartidas = true;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeAnimation;
@@ -57,7 +55,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
     final profile = await _authService.getUserProfile();
     if (!_authService.canAccessAdminApp(profile)) {
       await _authService.logout();
@@ -68,37 +65,33 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
 
     if (!mounted) return;
 
+    // Carregar preferencias de notificacao do Supabase
+    final notifPrefs = await NotificationService().loadPrefs();
+
     setState(() {
       _userRole = profile['role'] as String? ?? 'user';
-      _notificacoesGerais = prefs.getBool('admin_notif_gerais') ?? true;
-      _notificacoesPartidas = prefs.getBool('admin_notif_partidas') ?? true;
-      _notificacoesResultados = prefs.getBool('admin_notif_resultados') ?? true;
-      _modoCompacto = prefs.getBool('admin_modo_compacto') ?? false;
+      _notifTodasPartidas = notifPrefs.todasPartidas;
+      _notifMinhasPartidas = notifPrefs.minhasPartidas;
       _loading = false;
     });
 
     _animController.forward();
   }
 
-  Future<void> _savePreference(String key, bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
+  Future<void> _toggleNotifTodasPartidas(bool value) async {
+    setState(() => _notifTodasPartidas = value);
+    await NotificationService().savePrefs(
+      todasPartidas: value,
+      minhasPartidas: _notifMinhasPartidas,
+    );
   }
 
-  Future<void> _toggleNotificacoesGerais(bool value) async {
-    setState(() {
-      _notificacoesGerais = value;
-      if (!value) {
-        _notificacoesPartidas = false;
-        _notificacoesResultados = false;
-      }
-    });
-
-    await _savePreference('admin_notif_gerais', value);
-    if (!value) {
-      await _savePreference('admin_notif_partidas', false);
-      await _savePreference('admin_notif_resultados', false);
-    }
+  Future<void> _toggleNotifMinhasPartidas(bool value) async {
+    setState(() => _notifMinhasPartidas = value);
+    await NotificationService().savePrefs(
+      todasPartidas: _notifTodasPartidas,
+      minhasPartidas: value,
+    );
   }
 
   Future<void> _logout() async {
@@ -276,47 +269,24 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                           _buildSection(
                             title: 'Notificações',
                             subtitle:
-                                'Controle os avisos operacionais do painel.',
+                                'Escolha quais eventos te avisam em tempo real.',
                             children: [
                               _buildSwitchTile(
                                 icon: Icons.notifications_active_outlined,
-                                title: 'Notificações gerais',
-                                subtitle: 'Liga ou desliga todos os avisos',
-                                value: _notificacoesGerais,
-                                onChanged: _toggleNotificacoesGerais,
-                              ),
-                              const SizedBox(height: 12),
-                              _buildSwitchTile(
-                                icon: Icons.sports_soccer_outlined,
-                                title: 'Alertas de partidas',
+                                title: 'Todas as partidas',
                                 subtitle:
-                                    'Mudanças de status e eventos da partida',
-                                value: _notificacoesPartidas,
-                                enabled: _notificacoesGerais,
-                                onChanged: (value) async {
-                                  setState(() => _notificacoesPartidas = value);
-                                  await _savePreference(
-                                    'admin_notif_partidas',
-                                    value,
-                                  );
-                                },
+                                    'Receba avisos de status e períodos de qualquer partida',
+                                value: _notifTodasPartidas,
+                                onChanged: _toggleNotifTodasPartidas,
                               ),
                               const SizedBox(height: 12),
                               _buildSwitchTile(
-                                icon: Icons.emoji_events_outlined,
-                                title: 'Resultados e encerramentos',
-                                subtitle: 'Resumo de jogos finalizados',
-                                value: _notificacoesResultados,
-                                enabled: _notificacoesGerais,
-                                onChanged: (value) async {
-                                  setState(
-                                    () => _notificacoesResultados = value,
-                                  );
-                                  await _savePreference(
-                                    'admin_notif_resultados',
-                                    value,
-                                  );
-                                },
+                                icon: Icons.sports_outlined,
+                                title: 'Minhas partidas',
+                                subtitle:
+                                    'Receba avisos só das partidas em que você é árbitro',
+                                value: _notifMinhasPartidas,
+                                onChanged: _toggleNotifMinhasPartidas,
                               ),
                             ],
                           ),
@@ -590,7 +560,8 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             Switch(
               value: value,
               onChanged: enabled ? onChanged : null,
-              activeColor: const Color(0xFFF85C39),
+              activeThumbColor: const Color(0xFFF85C39),
+              activeTrackColor: const Color(0xFFF85C39).withValues(alpha: 0.4),
             ),
           ],
         ),

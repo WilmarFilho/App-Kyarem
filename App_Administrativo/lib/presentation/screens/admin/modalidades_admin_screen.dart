@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
 import 'package:kyarem_eventos/services/admin_api_service.dart';
 
+import 'modalidade_detalhe_screen.dart';
 import 'modalidade_form_screen.dart';
 
 class ModalidadesAdminScreen extends StatefulWidget {
@@ -50,13 +51,37 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
   }
 
   Future<void> _abrirFormulario({ModalidadeCatalogo? modalidade}) async {
-    final result = await Navigator.push<bool>(
+    final isNew = modalidade == null;
+    final result = await Navigator.push<ModalidadeCatalogo>(
       context,
       MaterialPageRoute(
         builder: (_) => ModalidadeFormScreen(modalidade: modalidade),
       ),
     );
-    if (result == true) {
+    if (result != null) {
+      await _carregar();
+      if (isNew && mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ModalidadeDetalheScreen(modalidade: result),
+          ),
+        );
+        if (mounted) {
+          await _carregar();
+        }
+      }
+    }
+  }
+
+  Future<void> _abrirDetalhe(ModalidadeCatalogo modalidade) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ModalidadeDetalheScreen(modalidade: modalidade),
+      ),
+    );
+    if (mounted) {
       await _carregar();
     }
   }
@@ -207,7 +232,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
             ),
           ],
         ),
-        onTap: () => _abrirFormulario(modalidade: modalidade),
+        onTap: () => _abrirDetalhe(modalidade),
       ),
     );
   }

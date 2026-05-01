@@ -10,6 +10,7 @@ import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 import 'package:kyarem_eventos/models/equipe_staff_model.dart';
 import 'package:kyarem_eventos/models/esporte_model.dart';
+import 'package:kyarem_eventos/models/modalidade_campeonato_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
 
 class AdminApiService {
@@ -585,6 +586,57 @@ class AdminApiService {
     } catch (e) {
       debugPrint("Erro buscarModalidade: $e");
       return null;
+    }
+  }
+
+  Future<List<ModalidadeCampeonato>> listarAssociacoesModalidadeCatalogo(
+    String modalidadeCatalogoId,
+  ) async {
+    try {
+      final res = await _dio.get(
+        '/modalidades-catalogo/$modalidadeCatalogoId/campeonatos',
+      );
+      return (res.data as List)
+          .map(
+            (e) => ModalidadeCampeonato.fromMap(e as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (e) {
+      debugPrint("Erro listarAssociacoesModalidadeCatalogo: $e");
+      return [];
+    }
+  }
+
+  Future<ModalidadeCampeonato?> associarModalidadeAoCampeonato(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final res = await _dio.post('/modalidades', data: data);
+      return ModalidadeCampeonato.fromMap(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      debugPrint("Erro associarModalidadeAoCampeonato: $e");
+      if (e.response != null && e.response?.data != null) {
+        final data = e.response?.data;
+        if (data is Map && data.containsKey('message')) {
+          throw Exception(data['message']);
+        } else if (data is String) {
+          throw Exception(data);
+        }
+      }
+      throw Exception('Erro ao associar modalidade ao campeonato.');
+    } catch (e) {
+      debugPrint("Erro associarModalidadeAoCampeonato: $e");
+      throw Exception('Erro ao associar modalidade ao campeonato.');
+    }
+  }
+
+  Future<bool> removerAssociacaoModalidade(String modalidadeCampeonatoId) async {
+    try {
+      await _dio.delete('/modalidades/$modalidadeCampeonatoId');
+      return true;
+    } catch (e) {
+      debugPrint("Erro removerAssociacaoModalidade: $e");
+      return false;
     }
   }
 

@@ -4,7 +4,7 @@ import '../../screens/admin/atletica_detalhe_screen.dart';
 import '../../screens/admin/partida_form_screen.dart';
 import '../../screens/main/arbitro_detalhe_screen.dart';
 import '../../screens/admin/campeonato_form_screen.dart';
-import '../../screens/admin/modalidade_form_screen.dart';
+import '../../screens/admin/modalidade_detalhe_screen.dart';
 
 class HomeListItem extends StatelessWidget {
   final dynamic item;
@@ -137,7 +137,7 @@ class HomeListItem extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ModalidadeFormScreen(modalidade: item),
+                builder: (_) => ModalidadeDetalheScreen(modalidade: item),
               ),
             );
           }

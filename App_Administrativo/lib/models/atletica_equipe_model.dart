@@ -8,6 +8,7 @@ class Atletica {
   final String? escudoUrl;
   final String? corPrincipal;
   final String? presidenteId;
+  final String? status;
 
   Atletica({
     required this.id,
@@ -16,6 +17,7 @@ class Atletica {
     this.escudoUrl,
     this.corPrincipal,
     this.presidenteId,
+    this.status,
   });
 
   factory Atletica.fromMap(Map<String, dynamic> map) {
@@ -26,6 +28,7 @@ class Atletica {
       escudoUrl: map['escudo_url'] ?? map['escudoUrl'],
       corPrincipal: map['cor_principal'] ?? map['corPrincipal'],
       presidenteId: map['presidente_id'] ?? map['presidenteId'],
+      status: map['status'],
     );
   }
 }

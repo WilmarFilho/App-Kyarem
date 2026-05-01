@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:wakelock_plus/wakelock_plus.dart'; // Importado
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'firebase_options.dart';
+import 'services/notification_service.dart';
 import 'presentation/screens/main/main_screen.dart';
 
 import 'presentation/screens/auth/login_screen.dart';
@@ -14,6 +18,12 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar Firebase (deve ser antes de tudo)
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Registrar handler de background ANTES de qualquer outro setup
+  FirebaseMessaging.onBackgroundMessage(firebaseBackgroundMessageHandler);
 
   // Mantém a tela ligada em todo o app
   WakelockPlus.enable();
@@ -53,7 +63,22 @@ Future<void> main() async {
         (route) => false,
       );
     }
+
+    // Inicializar notificacoes quando usuario fizer login
+    if (event == AuthChangeEvent.signedIn) {
+      NotificationService().init();
+    }
+
+    // Limpar token FCM ao fazer logout
+    if (event == AuthChangeEvent.signedOut) {
+      NotificationService().clearFcmToken();
+    }
   });
+
+  // Se ja houver sessao ativa ao abrir o app, inicializar notificacoes
+  if (Supabase.instance.client.auth.currentSession != null) {
+    NotificationService().init();
+  }
 
   runApp(const MyApp());
 }

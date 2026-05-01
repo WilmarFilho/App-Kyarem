@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +40,7 @@ public class ModalidadesController {
         }
 
         @GetMapping("/api/v1/modalidades-catalogo")
+        @Transactional(readOnly = true)
         public List<ModalidadeCatalogoResponse> listCatalogo() {
                 return modalidadeCatalogoRepository.findAllByOrderByNomeAsc().stream()
                                 .map(ModalidadeCatalogoResponse::from)
@@ -46,15 +49,28 @@ public class ModalidadesController {
 
         @GetMapping("/api/v1/modalidades-catalogo/{id}")
         @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional(readOnly = true)
         public ModalidadeCatalogoResponse getCatalogo(@PathVariable UUID id) {
                 ModalidadeCatalogo modalidadeCatalogo = modalidadeCatalogoRepository.findById(id)
                                 .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
                 return ModalidadeCatalogoResponse.from(modalidadeCatalogo);
         }
 
+        @GetMapping("/api/v1/modalidades-catalogo/{id}/campeonatos")
+        @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional(readOnly = true)
+        public List<ModalidadeResponse> listAssociacoesByCatalogo(@PathVariable UUID id) {
+                modalidadeCatalogoRepository.findById(id)
+                                .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
+                return campeonatoModalidadeRepository.findAllByModalidade_IdOrderByCampeonato_NomeAsc(id).stream()
+                                .map(ModalidadeResponse::from)
+                                .toList();
+        }
+
         @PostMapping("/api/v1/modalidades-catalogo")
         @ResponseStatus(HttpStatus.CREATED)
         @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional
         public ModalidadeCatalogoResponse createCatalogo(@Valid @RequestBody CreateModalidadeCatalogoRequest request) {
                 ModalidadeCatalogo modalidadeCatalogo = new ModalidadeCatalogo();
                 Esporte esporte = esporteRepository.findById(request.esporteId())
@@ -72,6 +88,7 @@ public class ModalidadesController {
 
         @PutMapping("/api/v1/modalidades-catalogo/{id}")
         @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional
         public ModalidadeCatalogoResponse updateCatalogo(
                         @PathVariable UUID id,
                         @Valid @RequestBody UpdateModalidadeCatalogoRequest request) {
@@ -104,6 +121,7 @@ public class ModalidadesController {
         }
 
         @GetMapping("/api/v1/campeonatos/{campeonatoId}/modalidades")
+        @Transactional(readOnly = true)
         public List<ModalidadeResponse> listByCampeonato(@PathVariable UUID campeonatoId) {
                 return campeonatoModalidadeRepository.findAll().stream()
                                 .filter(item -> item.getCampeonato() != null
@@ -113,6 +131,7 @@ public class ModalidadesController {
         }
 
         @GetMapping("/api/v1/modalidades/{id}")
+        @Transactional(readOnly = true)
         public ModalidadeResponse get(@PathVariable UUID id) {
                 CampeonatoModalidade modalidade = campeonatoModalidadeRepository.findById(id)
                                 .orElseThrow(() -> new IllegalStateException(
@@ -123,12 +142,19 @@ public class ModalidadesController {
         @PostMapping("/api/v1/modalidades")
         @ResponseStatus(HttpStatus.CREATED)
         @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional
         public ModalidadeResponse create(@Valid @RequestBody CreateModalidadeRequest request) {
                 Campeonato campeonato = campeonatoRepository.findById(request.campeonatoId())
                                 .orElseThrow(() -> new IllegalStateException("Campeonato não encontrado."));
                 ModalidadeCatalogo modalidadeCatalogo = modalidadeCatalogoRepository
                                 .findById(request.modalidadeCatalogoId())
                                 .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
+
+                if (campeonatoModalidadeRepository.existsByCampeonato_IdAndModalidade_Id(
+                                request.campeonatoId(),
+                                request.modalidadeCatalogoId())) {
+                        throw new IllegalStateException("Essa modalidade já está associada a esse campeonato.");
+                }
 
                 CampeonatoModalidade modalidade = new CampeonatoModalidade();
                 modalidade.setCampeonato(campeonato);
@@ -148,6 +174,16 @@ public class ModalidadesController {
                         modalidade.setStatus(request.status());
 
                 return ModalidadeResponse.from(campeonatoModalidadeRepository.save(modalidade));
+        }
+
+        @DeleteMapping("/api/v1/modalidades/{id}")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        @PreAuthorize("hasAuthority('ROLE_admin')")
+        public void delete(@PathVariable UUID id) {
+                CampeonatoModalidade modalidade = campeonatoModalidadeRepository.findById(id)
+                                .orElseThrow(() -> new IllegalStateException(
+                                                "Modalidade do campeonato não encontrada."));
+                campeonatoModalidadeRepository.delete(modalidade);
         }
 
         @PutMapping("/api/v1/modalidades/{id}")

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -39,12 +40,14 @@ public class AtleticasController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_admin')")
+    @Transactional(readOnly = true)
     public List<AtleticaResponse> list() {
         return service.list().stream().map(AtleticaResponse::from).toList();
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_admin')")
+    @Transactional(readOnly = true)
     public AtleticaResponse get(@PathVariable UUID id) {
         return AtleticaResponse.from(service.getOrThrow(id));
     }
@@ -58,6 +61,11 @@ public class AtleticasController {
         a.setSigla(req.sigla());
         a.setCorPrincipal(req.corPrincipal());
         a.setEscudoUrl(req.escudoUrl());
+        if (req.status() != null) {
+            a.setStatus(req.status());
+        } else {
+            a.setStatus("ATIVA");
+        }
         return AtleticaResponse.from(service.create(a));
     }
 
@@ -69,6 +77,7 @@ public class AtleticasController {
         patch.setSigla(req.sigla());
         patch.setCorPrincipal(req.corPrincipal());
         patch.setEscudoUrl(req.escudoUrl());
+        patch.setStatus(req.status());
         return AtleticaResponse.from(service.update(id, patch));
     }
 
@@ -81,6 +90,7 @@ public class AtleticasController {
 
     @GetMapping("/{id}/membros")
     @PreAuthorize("hasAuthority('ROLE_admin')")
+    @Transactional(readOnly = true)
     public List<AtleticaMembroResponse> listMembros(@PathVariable UUID id) {
         return membroService.list(id).stream().map(AtleticaMembroResponse::from).toList();
     }
@@ -128,11 +138,11 @@ public class AtleticasController {
         String ext = (originalName != null && originalName.contains("."))
                 ? originalName.substring(originalName.lastIndexOf('.'))
                 : ".jpg";
-        String path = "atleticas/" + java.util.UUID.randomUUID() + ext;
+        String path = java.util.UUID.randomUUID() + ext;
         String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
 
-        imageUploadService.uploadImage("avatars", path, file.getBytes(), contentType);
-        String publicUrl = imageUploadService.getPublicUrl("avatars", path);
+        imageUploadService.uploadImage("atleticas", path, file.getBytes(), contentType);
+        String publicUrl = imageUploadService.getPublicUrl("atleticas", path);
 
         return java.util.Map.of("url", publicUrl);
     }
@@ -141,14 +151,16 @@ public class AtleticasController {
             @NotBlank String nome,
             String sigla,
             String corPrincipal,
-            String escudoUrl
+            String escudoUrl,
+            String status
     ) {}
 
     public record UpdateAtleticaRequest(
             @NotBlank String nome,
             String sigla,
             String corPrincipal,
-            String escudoUrl
+            String escudoUrl,
+            String status
     ) {}
 
     public record AssociateAtleticaMembroRequest(
@@ -168,12 +180,13 @@ public class AtleticasController {
             String nome,
             String sigla,
             String corPrincipal,
-            String escudoUrl
+            String escudoUrl,
+            String status
     ) {
         static AtleticaResponse from(Atletica a) {
             return new AtleticaResponse(
                     a.getId(), a.getNome(), a.getSigla(),
-                    a.getCorPrincipal(), a.getEscudoUrl()
+                    a.getCorPrincipal(), a.getEscudoUrl(), a.getStatus()
             );
         }
     }

@@ -8,6 +8,7 @@ import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.nkw.backapisumula.competicao.ModalidadeCatalogo;
 import com.nkw.backapisumula.competicao.repo.CampeonatoModalidadeRepository;
 import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
+import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.repo.EventoPartidaRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
@@ -56,6 +57,8 @@ class PartidaServiceTest {
     private PartidaArbitroRepository partidaArbitroRepo;
     @Mock
     private EventoPartidaRepository eventoRepo;
+    @Mock
+    private ProfileRepository profileRepository;
     @Mock
     private SupabaseStorageService supabaseStorageService;
     @Mock
@@ -128,7 +131,7 @@ class PartidaServiceTest {
 
     @Test
     void create_equipesIguais_lancaIllegalStateException() {
-        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_A_ID,
+        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_A_ID,
                 null, "Ginásio A", "Masculino", "Grupos"));
     }
 
@@ -136,7 +139,7 @@ class PartidaServiceTest {
     void create_modalidadeNaoEncontrada_lancaIllegalStateException() {
         when(modalidadeRepo.findById(MODALIDADE_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
                 null, null, null, null));
     }
 
@@ -145,7 +148,7 @@ class PartidaServiceTest {
         when(modalidadeRepo.findById(MODALIDADE_ID)).thenReturn(Optional.of(campeonatoModalidade()));
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
                 null, null, null, null));
     }
 
@@ -162,7 +165,7 @@ class PartidaServiceTest {
         // EventPublisherService.publish é void — sem stubbing necessário
         doNothing().when(eventPublisherService).publish(anyString(), anyString(), anyString(), any(Map.class));
 
-        Partida resultado = service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+        Partida resultado = service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
                 null, "Ginásio A", "Masculino", "Fase de Grupos");
 
         assertNotNull(resultado);
@@ -185,7 +188,7 @@ class PartidaServiceTest {
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.of(eqA));
         when(equipeRepo.findById(EQUIPE_B_ID)).thenReturn(Optional.of(eqB));
 
-        assertThrows(IllegalStateException.class, () -> service.create(MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
                 null, null, null, null));
     }
 
