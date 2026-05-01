@@ -9,4 +9,13 @@ ALTER TABLE operational.profiles
 
 CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE operational.partidas;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'operational' AND tablename = 'partidas'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE operational.partidas;
+  END IF;
+END $$;
