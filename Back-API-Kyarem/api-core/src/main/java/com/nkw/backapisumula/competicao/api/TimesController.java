@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -40,6 +41,7 @@ public class TimesController {
     }
 
     @GetMapping("/atletica/{atleticaId}")
+    @Transactional(readOnly = true)
     public List<TimeAtleticaResponse> listTimesPorAtletica(@PathVariable UUID atleticaId) {
         return timeAtleticaRepository.findAll().stream()
                 .filter(time -> time.getAtletica() != null && atleticaId.equals(time.getAtletica().getId()))
@@ -93,6 +95,7 @@ public class TimesController {
     }
 
     @GetMapping("/campeonato/{campeonatoId}")
+    @Transactional(readOnly = true)
     public List<CampeonatoTimeResponse> listTimesPorCampeonato(@PathVariable UUID campeonatoId) {
         return campeonatoTimeRepository.findAll().stream()
                 .filter(time -> time.getCampeonato() != null && campeonatoId.equals(time.getCampeonato().getId()))
