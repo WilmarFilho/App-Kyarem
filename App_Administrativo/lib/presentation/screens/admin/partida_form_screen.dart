@@ -5,7 +5,7 @@ import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
 import '../../widgets/custom_selector_field.dart';
-import '../../widgets/layout/admin_layout_scaffold.dart';
+
 import '../../../services/admin_api_service.dart';
 
 class PartidaFormScreen extends StatefulWidget {
@@ -155,7 +155,9 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
     setState(() {
       _modalidades = modalidadesResult;
       if (_selectedModalidadeId != null &&
-          !_modalidades.any((m) => m['id']?.toString() == _selectedModalidadeId)) {
+          !_modalidades.any(
+            (m) => m['id']?.toString() == _selectedModalidadeId,
+          )) {
         _selectedModalidadeId = null;
         _selectedEquipeAId = null;
         _selectedEquipeBId = null;
@@ -239,11 +241,13 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
   }
 
   List<Arbitro> get _arbitrosDisponiveis {
-    final idsSelecionados = _arbitrosSelecionados.map((a) => a.arbitro.id).toSet();
+    final idsSelecionados = _arbitrosSelecionados
+        .map((a) => a.arbitro.id)
+        .toSet();
     return _arbitros.where((a) {
-      if (a.id == _currentUserId) return false;
-      return !idsSelecionados.contains(a.id);
-    }).toList()
+        if (a.id == _currentUserId) return false;
+        return !idsSelecionados.contains(a.id);
+      }).toList()
       ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
   }
 
@@ -287,7 +291,9 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
     });
   }
 
-  Future<_SavePartidaResult> _persistirPartida(Map<String, dynamic> data) async {
+  Future<_SavePartidaResult> _persistirPartida(
+    Map<String, dynamic> data,
+  ) async {
     if (widget.partida == null) {
       final res = await _apiService.criarPartida(data);
       return _SavePartidaResult(
@@ -303,7 +309,9 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
     );
   }
 
-  Future<_ArbitroAssociationResult> _associarArbitrosExtras(String partidaId) async {
+  Future<_ArbitroAssociationResult> _associarArbitrosExtras(
+    String partidaId,
+  ) async {
     if (_arbitrosSelecionados.isEmpty) {
       return const _ArbitroAssociationResult();
     }
@@ -371,9 +379,11 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
 
     final saveResult = await _persistirPartida(data);
     final partidaId = saveResult.partidaId;
-    final sucesso = saveResult.sucesso && partidaId != null && partidaId.isNotEmpty;
+    final sucesso =
+        saveResult.sucesso && partidaId != null && partidaId.isNotEmpty;
 
-    _ArbitroAssociationResult associacaoResult = const _ArbitroAssociationResult();
+    _ArbitroAssociationResult associacaoResult =
+        const _ArbitroAssociationResult();
     if (sucesso) {
       associacaoResult = await _associarArbitrosExtras(partidaId);
     }
@@ -394,9 +404,9 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
       if (mounted) Navigator.pop(context, true);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mensagemErroPermissao())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_mensagemErroPermissao())));
       }
     }
   }
@@ -596,14 +606,21 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         ),
                         valueText: _selectedCampeonatoId == null
                             ? null
-                            : _campeonatos.firstWhere((c) => c.id == _selectedCampeonatoId, orElse: () => _campeonatos.first).nome,
+                            : _campeonatos
+                                  .firstWhere(
+                                    (c) => c.id == _selectedCampeonatoId,
+                                    orElse: () => _campeonatos.first,
+                                  )
+                                  .nome,
                         onTap: () => _showSelectionModal<Campeonato>(
                           title: 'Selecione o Campeonato',
                           items: _campeonatos,
                           labelBuilder: (c) => c.nome,
                           onSelected: (c) => _onCampeonatoChanged(c.id),
                         ),
-                        validator: (v) => _selectedCampeonatoId == null ? 'Obrigatório' : null,
+                        validator: (v) => _selectedCampeonatoId == null
+                            ? 'Obrigatório'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       CustomSelectorField<String>(
@@ -614,20 +631,51 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         isLoading: _isLoadingModalidades,
                         value: _safeValue(
                           _selectedModalidadeId,
-                          _modalidades.map<String>((m) => m['id'].toString()).toList(),
+                          _modalidades
+                              .map<String>((m) => m['id'].toString())
+                              .toList(),
                         ),
                         valueText: _selectedModalidadeId == null
                             ? null
-                            : _modalidades.firstWhere((m) => m['id'].toString() == _selectedModalidadeId, orElse: () => {})['nomeExibicao']?.toString() ??
-                              _modalidades.firstWhere((m) => m['id'].toString() == _selectedModalidadeId, orElse: () => {})['nome']?.toString() ??
-                              _modalidades.firstWhere((m) => m['id'].toString() == _selectedModalidadeId, orElse: () => {})['modalidadeNome']?.toString(),
-                        onTap: () => _showSelectionModal<Map<String, dynamic>>(
+                            : _modalidades
+                                      .firstWhere(
+                                        (m) =>
+                                            m['id'].toString() ==
+                                            _selectedModalidadeId,
+                                        orElse: () => {},
+                                      )['nomeExibicao']
+                                      ?.toString() ??
+                                  _modalidades
+                                      .firstWhere(
+                                        (m) =>
+                                            m['id'].toString() ==
+                                            _selectedModalidadeId,
+                                        orElse: () => {},
+                                      )['nome']
+                                      ?.toString() ??
+                                  _modalidades
+                                      .firstWhere(
+                                        (m) =>
+                                            m['id'].toString() ==
+                                            _selectedModalidadeId,
+                                        orElse: () => {},
+                                      )['modalidadeNome']
+                                      ?.toString(),
+                        onTap: () => _showSelectionModal<dynamic>(
                           title: 'Selecione a Modalidade',
                           items: _modalidades,
-                          labelBuilder: (m) => (m['nomeExibicao'] ?? m['nome'] ?? m['modalidadeNome'] ?? '').toString(),
-                          onSelected: (m) => _onModalidadeChanged(m['id']?.toString()),
+                          labelBuilder: (m) =>
+                              (m['nomeExibicao'] ??
+                                      m['nome'] ??
+                                      m['modalidadeNome'] ??
+                                      '')
+                                  .toString(),
+                          onSelected: (m) =>
+                              _onModalidadeChanged(m['id']?.toString()),
                         ),
-                        validator: (v) => _selectedModalidadeId == null ? 'Obrigatório' : null,
+                        validator: (v) => _selectedModalidadeId == null
+                            ? 'Obrigatório'
+                            : null,
                       ),
                       const SizedBox(height: 22),
                       _buildSectionHeader(Icons.groups, 'Times / Equipes'),
@@ -645,16 +693,22 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         valueText: _selectedEquipeAId == null
                             ? null
                             : () {
-                                final e = _equipes.firstWhere((eq) => eq.id == _selectedEquipeAId, orElse: () => _equipes.first);
+                                final e = _equipes.firstWhere(
+                                  (eq) => eq.id == _selectedEquipeAId,
+                                  orElse: () => _equipes.first,
+                                );
                                 return '${e.atletica?.sigla ?? ''} · ${e.nome}';
                               }(),
                         onTap: () => _showSelectionModal<Equipe>(
                           title: 'Selecione o Time A',
                           items: _equipes,
-                          labelBuilder: (e) => '${e.atletica?.sigla ?? ''} · ${e.nome}',
-                          onSelected: (e) => setState(() => _selectedEquipeAId = e.id),
+                          labelBuilder: (e) =>
+                              '${e.atletica?.sigla ?? ''} · ${e.nome}',
+                          onSelected: (e) =>
+                              setState(() => _selectedEquipeAId = e.id),
                         ),
-                        validator: (v) => _selectedEquipeAId == null ? 'Obrigatório' : null,
+                        validator: (v) =>
+                            _selectedEquipeAId == null ? 'Obrigatório' : null,
                       ),
                       const SizedBox(height: 14),
                       CustomSelectorField<String>(
@@ -670,16 +724,22 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         valueText: _selectedEquipeBId == null
                             ? null
                             : () {
-                                final e = _equipes.firstWhere((eq) => eq.id == _selectedEquipeBId, orElse: () => _equipes.first);
+                                final e = _equipes.firstWhere(
+                                  (eq) => eq.id == _selectedEquipeBId,
+                                  orElse: () => _equipes.first,
+                                );
                                 return '${e.atletica?.sigla ?? ''} · ${e.nome}';
                               }(),
                         onTap: () => _showSelectionModal<Equipe>(
                           title: 'Selecione o Time B',
                           items: _equipes,
-                          labelBuilder: (e) => '${e.atletica?.sigla ?? ''} · ${e.nome}',
-                          onSelected: (e) => setState(() => _selectedEquipeBId = e.id),
+                          labelBuilder: (e) =>
+                              '${e.atletica?.sigla ?? ''} · ${e.nome}',
+                          onSelected: (e) =>
+                              setState(() => _selectedEquipeBId = e.id),
                         ),
-                        validator: (v) => _selectedEquipeBId == null ? 'Obrigatório' : null,
+                        validator: (v) =>
+                            _selectedEquipeBId == null ? 'Obrigatório' : null,
                       ),
                       const SizedBox(height: 22),
                       _buildSectionHeader(
@@ -876,11 +936,7 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_outline,
-            color: Color(0xFFF85C39),
-            size: 18,
-          ),
+          const Icon(Icons.info_outline, color: Color(0xFFF85C39), size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -949,7 +1005,9 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: const Color(0xFFF85C39).withValues(alpha: 0.12),
+                    backgroundColor: const Color(
+                      0xFFF85C39,
+                    ).withValues(alpha: 0.12),
                     child: Text(
                       item.arbitro.nome.isNotEmpty
                           ? item.arbitro.nome[0].toUpperCase()
@@ -1013,10 +1071,7 @@ class _ArbitroVinculoDraft {
   final Arbitro arbitro;
   final String funcaoApi;
 
-  const _ArbitroVinculoDraft({
-    required this.arbitro,
-    required this.funcaoApi,
-  });
+  const _ArbitroVinculoDraft({required this.arbitro, required this.funcaoApi});
 
   String get funcaoLabel {
     switch (funcaoApi) {
@@ -1053,7 +1108,8 @@ class _SelecionarArbitroSheet extends StatefulWidget {
   const _SelecionarArbitroSheet({required this.arbitros});
 
   @override
-  State<_SelecionarArbitroSheet> createState() => _SelecionarArbitroSheetState();
+  State<_SelecionarArbitroSheet> createState() =>
+      _SelecionarArbitroSheetState();
 }
 
 class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
@@ -1166,7 +1222,9 @@ class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
                   value: _funcao,
                   decoration: InputDecoration(
                     labelText: 'Função na partida',
-                    floatingLabelStyle: const TextStyle(color: Color(0xFFF85C39)),
+                    floatingLabelStyle: const TextStyle(
+                      color: Color(0xFFF85C39),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1212,7 +1270,9 @@ class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFFF85C39).withValues(alpha: 0.08)
+                                    ? const Color(
+                                        0xFFF85C39,
+                                      ).withValues(alpha: 0.08)
                                     : Colors.grey.shade50,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
@@ -1225,8 +1285,9 @@ class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
                                 children: [
                                   CircleAvatar(
                                     radius: 18,
-                                    backgroundColor: const Color(0xFFF85C39)
-                                        .withValues(alpha: 0.12),
+                                    backgroundColor: const Color(
+                                      0xFFF85C39,
+                                    ).withValues(alpha: 0.12),
                                     child: Text(
                                       arbitro.nome.isNotEmpty
                                           ? arbitro.nome[0].toUpperCase()
@@ -1240,7 +1301,8 @@ class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           arbitro.nome,
