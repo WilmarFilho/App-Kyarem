@@ -1,7 +1,10 @@
 package com.kyarem.outbox.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Espelha a tabela operational.outbox_events.
@@ -12,8 +15,8 @@ import java.time.Instant;
 public class OutboxEvent {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @Column(columnDefinition = "uuid")
+    private UUID id;
 
     @Column(name = "aggregate_type", nullable = false)
     private String aggregateType;
@@ -24,7 +27,8 @@ public class OutboxEvent {
     @Column(name = "event_type", nullable = false)
     private String eventType;
 
-    @Column(name = "payload_json", columnDefinition = "text")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload_json", columnDefinition = "jsonb")
     private String payloadJson;
 
     @Column(name = "occurred_at", nullable = false)
@@ -41,7 +45,7 @@ public class OutboxEvent {
 
     // ── Getters ──────────────────────────────────────────────────────────────
 
-    public String getId()            { return id; }
+    public UUID getId()              { return id; }
     public String getAggregateType() { return aggregateType; }
     public String getAggregateId()   { return aggregateId; }
     public String getEventType()     { return eventType; }

@@ -6,9 +6,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface OutboxEventRepository extends JpaRepository<OutboxEvent, String> {
+public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 
     /**
      * Busca até 50 eventos pendentes, ordenados por data de ocorrência.

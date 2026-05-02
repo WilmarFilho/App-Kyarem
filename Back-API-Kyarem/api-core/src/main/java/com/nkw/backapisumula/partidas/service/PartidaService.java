@@ -99,12 +99,28 @@ public class PartidaService {
     }
 
 
-    public List<Partida> listByArbitro(UUID arbitroId) {
-        return partidaArbitroRepo.findByArbitro_Id(arbitroId).stream()
+    public List<Partida> listByArbitro(UUID userId) {
+        // Partidas onde o usuário está vinculado como árbitro
+        List<Partida> comoArbitro = partidaArbitroRepo.findByArbitro_Id(userId).stream()
                 .map(pa -> pa.getPartida())
                 .filter(Objects::nonNull)
+                .toList();
+
+        // Partidas criadas pelo usuário (admin que criou mas não está em partida_arbitros)
+        List<Partida> comoCriador = repo.findByCriadoPor(userId);
+
+        // União sem duplicatas, mantendo ordem por relevância
+        java.util.LinkedHashSet<UUID> vistosIds = new java.util.LinkedHashSet<>();
+        java.util.List<Partida> todas = new java.util.ArrayList<>();
+        for (Partida p : comoArbitro) {
+            if (vistosIds.add(p.getId())) todas.add(p);
+        }
+        for (Partida p : comoCriador) {
+            if (vistosIds.add(p.getId())) todas.add(p);
+        }
+
+        return todas.stream()
                 .sorted(Comparator.comparing((Partida p) -> {
-                    // ordem: em andamento primeiro, depois agendada, depois finalizada
                     if (isStatusEmAndamento(p.getStatus())) return 0;
                     if (STATUS_AGENDADA.equalsIgnoreCase(p.getStatus())) return 1;
                     return 2;
@@ -160,6 +176,8 @@ public class PartidaService {
 
         Partida saved = repo.save(p);
 
+        // Vincula o criador como árbitro APENAS se for árbitro registrado.
+        // Admins que criam partidas são identificados via criado_por no listByArbitro.
         if (addCreatorAsReferee) {
             com.nkw.backapisumula.partidas.PartidaArbitro criadorVinculo = new com.nkw.backapisumula.partidas.PartidaArbitro();
             criadorVinculo.setPartida(saved);
@@ -171,13 +189,14 @@ public class PartidaService {
             criadorVinculo.setCriadoEm(OffsetDateTime.now());
             partidaArbitroRepo.save(criadorVinculo);
         }
-        
+
         eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaCriada", Map.of(
             "timeAId", equipeAId.toString(),
             "timeBId", equipeBId.toString()
         ));
-        
-        return saved;
+
+        // Recarrega com EntityGraph para evitar LazyInitializationException na serialização do DTO
+        return getOrThrow(saved.getId());
     }
 
     @Transactional
@@ -250,7 +269,9 @@ public class PartidaService {
         if (categoria != null) p.setCategoria(categoria);
         if (fase != null) p.setFase(fase);
 
-        return repo.save(p);
+        repo.save(p);
+        // Recarrega com EntityGraph para evitar LazyInitializationException
+        return getOrThrow(p.getId());
     }
 
     @Transactional
@@ -276,7 +297,8 @@ public class PartidaService {
             "status", STATUS_PRIMEIRO_TEMPO
         ));
 
-        return saved;
+        // Recarrega com EntityGraph
+        return getOrThrow(saved.getId());
     }
 
     @Transactional
@@ -380,7 +402,8 @@ public class PartidaService {
             "novoStatus", normalized
         ));
 
-        return saved;
+        // Recarrega com EntityGraph
+        return getOrThrow(saved.getId());
     }
 
     private String normalizeStatusForDb(String raw) {

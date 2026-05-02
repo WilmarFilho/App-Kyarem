@@ -67,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   String _abaSelecionada = 'Jogos';
   bool _verMeus = false;
+  bool _loadingMeus = false;
 
   List<_HomeTabOption> get _tabOptions {
     if (_isArbitro && !_isAdminRole) {
@@ -519,7 +520,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       // Toggle Ver Meus / Ver Tudo
                       GestureDetector(
-                        onTap: () => setState(() => _verMeus = !_verMeus),
+                        onTap: () async {
+                          final novoValor = !_verMeus;
+                          setState(() {
+                            _verMeus = novoValor;
+                            if (novoValor) _loadingMeus = true;
+                          });
+                          if (novoValor) {
+                            final minhas =
+                                await _partidaService.listarPartidasMinhas();
+                            if (mounted) {
+                              setState(() {
+                                _partidasDestaque = minhas;
+                                _loadingMeus = false;
+                              });
+                            }
+                          }
+                        },
                         child: Text(
                           _verMeus ? 'Ver Tudo' : 'Ver Meus',
                           style: TextStyle(
@@ -599,6 +616,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         builder: (context) {
                           final bool mostrarMeus =
                               _abaSelecionada == 'Jogos' && _verMeus;
+
+                          if (mostrarMeus && _loadingMeus) {
+                            return const Padding(
+                              padding: EdgeInsets.all(50.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
                           final lista = mostrarMeus
                               ? _partidasDestaque
                               : _itensListaInferior;

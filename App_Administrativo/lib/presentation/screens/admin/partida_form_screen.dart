@@ -710,6 +710,8 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         validator: (v) =>
                             _selectedEquipeAId == null ? 'Obrigatório' : null,
                       ),
+                      if (_selectedEquipeAId != null)
+                        _buildVerAtletasButton(_selectedEquipeAId!, 'Time A'),
                       const SizedBox(height: 14),
                       CustomSelectorField<String>(
                         label: 'Time inscrito B',
@@ -741,6 +743,8 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         validator: (v) =>
                             _selectedEquipeBId == null ? 'Obrigatório' : null,
                       ),
+                      if (_selectedEquipeBId != null)
+                        _buildVerAtletasButton(_selectedEquipeBId!, 'Time B'),
                       const SizedBox(height: 22),
                       _buildSectionHeader(
                         Icons.assignment_ind_outlined,
@@ -1065,6 +1069,34 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
       ],
     );
   }
+
+  Widget _buildVerAtletasButton(String equipeId, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6.0),
+      child: TextButton.icon(
+        onPressed: () => _mostrarAtletasDoTime(equipeId, label),
+        icon: const Icon(Icons.people_alt_outlined, size: 18),
+        label: Text('Ver atletas do $label'),
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFFF85C39),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _mostrarAtletasDoTime(String equipeId, String label) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AtletasDoTimeSheet(
+        equipeId: equipeId,
+        label: label,
+        apiService: _apiService,
+      ),
+    );
+  }
 }
 
 class _ArbitroVinculoDraft {
@@ -1381,6 +1413,209 @@ class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
           ),
         );
       },
+    );
+  }
+}
+
+// ─── Bottom sheet: atletas do time ─────────────────────────────────────────
+class _AtletasDoTimeSheet extends StatefulWidget {
+  final String equipeId;
+  final String label;
+  final AdminApiService apiService;
+
+  const _AtletasDoTimeSheet({
+    required this.equipeId,
+    required this.label,
+    required this.apiService,
+  });
+
+  @override
+  State<_AtletasDoTimeSheet> createState() => _AtletasDoTimeSheetState();
+}
+
+class _AtletasDoTimeSheetState extends State<_AtletasDoTimeSheet> {
+  List<Map<String, dynamic>> _atletas = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final data = await widget.apiService.listarAtletasDoTime(widget.equipeId);
+    if (mounted)
+      setState(() {
+        _atletas = data;
+        _loading = false;
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.55,
+      minChildSize: 0.35,
+      maxChildSize: 0.9,
+      builder: (_, scrollCtrl) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 4),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF85C39).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.people_alt,
+                      color: Color(0xFFF85C39),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Atletas — ${widget.label}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (!_loading)
+                          Text(
+                            '${_atletas.length} atleta${_atletas.length != 1 ? 's' : ''}',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _atletas.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.sports,
+                            size: 48,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Nenhum atleta cadastrado\nneste time.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _atletas.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, indent: 72),
+                      itemBuilder: (_, i) {
+                        final a = _atletas[i];
+                        final nome = a['nome'] as String? ?? '—';
+                        final foto = a['fotoUrl'] as String?;
+                        final status = a['status'] as String?;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            radius: 22,
+                            backgroundImage: (foto != null && foto.isNotEmpty)
+                                ? NetworkImage(foto)
+                                : null,
+                            backgroundColor: const Color(
+                              0xFFF85C39,
+                            ).withOpacity(0.12),
+                            child: (foto == null || foto.isEmpty)
+                                ? Text(
+                                    nome.isNotEmpty
+                                        ? nome[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: Color(0xFFF85C39),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          title: Text(
+                            nome,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          trailing: status != null
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: status == 'ATIVO'
+                                        ? Colors.green.shade50
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: status == 'ATIVO'
+                                          ? Colors.green.shade300
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: status == 'ATIVO'
+                                          ? Colors.green.shade700
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -28,4 +28,7 @@ public interface PartidaRepository extends JpaRepository<Partida, UUID> {
     List<Partida> findByStatus(String status);
 
     List<Partida> findByCampeonatoModalidade_IdAndStatus(UUID modalidadeId, String status);
+
+    @EntityGraph(attributePaths = {"campeonatoModalidade", "campeonatoModalidade.modalidade", "campeonatoModalidade.modalidade.esporte", "campeonatoTimeA", "campeonatoTimeA.time", "campeonatoTimeA.time.atletica", "campeonatoTimeB", "campeonatoTimeB.time", "campeonatoTimeB.time.atletica"})
+    List<Partida> findByCriadoPor(UUID criadoPor);
 }

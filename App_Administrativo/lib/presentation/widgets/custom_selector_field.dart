@@ -27,7 +27,7 @@ class CustomSelectorField<T> extends StatelessWidget {
       initialValue: value,
       builder: (FormFieldState<T> state) {
         final hasError = state.hasError;
-        
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -35,12 +35,17 @@ class CustomSelectorField<T> extends StatelessWidget {
               onTap: isLoading ? null : onTap,
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: hasError ? Colors.red.shade400 : Colors.grey.shade300,
+                    color: hasError
+                        ? Colors.red.shade400
+                        : Colors.grey.shade300,
                     width: 1,
                   ),
                 ),
@@ -55,7 +60,9 @@ class CustomSelectorField<T> extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: hasError ? Colors.red.shade400 : Colors.grey.shade600,
+                              color: hasError
+                                  ? Colors.red.shade400
+                                  : Colors.grey.shade600,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -70,8 +77,12 @@ class CustomSelectorField<T> extends StatelessWidget {
                               valueText ?? hint,
                               style: TextStyle(
                                 fontSize: 16,
-                                color: valueText == null ? Colors.grey.shade400 : Colors.black87,
-                                fontWeight: valueText == null ? FontWeight.normal : FontWeight.w500,
+                                color: valueText == null
+                                    ? Colors.grey.shade400
+                                    : Colors.black87,
+                                fontWeight: valueText == null
+                                    ? FontWeight.normal
+                                    : FontWeight.w500,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -92,10 +103,7 @@ class CustomSelectorField<T> extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 12, top: 8),
                 child: Text(
                   state.errorText!,
-                  style: TextStyle(
-                    color: Colors.red.shade400,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.red.shade400, fontSize: 12),
                 ),
               ),
           ],
