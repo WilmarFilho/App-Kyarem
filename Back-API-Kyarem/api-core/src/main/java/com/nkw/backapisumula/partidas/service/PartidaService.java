@@ -208,12 +208,11 @@ public class PartidaService {
             throw new IllegalStateException("Não é possível editar uma partida em andamento.");
         }
 
-        // Se for árbitro (sem ser admin/delegado), só pode editar se estiver atribuído à partida
-        if (isArbitroOnly) {
-            boolean atribuido = partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId);
-            if (!atribuido) {
-                throw new IllegalStateException("Você não está atribuído como árbitro desta partida.");
-            }
+        // Apenas o criador da partida pode editá-la (alterar times, modalidade, data)
+        if (p.getCriadoPor() != null && !p.getCriadoPor().equals(userId)) {
+            // Em caso de legado onde o criador não existe, podemos permitir se for admin,
+            // mas para novos registros o criadoPor sempre existe.
+            throw new IllegalStateException("Apenas o criador da partida pode editá-la.");
         }
 
         // Pós-jogo: permitir salvar súmula quando encerrada

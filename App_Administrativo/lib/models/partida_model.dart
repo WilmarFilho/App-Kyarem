@@ -20,6 +20,7 @@ class Partida {
   final Equipe? equipeA;
   final Equipe? equipeB;
   final Modalidade? modalidade;
+  final String? criadoPor;
 
   /// Alias para compatibilidade com código que usa 'agendadoPara'
   DateTime? get agendadoPara => agendadaPara;
@@ -43,6 +44,7 @@ class Partida {
     this.equipeA,
     this.equipeB,
     this.modalidade,
+    this.criadoPor,
   });
 
   factory Partida.fromMap(Map<String, dynamic> map) {
@@ -101,6 +103,7 @@ class Partida {
                 ? Equipe.fromMap(sumula!['equipeB'])
                 : null),
       modalidade: modalidade,
+      criadoPor: map['criadoPor'] ?? map['criado_por'],
     );
   }
 
@@ -123,6 +126,7 @@ class Partida {
     Equipe? equipeA,
     Equipe? equipeB,
     Modalidade? modalidade,
+    String? criadoPor,
   }) {
     return Partida(
       id: id ?? this.id,
@@ -143,6 +147,7 @@ class Partida {
       equipeA: equipeA ?? this.equipeA,
       equipeB: equipeB ?? this.equipeB,
       modalidade: modalidade ?? this.modalidade,
+      criadoPor: criadoPor ?? this.criadoPor,
     );
   }
 }

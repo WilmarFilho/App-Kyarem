@@ -1,8 +1,6 @@
-KYAREM - NOVA ARQUITETURA E NOVA ESTRUTURA DE BANCO
-===================================================
+# KYAREM - NOVA ARQUITETURA E NOVA ESTRUTURA DE BANCO
 
-Objetivo
---------
+## Objetivo
 Consolidar a evolucao do sistema para suportar:
 - uma unica base de autenticacao em auth.users
 - app global como unica porta de cadastro
@@ -14,8 +12,7 @@ Consolidar a evolucao do sistema para suportar:
 - leitura publica desacoplada via read models e realtime
 
 
-1. ARQUITETURA GERAL
---------------------
+## 1. ARQUITETURA GERAL
 Arquitetura recomendada:
 - backend principal em Spring Boot
 - banco principal no Supabase Cloud (Postgres)
@@ -37,8 +34,7 @@ Principio:
 - efeitos derivados ficam assincronos via eventos
 
 
-2. CONTAINERS/SERVICOS
-----------------------
+## 2. CONTAINERS/SERVICOS
 Servicos principais:
 - api-core
   Backend principal. Centraliza regra de negocio, escrita critica, autenticacao/autorizacao e API publica.
@@ -67,8 +63,7 @@ Infra externa:
   RLS policies garantem que cada usuario opera apenas seus proprios dados.
 
 
-3. FLUXO DE IDENTIDADE E ACESSO
--------------------------------
+## 3. FLUXO DE IDENTIDADE E ACESSO
 Regra principal de Cadastro:
 - Uma pessoa comum SO pode se cadastrar primeiramente atraves do App Global.
 - Todo cadastro no App Global cria a conta OBRIGATORIAMENTE com a role global USER.
@@ -106,8 +101,7 @@ Regra de promocao:
 - quando for convocado, passa a ter vinculo contextual de atleta
 
 
-4. MODELAGEM CONCEITUAL DO BANCO
---------------------------------
+## 4. MODELAGEM CONCEITUAL DO BANCO
 Separacao de schemas:
 - operational
   Tabelas transacionais e de dominio.
@@ -120,11 +114,9 @@ Observacao:
 - operational.profiles referencia auth.users
 
 
-5. ESTRUTURA DO SCHEMA OPERATIONAL
-----------------------------------
+## 5. ESTRUTURA DO SCHEMA OPERATIONAL
 
-5.1 Identidade e autorizacao
-----------------------------
+## 5.1 Identidade e autorizacao
 auth.users
 - tabela nativa do Supabase
 - conta de autenticacao unica por pessoa
@@ -189,8 +181,7 @@ Regra:
 - somente usuarios com registro ATIVO em operational.quadro_arbitros possuem o papel contextual REFEREE
 
 
-5.2 Estrutura esportiva base
-----------------------------
+## 5.2 Estrutura esportiva base
 operational.esportes
 - tipo macro do esporte
 
@@ -229,8 +220,7 @@ Interpretacao correta:
 - campeonato_modalidades = configuracao daquela modalidade dentro de um campeonato especifico
 
 
-5.3 Campeonatos e modalidades por campeonato
---------------------------------------------
+## 5.3 Campeonatos e modalidades por campeonato
 operational.campeonatos
 - campeonato base
 
@@ -275,8 +265,7 @@ Relacionamentos:
 - modalidades_catalogo 1:N campeonato_modalidades
 
 
-5.4 Atleticas, membros e atletas
---------------------------------
+## 5.4 Atleticas, membros e atletas
 operational.atleticas
 - entidade principal da atletica
 
@@ -336,8 +325,7 @@ Regras importantes:
 - deve existir no maximo um PRESIDENT ativo por atletica
 
 
-5.4.1 Quadro de arbitragem
---------------------------
+## 5.4.1 Quadro de arbitragem
 operational.quadro_arbitros
 - registro operacional dos usuarios aptos a arbitrar
 - separa claramente "ser arbitro" de "estar escalado em uma partida"
@@ -363,8 +351,7 @@ Regra:
 - estar em operational.partida_arbitros nao cria o arbitro; apenas representa uma escala/autorizacao para uma partida especifica
 
 
-5.5 Participacao da atletica no campeonato
-------------------------------------------
+## 5.5 Participacao da atletica no campeonato
 operational.campeonato_atleticas
 - vinculo da atletica com o campeonato
 
@@ -380,8 +367,7 @@ Relacionamento:
 - campeonatos N:N atleticas via campeonato_atleticas
 
 
-5.6 Times da atletica e elenco permanente
------------------------------------------
+## 5.6 Times da atletica e elenco permanente
 operational.times_atletica
 - times permanentes da atletica por modalidade
 
@@ -417,8 +403,7 @@ Regra:
 - A associacao ao time e feita pelo presidente sem nova etapa de aceite.
 
 
-5.7 Inscricao de times e roster no campeonato
----------------------------------------------
+## 5.7 Inscricao de times e roster no campeonato
 operational.campeonato_times
 - time da atletica inscrito em uma modalidade especifica do campeonato
 
@@ -466,8 +451,7 @@ Esse ponto resolve a regra:
 "nao pode um atleta jogar em mais de uma atletica por campeonato"
 
 
-5.8 Staff do time
------------------
+## 5.8 Staff do time
 operational.equipes_staff
 - staff de apoio do time no campeonato
 
@@ -483,8 +467,7 @@ Observacao:
 - user_id pode ser nulo para permitir staff externo sem conta
 
 
-5.9 Tipos de eventos e regras de partida
-----------------------------------------
+## 5.9 Tipos de eventos e regras de partida
 operational.tipos_eventos
 - catalogo de eventos por modalidade
 - os eventos sao rigorosamente separados por "escopo" para diferenciar acoes gerais da partida de acoes desportivas
@@ -520,8 +503,7 @@ Relacionamento:
 - modalidades_catalogo 1:N tipos_eventos
 
 
-5.10 Partidas e arbitragem
---------------------------
+## 5.10 Partidas e arbitragem
 operational.partidas
 - agregado principal de operacao critica
 
@@ -592,8 +574,7 @@ Regra:
 - O arbitro_user_id deve possuir vinculo ATIVO em operational.quadro_arbitros.
 
 
-5.11 Eventos da partida
------------------------
+## 5.11 Eventos da partida
 operational.eventos_partida
 - historico auditavel das acoes registradas na sumula
 
@@ -621,8 +602,7 @@ Regras:
 - ordem_evento garante ordenacao estavel
 
 
-5.12 Outbox para eventos de dominio
------------------------------------
+## 5.12 Outbox para eventos de dominio
 operational.outbox_events
 - eventos de integracao gravados junto da transacao principal
 
@@ -644,8 +624,7 @@ Usos:
 - RankingRecalculationRequested
 
 
-5.13 Rede Social - tabelas operacionais
-----------------------------------------
+## 5.13 Rede Social - tabelas operacionais
 Escrita feita diretamente pelo app geral via Supabase SDK com RLS.
 Sem intermediario pela api-core.
 
@@ -715,8 +694,7 @@ Observacao:
 - projection-worker le essas tabelas e popula read models no schema public
 
 
-6. ESTRUTURA DO SCHEMA PUBLIC
------------------------------
+## 6. ESTRUTURA DO SCHEMA PUBLIC
 Esse schema nao deve concentrar regras de negocio.
 Ele existe para leitura publica, consulta rapida e realtime.
 O app geral consome esse schema diretamente via Supabase SDK com RLS.
@@ -727,8 +705,7 @@ Nota sobre pontuacao:
 - Detalhes especificos de cada esporte ficam em campos _json
 
 
-6.1 Vitrine de campeonatos e modalidades
------------------------------------------
+## 6.1 Vitrine de campeonatos e modalidades
 public.campeonatos_vitrine
 
 Campos:
@@ -756,8 +733,7 @@ Campos:
 - atualizado_em
 
 
-6.2 Partidas ao vivo e historico
-----------------------------------
+## 6.2 Partidas ao vivo e historico
 public.partidas_ao_vivo
 
 Campos:
@@ -865,8 +841,7 @@ Campos:
 - atualizado_em
 
 
-6.3 Classificacoes e rankings
--------------------------------
+## 6.3 Classificacoes e rankings
 public.classificacoes
 - pontuacao generica para suportar qualquer esporte
 
@@ -950,8 +925,7 @@ Campos:
 - atualizado_em
 
 
-6.4 Perfis publicos
----------------------
+## 6.4 Perfis publicos
 public.metricas_atletas
 - metricas publicas agregadas por atleta
 
@@ -1014,8 +988,7 @@ Campos:
 - atualizado_em
 
 
-6.5 Comparacoes pre-calculadas
--------------------------------
+## 6.5 Comparacoes pre-calculadas
 public.snapshot_comparacao_atletas
 - pre-calculado pelo metrics-worker sob demanda
 
@@ -1043,8 +1016,7 @@ Campos:
 - valido_ate
 
 
-6.6 Rede Social - read models publicos
-----------------------------------------
+## 6.6 Rede Social - read models publicos
 public.feed_posts
 - read model desnormalizado do feed social
 
@@ -1092,8 +1064,7 @@ Campos:
 - atualizado_em
 
 
-6.7 Timeline ao vivo do campeonato
-------------------------------------
+## 6.7 Timeline ao vivo do campeonato
 public.timeline_campeonato
 - feed cronologico de eventos relevantes do campeonato
 
@@ -1116,8 +1087,7 @@ Fluxo:
 - realtime-gateway envia mudancas via SSE a partir das tabelas criticas
 
 
-7. RELACIONAMENTOS PRINCIPAIS
------------------------------
+## 7. RELACIONAMENTOS PRINCIPAIS
 Identidade:
 - auth.users 1:1 operational.profiles
 - operational.profiles 1:N operational.usuarios_roles_globais
@@ -1185,8 +1155,7 @@ Leitura publica:
 - operational.partidas            -> public.timeline_campeonato
 
 
-8. DIFERENCAS IMPORTANTES EM RELACAO AO BANCO ATUAL
----------------------------------------------------
+## 8. DIFERENCAS IMPORTANTES EM RELACAO AO BANCO ATUAL
 Banco atual observado:
 - profiles.role simplifica demais o modelo
 - modalidades hoje esta ligada diretamente ao campeonato
@@ -1207,8 +1176,7 @@ Evolucao proposta:
 - padronizar partida como agregado principal da arbitragem
 
 
-9. FLUXOS DE NEGOCIO IMPORTANTES
---------------------------------
+## 9. FLUXOS DE NEGOCIO IMPORTANTES
 9.1 Cadastro de usuario comum (App Global)
 1. usuario acessa o app global
 2. realiza o cadastro (unico fluxo publico permitido para criacao de conta)
@@ -1278,8 +1246,7 @@ Evolucao proposta:
 4. projection-worker atualiza public.contadores_sociais
 
 
-10. DECISOES TECNICAS FINAIS
-----------------------------
+## 10. DECISOES TECNICAS FINAIS
 1. Nao usar o realtime nativo do banco como peca central de longo prazo.
 2. Manter escrita critica do admin sempre via API.
 3. Usar eventos apenas como consequencia da escrita persistida.
@@ -1295,8 +1262,7 @@ Evolucao proposta:
 13. Campos de pontuacao sao sempre genericos no schema public. Especificidades de cada esporte ficam em campos _json para suportar qualquer modalidade.
 
 
-11. RESUMO EXECUTIVO
---------------------
+## 11. RESUMO EXECUTIVO
 O novo desenho passa a ter:
 - identidade unica em auth.users
 - profiles como extensao da conta

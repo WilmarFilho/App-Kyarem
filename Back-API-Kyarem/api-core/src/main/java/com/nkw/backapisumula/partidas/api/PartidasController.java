@@ -46,7 +46,7 @@ public class PartidasController {
 
     @GetMapping
     public List<PartidaResponse> list(@RequestParam(required = false) UUID modalidadeId,
-                                     @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status) {
         service.validateStatus(status);
         return service.list(modalidadeId, status == null ? null : status.trim().toLowerCase()).stream()
                 .map(PartidaResponse::from)
@@ -64,8 +64,7 @@ public class PartidasController {
     public PartidaResponse create(
             Authentication authentication,
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody CreatePartidaRequest req
-    ) {
+            @Valid @RequestBody CreatePartidaRequest req) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean hasRefereeRole = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_referee"));
@@ -78,20 +77,20 @@ public class PartidasController {
                 req.agendadoPara(),
                 req.local(),
                 req.categoria(),
-                req.fase()
-        );
+                req.fase());
         return PartidaResponse.from(p);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse update(@PathVariable UUID id,
-                                 Authentication authentication,
-                                 @AuthenticationPrincipal Jwt jwt,
-                                 @Valid @RequestBody UpdatePartidaRequest req) {
+            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdatePartidaRequest req) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
-        Partida p = service.update(id, userId, arbitroOnly, req.modalidadeId(), req.equipeAId(), req.equipeBId(), req.agendadoPara(), req.local(), req.snapshotSumula(), req.sumulaPdfUrl(), req.categoria(), req.fase());
+        Partida p = service.update(id, userId, arbitroOnly, req.modalidadeId(), req.equipeAId(), req.equipeBId(),
+                req.agendadoPara(), req.local(), req.snapshotSumula(), req.sumulaPdfUrl(), req.categoria(), req.fase());
         return PartidaResponse.from(p);
     }
 
@@ -108,8 +107,8 @@ public class PartidasController {
     @PostMapping("/{id}/start")
     @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse start(@PathVariable UUID id,
-                                 Authentication authentication,
-                                 @AuthenticationPrincipal Jwt jwt) {
+            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
         return PartidaResponse.from(service.start(id, userId, arbitroOnly));
@@ -118,20 +117,19 @@ public class PartidasController {
     @PostMapping("/{id}/end")
     @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse end(@PathVariable UUID id,
-                               Authentication authentication,
-                               @AuthenticationPrincipal Jwt jwt) {
+            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
         return PartidaResponse.from(service.end(id, userId, arbitroOnly));
     }
 
-
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('admin','referee')")
     public PartidaResponse updateStatus(@PathVariable UUID id,
-                                        Authentication authentication,
-                                        @AuthenticationPrincipal Jwt jwt,
-                                        @Valid @RequestBody UpdateStatusRequest req) {
+            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateStatusRequest req) {
         UUID userId = UUID.fromString(jwt.getSubject());
         boolean arbitroOnly = isArbitroOnly(authentication);
         Partida p = service.updateStatus(id, userId, arbitroOnly, req.status(), req.statusAntesPausa());
@@ -146,9 +144,10 @@ public class PartidasController {
     }
 
     private boolean isArbitroOnly(Authentication authentication) {
-        boolean isAdminOrDirector = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_admin"));
-        boolean isReferee = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_referee"));
+        boolean isAdminOrDirector = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_admin"));
+        boolean isReferee = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_referee"));
         return isReferee && !isAdminOrDirector;
     }
 
@@ -159,8 +158,8 @@ public class PartidasController {
             OffsetDateTime agendadoPara,
             String local,
             String categoria,
-            String fase
-    ) {}
+            String fase) {
+    }
 
     public record UpdatePartidaRequest(
             UUID modalidadeId,
@@ -171,24 +170,14 @@ public class PartidasController {
             JsonNode snapshotSumula,
             String sumulaPdfUrl,
             String categoria,
-            String fase
-    ) {}
+            String fase) {
+    }
 
     public record UpdateStatusRequest(
-            @Schema(
-                    description = "Novo status da partida.",
-                    example = "pausada"
-            )
-            @NotBlank String status,
+            @Schema(description = "Novo status da partida.", example = "pausada") @NotBlank String status,
 
-            @Schema(
-                    description = "Status imediatamente anterior à pausa (usado quando status=pausada).",
-                    example = "2° tempo"
-            )
-            @JsonProperty("status_antes_pausa") String statusAntesPausa
-    ) {}
-
-
+            @Schema(description = "Status imediatamente anterior à pausa (usado quando status=pausada).", example = "2° tempo") @JsonProperty("status_antes_pausa") String statusAntesPausa) {
+    }
 
     public record PartidaResponse(
             UUID id,
@@ -210,15 +199,17 @@ public class PartidasController {
             JsonNode snapshotSumula,
             String sumulaPdfUrl,
             String hashIntegridade,
-            @JsonProperty("status_antes_pausa") String statusAntesPausa
-    ) {
+            @JsonProperty("status_antes_pausa") String statusAntesPausa,
+            UUID criadoPor) {
         public static PartidaResponse from(Partida p) {
             return new PartidaResponse(
                     p.getId(),
                     p.getModalidade() == null ? null : p.getModalidade().getId(),
                     p.getEquipeA() == null ? null : p.getEquipeA().getId(),
                     p.getEquipeB() == null ? null : p.getEquipeB().getId(),
-                    p.getModalidade() != null && p.getModalidade().getModalidade() != null ? p.getModalidade().getModalidade().getNome() : null,
+                    p.getModalidade() != null && p.getModalidade().getModalidade() != null
+                            ? p.getModalidade().getModalidade().getNome()
+                            : null,
                     p.getStatus(),
                     p.getAgendadoPara(),
                     p.getIniciadaEm(),
@@ -233,8 +224,8 @@ public class PartidasController {
                     p.getSnapshotSumula(),
                     p.getSumulaPdfUrl(),
                     p.getHashIntegridade(),
-                    p.getStatusAntesPausa()
-            );
+                    p.getStatusAntesPausa(),
+                    p.getCriadoPor());
         }
 
         private static Map<String, Object> toEquipeMap(com.nkw.backapisumula.competicao.CampeonatoTime equipe) {

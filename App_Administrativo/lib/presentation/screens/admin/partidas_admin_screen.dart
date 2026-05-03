@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
 import '../../../services/partida_service.dart';
 import '../../../services/admin_api_service.dart';
@@ -124,12 +125,20 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
     if (result == true) _carregarPartidas();
   }
 
-  /// Só partidas com status 'agendada' podem ser editadas/excluídas.
-  bool _podeEditar(Partida p) => p.status.toLowerCase() == 'agendada';
+  /// Só partidas com status 'agendada' podem ser editadas/excluídas e apenas pelo criador.
+  bool _podeEditar(Partida p) {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    return p.status.toLowerCase() == 'agendada' && p.criadoPor == currentUserId;
+  }
 
   /// Mensagem explicativa quando a edição não é permitida.
   String _motivoBloqueio(Partida p) {
     final s = p.status.toLowerCase();
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    
+    if (p.criadoPor != currentUserId) {
+      return 'Você não pode editar partidas criadas por outros árbitros.';
+    }
     if (s == 'finalizada' || s == 'fechada')
       return 'Partida encerrada não pode ser editada.';
     if (s == 'agendada') return '';

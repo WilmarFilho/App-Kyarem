@@ -36,13 +36,17 @@ public class PartidaArbitroService {
         return repo.findByArbitro_Id(arbitroId);
     }
 
-    public PartidaArbitro add(UUID partidaId, UUID arbitroId, String funcao) {
+    public PartidaArbitro add(UUID partidaId, UUID arbitroId, String funcao, UUID actionUserId) {
         if (repo.existsByPartida_IdAndArbitro_Id(partidaId, arbitroId)) {
             throw new IllegalStateException("Árbitro já atribuído a esta partida.");
         }
 
         Partida partida = partidaRepo.findById(partidaId)
                 .orElseThrow(() -> new IllegalStateException("Partida não encontrada."));
+
+        if (partida.getCriadoPor() != null && !partida.getCriadoPor().equals(actionUserId)) {
+            throw new IllegalStateException("Apenas o criador da partida pode adicionar ou remover árbitros.");
+        }
 
         Profile arbitro = profileRepo.findById(arbitroId)
                 .orElseThrow(() -> new IllegalStateException("Perfil do árbitro não encontrado."));
@@ -62,10 +66,15 @@ public class PartidaArbitroService {
         return repo.save(pa);
     }
 
-    public void remove(UUID partidaArbitroId) {
-        if (!repo.existsById(partidaArbitroId)) {
-            throw new IllegalStateException("Registro de arbitragem não encontrado.");
+    public void remove(UUID partidaArbitroId, UUID actionUserId) {
+        PartidaArbitro pa = repo.findById(partidaArbitroId)
+                .orElseThrow(() -> new IllegalStateException("Registro de arbitragem não encontrado."));
+                
+        Partida partida = pa.getPartida();
+        if (partida != null && partida.getCriadoPor() != null && !partida.getCriadoPor().equals(actionUserId)) {
+            throw new IllegalStateException("Apenas o criador da partida pode adicionar ou remover árbitros.");
         }
+        
         repo.deleteById(partidaArbitroId);
     }
 }

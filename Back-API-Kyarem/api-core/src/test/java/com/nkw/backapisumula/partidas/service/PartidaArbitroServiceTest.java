@@ -35,11 +35,13 @@ class PartidaArbitroServiceTest {
     private static final UUID PARTIDA_ID        = UUID.fromString("aaaaaaaa-0000-0000-0000-000000000011");
     private static final UUID ARBITRO_ID        = UUID.fromString("bbbbbbbb-0000-0000-0000-000000000022");
     private static final UUID VINCULO_ID        = UUID.fromString("cccccccc-0000-0000-0000-000000000033");
+    private static final UUID ACTION_USER_ID    = UUID.fromString("dddddddd-0000-0000-0000-000000000044");
 
     private Partida partida() {
         Partida p = new Partida();
         p.setId(PARTIDA_ID);
         p.setStatus("agendada");
+        p.setCriadoPor(ACTION_USER_ID);
         return p;
     }
 
@@ -72,7 +74,7 @@ class PartidaArbitroServiceTest {
         when(profileRepo.findRolesByUserId(ARBITRO_ID)).thenReturn(java.util.List.of("REFEREE"));
         when(repo.save(any(PartidaArbitro.class))).thenReturn(vinculo());
 
-        PartidaArbitro resultado = service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal");
+        PartidaArbitro resultado = service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal", ACTION_USER_ID);
 
         assertNotNull(resultado);
         assertEquals(VINCULO_ID, resultado.getId());
@@ -85,7 +87,7 @@ class PartidaArbitroServiceTest {
         when(repo.existsByPartida_IdAndArbitro_Id(PARTIDA_ID, ARBITRO_ID)).thenReturn(true);
 
         assertThrows(IllegalStateException.class,
-                () -> service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal"));
+                () -> service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal", ACTION_USER_ID));
 
         // Garante que nada foi salvo
         verify(repo, never()).save(any());
@@ -97,7 +99,7 @@ class PartidaArbitroServiceTest {
         when(partidaRepo.findById(PARTIDA_ID)).thenReturn(Optional.empty());
 
         assertThrows(IllegalStateException.class,
-                () -> service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal"));
+                () -> service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal", ACTION_USER_ID));
     }
 
     @Test
@@ -107,7 +109,7 @@ class PartidaArbitroServiceTest {
         when(profileRepo.findById(ARBITRO_ID)).thenReturn(Optional.empty());
 
         assertThrows(IllegalStateException.class,
-                () -> service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal"));
+                () -> service.add(PARTIDA_ID, ARBITRO_ID, "árbitro principal", ACTION_USER_ID));
     }
 
     @Test
@@ -119,7 +121,7 @@ class PartidaArbitroServiceTest {
         when(repo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // Verifica que o objeto salvo tem os dados corretos preenchidos
-        PartidaArbitro resultado = service.add(PARTIDA_ID, ARBITRO_ID, "fiscal");
+        PartidaArbitro resultado = service.add(PARTIDA_ID, ARBITRO_ID, "fiscal", ACTION_USER_ID);
 
         assertEquals(PARTIDA_ID, resultado.getPartida().getId());
         assertEquals(ARBITRO_ID, resultado.getArbitro().getId());
@@ -132,19 +134,19 @@ class PartidaArbitroServiceTest {
 
     @Test
     void remove_vinculoExistente_deletaComSucesso() {
-        when(repo.existsById(VINCULO_ID)).thenReturn(true);
+        when(repo.findById(VINCULO_ID)).thenReturn(Optional.of(vinculo()));
 
-        service.remove(VINCULO_ID);
+        service.remove(VINCULO_ID, ACTION_USER_ID);
 
         verify(repo, times(1)).deleteById(VINCULO_ID);
     }
 
     @Test
     void remove_vinculoNaoExistente_lancaIllegalStateException() {
-        when(repo.existsById(VINCULO_ID)).thenReturn(false);
+        when(repo.findById(VINCULO_ID)).thenReturn(Optional.empty());
 
         assertThrows(IllegalStateException.class,
-                () -> service.remove(VINCULO_ID));
+                () -> service.remove(VINCULO_ID, ACTION_USER_ID));
 
         verify(repo, never()).deleteById(any());
     }

@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -32,17 +34,23 @@ public class PartidaArbitrosController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('admin','director','referee')")
-    public PartidaArbitroResponse add(@PathVariable UUID partidaId, @Valid @RequestBody AddArbitroRequest req) {
-        PartidaArbitro pa = service.add(partidaId, req.arbitroId(), req.funcao());
+    public PartidaArbitroResponse add(@PathVariable UUID partidaId, 
+                                      @Valid @RequestBody AddArbitroRequest req,
+                                      @AuthenticationPrincipal Jwt jwt) {
+        UUID actionUserId = UUID.fromString(jwt.getSubject());
+        PartidaArbitro pa = service.add(partidaId, req.arbitroId(), req.funcao(), actionUserId);
         return PartidaArbitroResponse.from(pa);
     }
 
     @DeleteMapping("/{partidaArbitroId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAnyRole('admin','director','referee')")
-    public void remove(@PathVariable UUID partidaId, @PathVariable UUID partidaArbitroId) {
+    public void remove(@PathVariable UUID partidaId, 
+                       @PathVariable UUID partidaArbitroId,
+                       @AuthenticationPrincipal Jwt jwt) {
+        UUID actionUserId = UUID.fromString(jwt.getSubject());
         // partidaId está no path por consistência; remoção usa o id do vínculo
-        service.remove(partidaArbitroId);
+        service.remove(partidaArbitroId, actionUserId);
     }
 
     public record AddArbitroRequest(
