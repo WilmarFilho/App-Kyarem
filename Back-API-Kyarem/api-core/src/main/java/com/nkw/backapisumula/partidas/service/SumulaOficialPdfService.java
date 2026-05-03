@@ -133,12 +133,20 @@ public class SumulaOficialPdfService {
 
         String capitaoA = inscritosA.stream()
                 .filter(i -> Boolean.TRUE.equals(i.getIsCapitao()))
-                .map(i -> Optional.ofNullable(i.getAtleta()).map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null ? a.getUser().getNomeCompleto() : a.getNomeCompeticao()).orElse(""))
+                .map(i -> Optional.ofNullable(i.getAtleta())
+                        .map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null
+                                ? a.getUser().getNomeCompleto()
+                                : a.getNomeCompeticao())
+                        .orElse(""))
                 .findFirst().orElse("");
 
         String capitaoB = inscritosB.stream()
                 .filter(i -> Boolean.TRUE.equals(i.getIsCapitao()))
-                .map(i -> Optional.ofNullable(i.getAtleta()).map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null ? a.getUser().getNomeCompleto() : a.getNomeCompeticao()).orElse(""))
+                .map(i -> Optional.ofNullable(i.getAtleta())
+                        .map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null
+                                ? a.getUser().getNomeCompleto()
+                                : a.getNomeCompeticao())
+                        .orElse(""))
                 .findFirst().orElse("");
 
         int faltasA1 = countFaltas(eventos, equipeAId, 1, tempoPeriodo);
@@ -221,7 +229,10 @@ public class SumulaOficialPdfService {
                 ? inscrito.getId().toString().substring(0, 8).toUpperCase(Locale.ROOT)
                 : "";
 
-        String nomeAtleta = Optional.ofNullable(inscrito.getAtleta()).map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null ? a.getUser().getNomeCompleto() : a.getNomeCompeticao()).orElse("");
+        String nomeAtleta = Optional.ofNullable(inscrito.getAtleta())
+                .map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null ? a.getUser().getNomeCompleto()
+                        : a.getNomeCompeticao())
+                .orElse("");
         if (Boolean.TRUE.equals(inscrito.getIsGoleiro())) {
             nomeAtleta += " (G)";
         }
@@ -784,19 +795,6 @@ public class SumulaOficialPdfService {
         return sb.toString();
     }
 
-    private String vBarLabel(String text) {
-        StringBuilder sb = new StringBuilder("<div class=\"v-bar-text\">");
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == ' ')
-                sb.append("<br/>");
-            else
-                sb.append(Character.toUpperCase(c));
-        }
-        sb.append("</div>");
-        return sb.toString();
-    }
-
     private String scheduleRow(String label, String start, String end) {
         return "<tr>"
                 + "<td style=\"border-left:none; font-size:9px;\">" + e(label) + "</td>"
@@ -987,16 +985,6 @@ public class SumulaOficialPdfService {
             }
         }
         return new String[] { safeText(local), "" };
-    }
-
-    private String normalize(String value) {
-        if (value == null)
-            return "";
-        return value.toLowerCase(Locale.ROOT)
-                .replace("ã", "a").replace("á", "a").replace("â", "a")
-                .replace("é", "e").replace("ê", "e").replace("í", "i")
-                .replace("ó", "o").replace("ô", "o").replace("õ", "o")
-                .replace("ú", "u").replace("ç", "c");
     }
 
     // ─── RECORDS ────────────────────────────────────────────────────────────────
