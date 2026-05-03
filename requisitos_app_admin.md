@@ -63,3 +63,8 @@ Este documento descreve os requisitos funcionais e não funcionais para o aplica
 
 > [!TIP]
 > Para o **RNF04 (Recuperação de Estado)** e **RNF02 (Sincronização)**, é recomendado utilizar uma arquitetura orientada a eventos no Flutter (como BLoC ou Riverpod) ouvindo um Stream de eventos via WebSocket, aliado a um Snapshot inicial fornecido via API REST ao carregar a tela da partida.
+
+
+
+-- Precisamos definir quais regras serão implementadas em cada modalidade esportiva. E quais os criterios para ter ou não penaltis. E deixar de forma intuitiva para o usuário na hora definir se deve ou não ter penaltis.
+
