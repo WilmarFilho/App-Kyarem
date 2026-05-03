@@ -197,7 +197,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
   static const int duracaoSegundoTempo =
       40 * 60; // 2400 segundos (Total acumulado)
 
-  late final PartidaService _partidaService = widget.partidaService ?? PartidaService();
+  late final PartidaService _partidaService =
+      widget.partidaService ?? PartidaService();
   List<TipoEventoEsporte> _tiposDeEventosDisponiveis = [];
 
   late int _golsA;
@@ -291,12 +292,17 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     setState(() => _carregandoDados = true);
 
     try {
+      // Fase 1: carregar tipos de eventos, atletas e nomes em paralelo.
+      // _carregarEventosSalvos depende dessas listas, por isso fica na fase 2.
       await Future.wait([
         _buscarConfiguracoesDeEventos(),
         _carregarAtletas(),
         _carregarNomesEquipes(),
-        _carregarEventosSalvos(), // <-- Adicione esta linha
       ]);
+
+      // Fase 2: carregar eventos — agora _tiposDeEventosDisponiveis e
+      // _jogadoresA/_jogadoresB já estão preenchidos.
+      await _carregarEventosSalvos();
     } catch (e) {
       debugPrint("Erro no carregamento inicial: $e");
     } finally {
@@ -315,27 +321,43 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
       final listaConvertida = rawEventos
           .map((ev) {
-            // Tenta identificar se o evento pertence ao Time A ou B para a cor
-            final atletaId = ev['atleta_id'];
-            Color? corDinamica;
+            // A API retorna campos camelCase planos — sem objetos aninhados
+            final tipoEventoId = ev['tipoEventoId']?.toString() ?? '';
+            final atletaId = ev['atletaId']?.toString();
+            final equipeId = ev['equipeId']?.toString();
 
-            if (atletaId != null) {
-              // Verifica nos atletas já carregados
-              bool isA =
-                  _jogadoresA.any((a) => a.atletaId == atletaId) ||
-                  _reservasA.any((a) => a.atletaId == atletaId);
-              corDinamica = isA ? Colors.orange : Colors.blue;
+            // Resolve o nome do tipo cruzando com a lista já carregada
+            final tipoEvento = _tiposDeEventosDisponiveis
+                .where((t) => t.id == tipoEventoId)
+                .firstOrNull;
+            final tipoNome = tipoEvento?.nome ?? tipoEventoId;
+
+            // Resolve nome e número do atleta cruzando com os jogadores carregados
+            Atleta? atleta;
+            if (atletaId != null && atletaId.isNotEmpty) {
+              atleta = [
+                ..._jogadoresA,
+                ..._jogadoresB,
+                ..._reservasA,
+                ..._reservasB,
+              ].where((a) => a.atletaId == atletaId).firstOrNull;
+            }
+
+            // Determina cor pelo equipeId
+            Color? corDinamica;
+            if (equipeId != null) {
+              corDinamica = equipeId == widget.partida.equipeAId
+                  ? Colors.orange
+                  : Colors.blue;
             }
 
             return EventoPartida(
-              tipo: ev['tipo_evento']?['nome']?.toString() ?? 'Evento',
-              jogadorNome: ev['atleta']?['nome']?.toString(),
-              jogadorNumero: ev['atleta']?['numero'] != null
-                  ? int.tryParse(ev['atleta']!['numero'].toString())
-                  : null,
+              tipo: tipoNome,
+              jogadorNome: atleta?.nome,
+              jogadorNumero: atleta?.numero,
               corTime: corDinamica,
-              horario: ev['tempo_cronometro']?.toString() ?? '00:00',
-              observacao: ev['descricao']?.toString() ?? '',
+              horario: ev['tempoCronometro']?.toString() ?? '00:00',
+              observacao: ev['descricaoDetalhada']?.toString() ?? '',
             );
           })
           .toList()
@@ -368,17 +390,32 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     bool hasProrrogacao = false;
 
     for (var ev in eventosCronologicos) {
-      final tipoNome = ev['tipo_evento']?['nome']?.toString().toUpperCase() ?? '';
-      final descricao = ev['descricao']?.toString() ?? '';
-      final equipeId = ev['equipe_id']?.toString() ?? '';
-      final tempoJogo = _parseTempoCronometro(ev['tempo_cronometro']?.toString() ?? '00:00');
+      // API retorna camelCase plano
+      final tipoEventoId = ev['tipoEventoId']?.toString() ?? '';
+      final tipoEvento = _tiposDeEventosDisponiveis
+          .where((t) => t.id == tipoEventoId)
+          .firstOrNull;
+      final tipoNome = (tipoEvento?.nome ?? '').toUpperCase();
+      final descricao = ev['descricaoDetalhada']?.toString() ?? '';
+      final equipeId = ev['equipeId']?.toString() ?? '';
+      final tempoJogo = _parseTempoCronometro(
+        ev['tempoCronometro']?.toString() ?? '00:00',
+      );
 
       if (tipoNome.contains('PAUSA_TECNICA')) {
         bool isTimeA = equipeId == widget.partida.equipeAId;
         if (tempoJogo <= duracaoPrimeiroTempo) {
-          if (isTimeA) pausasTimeA1++; else pausasTimeB1++;
+          if (isTimeA) {
+            pausasTimeA1++;
+          } else {
+            pausasTimeB1++;
+          }
         } else {
-          if (isTimeA) pausasTimeA2++; else pausasTimeB2++;
+          if (isTimeA) {
+            pausasTimeA2++;
+          } else {
+            pausasTimeB2++;
+          }
         }
       }
 
@@ -651,7 +688,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       orElse: () => TipoEventoEsporte(
         id: '',
         nome: nomeEventoNoBanco,
-        esporteId: '',
+        modalidadeCatalogoId: '',
         idx: 0,
       ),
     );
@@ -697,7 +734,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       orElse: () => TipoEventoEsporte(
         id: '',
         nome: nomeEventoNoBanco,
-        esporteId: '',
+        modalidadeCatalogoId: '',
         idx: 0,
       ),
     );
@@ -800,7 +837,8 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     final tipoId = ultimoEvento['tipo_evento_id']?.toString() ?? '';
     final tipoEvento = _tiposDeEventosDisponiveis.firstWhere(
       (e) => e.id == tipoId,
-      orElse: () => TipoEventoEsporte(id: '', nome: '', esporteId: '', idx: 0),
+      orElse: () =>
+          TipoEventoEsporte(id: '', nome: '', modalidadeCatalogoId: '', idx: 0),
     );
     final rawNome = tipoEvento.nome.toUpperCase();
     final periodoEfetivo = _periodoAtual == PeriodoPartida.pausada
@@ -1627,6 +1665,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         ? ''
         : ' • Observação adicionada';
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -2042,17 +2081,24 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                                       Navigator.pushReplacement(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => MatchSummaryScreen(
-                                            timeA: _nomeTimeA,
-                                            timeB: _nomeTimeB,
-                                            escudoA: widget.partida.equipeA?.atleticaEscudoUrl,
-                                            escudoB: widget.partida.equipeB?.atleticaEscudoUrl,
-                                            golsA: _golsA,
-                                            golsB: _golsB,
-                                            eventos: _eventosPartida,
-                                            partidaId: widget.partida.id,
-                                            partidaService: _partidaService,
-                                          ),
+                                          builder: (context) =>
+                                              MatchSummaryScreen(
+                                                timeA: _nomeTimeA,
+                                                timeB: _nomeTimeB,
+                                                escudoA: widget
+                                                    .partida
+                                                    .equipeA
+                                                    ?.atleticaEscudoUrl,
+                                                escudoB: widget
+                                                    .partida
+                                                    .equipeB
+                                                    ?.atleticaEscudoUrl,
+                                                golsA: _golsA,
+                                                golsB: _golsB,
+                                                eventos: _eventosPartida,
+                                                partidaId: widget.partida.id,
+                                                partidaService: _partidaService,
+                                              ),
                                         ),
                                       );
                                     },
@@ -2402,7 +2448,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       orElse: () => TipoEventoEsporte(
         id: '',
         nome: 'SUBSTITUIÇÃO',
-        esporteId: '',
+        modalidadeCatalogoId: '',
         idx: 0,
       ),
     );
@@ -2464,6 +2510,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         ? ''
         : ' • Observação adicionada';
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

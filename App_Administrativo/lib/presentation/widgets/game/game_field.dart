@@ -8,6 +8,7 @@ class GameField extends StatelessWidget {
   final Atleta? jogadorSelecionado;
   final void Function(Atleta?) onJogadorSelecionado;
   final void Function(Atleta) onJogadorDoubleTap;
+  final String layout;
 
   const GameField({
     super.key,
@@ -16,6 +17,7 @@ class GameField extends StatelessWidget {
     required this.jogadorSelecionado,
     required this.onJogadorSelecionado,
     required this.onJogadorDoubleTap,
+    this.layout = 'soccer',
   });
 
   @override
@@ -36,18 +38,7 @@ class GameField extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              // Linhas do campo
-              Center(child: Container(width: 2, color: Colors.white54)),
-              Center(
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white54, width: 2),
-                  ),
-                ),
-              ),
+              ..._buildCourtLines(),
               // Renderiza apenas jogadores com posição definida (titulares no campo)
               ...[
                 ...jogadoresA.where((jog) => jog.posicao != null),
@@ -58,6 +49,75 @@ class GameField extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<Widget> _buildCourtLines() {
+    switch (layout) {
+      case 'basketball':
+        return [
+          Center(child: Container(width: 2, color: Colors.white54)),
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white54, width: 2),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 70,
+            child: Container(
+              width: 36,
+              height: 110,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white54, width: 2),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: 70,
+            child: Container(
+              width: 36,
+              height: 110,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white54, width: 2),
+              ),
+            ),
+          ),
+        ];
+      case 'volleyball':
+        return [
+          Center(child: Container(width: 3, color: Colors.white70)),
+          Positioned.fill(
+            child: Center(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 18),
+                color: Colors.white24,
+              ),
+            ),
+          ),
+        ];
+      case 'soccer':
+      default:
+        return [
+          Center(child: Container(width: 2, color: Colors.white54)),
+          Center(
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white54, width: 2),
+              ),
+            ),
+          ),
+        ];
+    }
   }
 
   Widget _buildPlayerWidget(Atleta jogador, double width, double height) {
@@ -88,7 +148,11 @@ class GameField extends StatelessWidget {
                 radius: 14,
                 backgroundColor: jogador.corTime,
                 child: Text(
-                  "${jogador.numero}",
+                  jogador.numero != null
+                      ? '${jogador.numero}'
+                      : jogador.nome.isNotEmpty
+                          ? jogador.nome[0].toUpperCase()
+                          : '?',
                   style: const TextStyle(
                     fontSize: 10,
                     color: Colors.white,

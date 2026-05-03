@@ -63,10 +63,28 @@ public class EsportesController {
         static EsporteResponse from(Esporte e) { return new EsporteResponse(e.getId(), e.getNome()); }
     }
 
-    public record TipoEventoResponse(UUID id, UUID modalidadeCatalogoId, String nome) {
+    public record TipoEventoResponse(
+            UUID id,
+            UUID modalidadeCatalogoId,
+            String codigo,
+            String nome,
+            String escopo,
+            Boolean impactaPlacar,
+            Integer pontosPro,
+            Integer pontosContra,
+            Integer ordemExibicao) {
         static TipoEventoResponse from(TipoEvento te) {
             UUID modalidadeCatalogoId = te.getModalidadeCatalogo() != null ? te.getModalidadeCatalogo().getId() : null;
-            return new TipoEventoResponse(te.getId(), modalidadeCatalogoId, te.getNome());
+            return new TipoEventoResponse(
+                    te.getId(),
+                    modalidadeCatalogoId,
+                    te.getCodigo(),
+                    te.getNome(),
+                    te.getEscopo(),
+                    te.getImpactaPlacar(),
+                    te.getPontosPro(),
+                    te.getPontosContra(),
+                    te.getOrdemExibicao());
         }
     }
 }

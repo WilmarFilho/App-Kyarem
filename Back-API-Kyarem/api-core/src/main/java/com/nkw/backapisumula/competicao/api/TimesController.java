@@ -12,6 +12,8 @@ import com.nkw.backapisumula.competicao.repo.ModalidadeCatalogoRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
@@ -147,6 +149,34 @@ public class TimesController {
                 campeonatoTimeRepository.deleteById(campeonatoTimeId);
         }
 
+        @PatchMapping("/campeonato/{campeonatoTimeId}/atletas/{atletaId}/camisa")
+        @Transactional
+        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president','ROLE_referee')")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        public void atualizarNumeroCamisa(
+                        @PathVariable UUID campeonatoTimeId,
+                        @PathVariable UUID atletaId,
+                        @Valid @RequestBody AtualizarNumeroCamisaRequest request) {
+                CampeonatoTime ct = campeonatoTimeRepository.findById(campeonatoTimeId)
+                                .orElseThrow(() -> new IllegalStateException("Equipe do campeonato não encontrada."));
+                if (ct.getTime() == null)
+                        throw new IllegalStateException("Time atlética não vinculado à equipe do campeonato.");
+
+                UUID timeAtleticaId = ct.getTime().getId();
+                int updated = entityManager.createNativeQuery("""
+                                UPDATE operational.time_atletica_atletas
+                                SET numero_camisa = :numeroCamisa
+                                WHERE time_atletica_id = :timeId
+                                  AND atleta_id = :atletaId
+                                """)
+                                .setParameter("numeroCamisa", request.numeroCamisa())
+                                .setParameter("timeId", timeAtleticaId)
+                                .setParameter("atletaId", atletaId)
+                                .executeUpdate();
+                if (updated == 0)
+                        throw new IllegalStateException("Atleta não encontrado neste time.");
+        }
+
         @GetMapping("/campeonato/{campeonatoTimeId}/atletas")
         @Transactional(readOnly = true)
         @SuppressWarnings("unchecked")
@@ -158,20 +188,25 @@ public class TimesController {
                 UUID timeAtleticaId = ct.getTime().getId();
 
                 List<Object[]> rows = entityManager.createNativeQuery("""
-                                SELECT a.id, a.nome_competicao, a.foto_url, taa.status, taa.adicionado_em
+                                SELECT a.id, a.nome_competicao, a.foto_url, taa.status, taa.numero_camisa
                                 FROM operational.time_atletica_atletas taa
                                 JOIN operational.atletas a ON a.id = taa.atleta_id
                                 WHERE taa.time_atletica_id = :timeId
-                                ORDER BY a.nome_competicao ASC
+                                ORDER BY taa.numero_camisa ASC NULLS LAST, a.nome_competicao ASC
                                 """)
                                 .setParameter("timeId", timeAtleticaId)
                                 .getResultList();
 
-                return rows.stream().map(r -> new AtletaRosterResponse(
-                                (UUID) r[0],
-                                (String) r[1],
-                                (String) r[2],
-                                (String) r[3])).toList();
+                return rows.stream().map(r -> {
+                                Integer numeroCamisa = null;
+                                if (r[4] instanceof Number n) numeroCamisa = n.intValue();
+                                return new AtletaRosterResponse(
+                                        (UUID) r[0],
+                                        (String) r[1],
+                                        (String) r[2],
+                                        (String) r[3],
+                                        numeroCamisa);
+                }).toList();
         }
 
         public record CreateTimeAtleticaRequest(
@@ -246,6 +281,13 @@ public class TimesController {
                         UUID id,
                         String nome,
                         String fotoUrl,
-                        String status) {
+                        String status,
+                        Integer numeroCamisa) {
+        }
+
+        public record AtualizarNumeroCamisaRequest(
+                        @Min(value = 0, message = "Número da camisa deve ser maior ou igual a 0.")
+                        @Max(value = 999, message = "Número da camisa deve ser menor ou igual a 999.")
+                        Integer numeroCamisa) {
         }
 }

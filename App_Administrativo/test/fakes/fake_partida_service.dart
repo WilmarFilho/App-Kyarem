@@ -51,6 +51,20 @@ class FakePartidaService extends PartidaService {
   }
 
   @override
+  Future<Map<String, dynamic>?> buscarConfiguracaoModalidadeDaPartida(
+    String modalidadeId,
+  ) async {
+    return {
+      'id': modalidadeId,
+      'nomeExibicao': 'Futsal',
+      'esporteNome': 'Futebol',
+      'tempoPartidaMinutos': 20,
+      'permiteProrrogacao': true,
+      'permitePenaltis': true,
+    };
+  }
+
+  @override
   Future<List<TipoEventoEsporte>> buscarTiposDeEventoDaPartida(String modalidadeId) async => tiposEvento;
 
   @override

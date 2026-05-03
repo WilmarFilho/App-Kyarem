@@ -6,7 +6,10 @@ class Partida {
   final String modalidadeId;
   final String status;
   final String? statusAntesPausa;
+  final String? periodoAtual;
   final String? sumulaPdfUrl;
+  final String? hashIntegridade;
+  final int? versaoEstado;
   final int placarA;
   final int placarB;
   final String equipeAId;
@@ -21,6 +24,7 @@ class Partida {
   final Equipe? equipeB;
   final Modalidade? modalidade;
   final String? criadoPor;
+  final Map<String, dynamic>? snapshotSumula;
 
   /// Alias para compatibilidade com código que usa 'agendadoPara'
   DateTime? get agendadoPara => agendadaPara;
@@ -30,7 +34,10 @@ class Partida {
     required this.modalidadeId,
     required this.status,
     this.statusAntesPausa,
+    this.periodoAtual,
     this.sumulaPdfUrl,
+    this.hashIntegridade,
+    this.versaoEstado,
     required this.equipeAId,
     required this.equipeBId,
     this.placarA = 0,
@@ -45,6 +52,7 @@ class Partida {
     this.equipeB,
     this.modalidade,
     this.criadoPor,
+    this.snapshotSumula,
   });
 
   factory Partida.fromMap(Map<String, dynamic> map) {
@@ -75,7 +83,12 @@ class Partida {
       modalidadeId: map['modalidadeId'] ?? '',
       status: map['status'] ?? '',
       statusAntesPausa: map['status_antes_pausa'] ?? map['statusAntesPausa'],
+      periodoAtual: map['periodoAtual'] ?? map['periodo_atual'],
       sumulaPdfUrl: map['sumula_pdf_url'] ?? map['sumulaPdfUrl'],
+      hashIntegridade: map['hash_integridade'] ?? map['hashIntegridade'],
+      versaoEstado: map['versaoEstado'] is num
+          ? (map['versaoEstado'] as num).toInt()
+          : int.tryParse(map['versaoEstado']?.toString() ?? ''),
       equipeAId: map['equipeAId'] ?? map['equipe_a_id'] ?? '',
       equipeBId: map['equipeBId'] ?? map['equipe_b_id'] ?? '',
       placarA: map['placarA'] ?? 0,
@@ -104,6 +117,7 @@ class Partida {
                 : null),
       modalidade: modalidade,
       criadoPor: map['criadoPor'] ?? map['criado_por'],
+      snapshotSumula: sumula,
     );
   }
 
@@ -112,7 +126,10 @@ class Partida {
     String? modalidadeId,
     String? status,
     String? statusAntesPausa,
+    String? periodoAtual,
     String? sumulaPdfUrl,
+    String? hashIntegridade,
+    int? versaoEstado,
     int? placarA,
     int? placarB,
     String? equipeAId,
@@ -127,13 +144,17 @@ class Partida {
     Equipe? equipeB,
     Modalidade? modalidade,
     String? criadoPor,
+    Map<String, dynamic>? snapshotSumula,
   }) {
     return Partida(
       id: id ?? this.id,
       modalidadeId: modalidadeId ?? this.modalidadeId,
       status: status ?? this.status,
       statusAntesPausa: statusAntesPausa ?? this.statusAntesPausa,
+      periodoAtual: periodoAtual ?? this.periodoAtual,
       sumulaPdfUrl: sumulaPdfUrl ?? this.sumulaPdfUrl,
+      hashIntegridade: hashIntegridade ?? this.hashIntegridade,
+      versaoEstado: versaoEstado ?? this.versaoEstado,
       placarA: placarA ?? this.placarA,
       placarB: placarB ?? this.placarB,
       equipeAId: equipeAId ?? this.equipeAId,
@@ -148,6 +169,7 @@ class Partida {
       equipeB: equipeB ?? this.equipeB,
       modalidade: modalidade ?? this.modalidade,
       criadoPor: criadoPor ?? this.criadoPor,
+      snapshotSumula: snapshotSumula ?? this.snapshotSumula,
     );
   }
 }

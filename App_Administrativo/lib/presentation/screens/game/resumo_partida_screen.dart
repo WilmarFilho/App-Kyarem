@@ -3,6 +3,7 @@ import 'package:kyarem_eventos/models/helpers/evento_partida_model.dart';
 import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
 import 'package:kyarem_eventos/models/atleta_model.dart';
+import 'package:kyarem_eventos/models/tipo_evento_model.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
 import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -563,15 +564,25 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
         widget.partidaId!,
       );
 
+      // Carrega os tipos para resolver o nome pelo tipoEventoId
+      final partida = _partidaApi ?? await _partidaService.buscarPartidaPorId(widget.partidaId!);
+      final tipos = partida != null
+          ? await _partidaService.buscarTiposDeEventoDaPartida(partida.modalidadeId)
+          : <TipoEventoEsporte>[];
+
+      // A API retorna campos camelCase planos — sem objetos aninhados
       final eventos = raw.map((ev) {
-        final tipoNome = (ev['tipo_evento']?['nome']?.toString() ?? 'Evento');
+        final tipoEventoId = (ev['tipoEventoId'] ?? ev['tipo_evento_id'])?.toString() ?? '';
+        final tipoEvento = tipos.where((t) => t.id == tipoEventoId).firstOrNull;
+        final tipoNome = tipoEvento?.nome ?? tipoEventoId;
+
         final id = ev['id']?.toString() ?? '';
-        final equipeId = ev['equipe_id']?.toString();
-        final atletaId = ev['atleta_id']?.toString();
-        final atletaSaiId = ev['atleta_sai_id']?.toString();
-        final isSub = ev['is_substitution'] == true;
-        final tipoEventoId = ev['tipo_evento_id']?.toString() ?? '';
-        final tempo = ev['tempo_cronometro']?.toString() ?? '00:00';
+        final equipeId = (ev['equipeId'] ?? ev['equipe_id'])?.toString();
+        final atletaId = (ev['atletaId'] ?? ev['atleta_id'])?.toString();
+        final atletaSaiId = (ev['atletaSaiId'] ?? ev['atleta_sai_id'])?.toString();
+        final isSub = ev['isSubstitution'] == true || ev['is_substitution'] == true;
+        final tempo = (ev['tempoCronometro'] ?? ev['tempo_cronometro'])?.toString() ?? '00:00';
+        final descricao = (ev['descricaoDetalhada'] ?? ev['descricao_detalhada'] ?? '').toString();
 
         return SummaryEventItem(
           id: id,
@@ -587,7 +598,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
             jogadorNumero: null,
             corTime: null,
             horario: tempo,
-            observacao: ev['descricao_detalhada']?.toString() ?? '',
+            observacao: descricao,
           ),
         );
       }).toList();

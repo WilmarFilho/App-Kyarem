@@ -308,8 +308,8 @@ public class PartidaService {
             throw new IllegalStateException("Partida já está fechada.");
         }
 
-        if (!isStatusFinalizada(p.getStatus())) {
-            throw new IllegalStateException("Só é possível fechar a súmula de uma partida finalizada.");
+        if (!isStatusFinalizada(p.getStatus()) && !isStatusEmAndamento(p.getStatus())) {
+            throw new IllegalStateException("Só é possível fechar a súmula de uma partida em andamento ou finalizada.");
         }
 
         if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
@@ -368,9 +368,9 @@ public class PartidaService {
         String normalized = normalizeStatusForDb(status);
         validateStatus(normalized);
 
-        // "fechada" é reservado para o endpoint /end
-        if (STATUS_FECHADA.equalsIgnoreCase(normalized)) {
-            throw new IllegalStateException("Use o endpoint /end para fechar a súmula.");
+        // "fechada" e "finalizada" são reservados para o endpoint /end
+        if (STATUS_FECHADA.equalsIgnoreCase(normalized) || STATUS_FINALIZADA.equalsIgnoreCase(normalized)) {
+            throw new IllegalStateException("Use o endpoint /end para finalizar a partida e fechar a súmula.");
         }
 
         p.setStatus(normalized);

@@ -35,10 +35,18 @@ void main() {
       );
 
       tiposEventoFake = [
-        TipoEventoEsporte(id: 't1', esporteId: 'e1', nome: 'Gol'),
-        TipoEventoEsporte(id: 't2', esporteId: 'e1', nome: 'Substituição'),
-        TipoEventoEsporte(id: 't3', esporteId: 'e1', nome: 'Cartao_Amarelo'),
-        TipoEventoEsporte(id: 't4', esporteId: 'e1', nome: 'Falta'),
+      TipoEventoEsporte(id: 't1', codigo: 'GOL', nome: 'Gol'),
+      TipoEventoEsporte(
+        id: 't2',
+        codigo: 'SUBSTITUICAO',
+        nome: 'Substituição',
+      ),
+      TipoEventoEsporte(
+        id: 't3',
+        codigo: 'CARTAO_AMARELO',
+        nome: 'Cartao_Amarelo',
+      ),
+      TipoEventoEsporte(id: 't4', codigo: 'FALTA', nome: 'Falta'),
       ];
 
       inscritosAFake = [

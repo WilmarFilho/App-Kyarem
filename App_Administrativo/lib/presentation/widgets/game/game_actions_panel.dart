@@ -21,11 +21,32 @@ class GameActionsPanel extends StatelessWidget {
   TipoEventoEsporte? _buscarTipo(String nome) {
     try {
       return tiposDeEventos.firstWhere(
-        (e) => e.nome.trim().toLowerCase() == nome.trim().toLowerCase(),
+        (e) =>
+            e.nome.trim().toLowerCase() == nome.trim().toLowerCase() ||
+            e.codigo.trim().toLowerCase() == nome.trim().toLowerCase(),
       );
     } catch (_) {
       return null;
     }
+  }
+
+  bool _podeAcionar(TipoEventoEsporte tipo) {
+    // Eventos de partida (início/fim de tempo) são sempre controlados pelos botões do timer
+    if (tipo.isEventoDePartida) return false;
+
+    // Nenhuma ação é permitida quando parado
+    const estadosBloqueados = [
+      PeriodoPartida.naoIniciada,
+      PeriodoPartida.pausada,
+      PeriodoPartida.intervalo,
+      PeriodoPartida.finalizada,
+      PeriodoPartida.fechada,
+    ];
+    if (estadosBloqueados.contains(periodoAtual)) return false;
+
+    // Tanto eventos de atleta quanto de equipe exigem jogador selecionado:
+    // o jogador selecionado determina a equipe do evento.
+    return jogadorSelecionado != null;
   }
 
   @override
@@ -40,36 +61,46 @@ class GameActionsPanel extends StatelessWidget {
     // 2. Lista de nomes que ganharam botões fixos (para não repetir no grid)
     final nomesFixos = [
       "gol",
+      "substituicao",
       "substituição",
       "falta",
       "cartao_amarelo",
+      "cartão_amarelo",
       "cartao_vermelho",
+      "cartão_vermelho",
     ];
 
-    // 3. LISTA DE EXCLUSÃO: Tipos que existem no banco mas NÃO devem virar botões
-    // Adicione aqui nomes de eventos de sistema, logs ou pormenores técnicos
     final nomesExcluidos = [
-      "inicio_1_tempo",
-      "inicio_2_tempo",
-      "fim_partida",
-      "fim_1_tempo",
-      "fim_2_tempo",
-      "pausa_tecnica",
-      "fim_pausa_tecnica",
-      "prorrogacao_dada",
-      "partida_pausada",
-      "acrescimo_dado",
-      "intervalo",
+      'inicio_1_tempo',
+      'inicio_2_tempo',
+      'fim_partida',
+      'fim_1_tempo',
+      'fim_2_tempo',
+      'pausa_tecnica',
+      'fim_pausa_tecnica',
+      'prorrogacao_dada',
+      'partida_pausada',
+      'acrescimo_dado',
+      'intervalo',
       'acrescimo',
       'prorrogacao',
       'partida_retomada',
     ];
 
-    // Filtra o que sobrou (ex: Tiro Lateral, Escanteio, etc) e ignora os excluídos
     final outrosEventos = tiposDeEventos.where((e) {
       final nomeLow = e.nome.toLowerCase();
-      return !nomesFixos.contains(nomeLow) && !nomesExcluidos.contains(nomeLow);
-    }).toList();
+      final codigoLow = e.codigo.toLowerCase();
+      if (e.isEventoDePartida) return false;
+      return !nomesFixos.contains(nomeLow) &&
+          !nomesFixos.contains(codigoLow) &&
+          !nomesExcluidos.contains(nomeLow) &&
+          !nomesExcluidos.contains(codigoLow);
+    }).toList()
+      ..sort(
+        (a, b) => (a.ordemExibicao ?? a.idx ?? 999).compareTo(
+          b.ordemExibicao ?? b.idx ?? 999,
+        ),
+      );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -90,7 +121,10 @@ class GameActionsPanel extends StatelessWidget {
                       tipoGol.nomeFormatado,
                       const Color(0xFF00FFC2),
                       Colors.black,
-                      onTap: () => onRegistrarEvento(tipoGol),
+                      onTap: _podeAcionar(tipoGol)
+                          ? () => onRegistrarEvento(tipoGol)
+                          : null,
+                      enabled: _podeAcionar(tipoGol),
                     ),
                   ),
                 if (tipoGol != null && tipoSub != null)
@@ -101,7 +135,10 @@ class GameActionsPanel extends StatelessWidget {
                       tipoSub.nomeFormatado,
                       Colors.white,
                       Colors.black,
-                      onTap: () => onRegistrarEvento(tipoSub),
+                      onTap: _podeAcionar(tipoSub)
+                          ? () => onRegistrarEvento(tipoSub)
+                          : null,
+                      enabled: _podeAcionar(tipoSub),
                     ),
                   ),
               ],
@@ -128,7 +165,10 @@ class GameActionsPanel extends StatelessWidget {
                 tipoFalta.nomeFormatado,
                 const Color(0xFFFF3D00),
                 Colors.white,
-                onTap: () => onRegistrarEvento(tipoFalta),
+                onTap: _podeAcionar(tipoFalta)
+                    ? () => onRegistrarEvento(tipoFalta)
+                    : null,
+                enabled: _podeAcionar(tipoFalta),
               ),
 
             if (tipoAmarelo != null || tipoVermelho != null) ...[
@@ -141,7 +181,10 @@ class GameActionsPanel extends StatelessWidget {
                         tipoAmarelo.nomeFormatado,
                         Colors.yellow,
                         Colors.black,
-                        onTap: () => onRegistrarEvento(tipoAmarelo),
+                        onTap: _podeAcionar(tipoAmarelo)
+                            ? () => onRegistrarEvento(tipoAmarelo)
+                            : null,
+                        enabled: _podeAcionar(tipoAmarelo),
                       ),
                     ),
                   if (tipoAmarelo != null && tipoVermelho != null)
@@ -152,7 +195,10 @@ class GameActionsPanel extends StatelessWidget {
                         tipoVermelho.nomeFormatado,
                         const Color(0xFFD32F2F),
                         Colors.white,
-                        onTap: () => onRegistrarEvento(tipoVermelho),
+                        onTap: _podeAcionar(tipoVermelho)
+                            ? () => onRegistrarEvento(tipoVermelho)
+                            : null,
+                        enabled: _podeAcionar(tipoVermelho),
                       ),
                     ),
                 ],
@@ -187,7 +233,10 @@ class GameActionsPanel extends StatelessWidget {
                       width: larguraBotao,
                       child: _buildExitButton(
                         tipo.nomeFormatado,
-                        onTap: () => onRegistrarEvento(tipo),
+                        onTap: _podeAcionar(tipo)
+                            ? () => onRegistrarEvento(tipo)
+                            : null,
+                        enabled: _podeAcionar(tipo),
                       ),
                     );
                   }).toList(),
@@ -205,15 +254,13 @@ class GameActionsPanel extends StatelessWidget {
     String label,
     Color fundo,
     Color texto, {
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    bool enabled = true,
   }) {
-    bool isEnabled =
-        jogadorSelecionado != null &&
-        periodoAtual != PeriodoPartida.naoIniciada;
     return GestureDetector(
-      onTap: isEnabled ? onTap : null,
+      onTap: enabled ? onTap : null,
       child: Opacity(
-        opacity: isEnabled ? 1.0 : 0.4,
+        opacity: enabled ? 1.0 : 0.4,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -235,14 +282,15 @@ class GameActionsPanel extends StatelessWidget {
   }
 
   // Widget para botões brancos/secundários
-  Widget _buildExitButton(String label, {required VoidCallback onTap}) {
-    bool isEnabled =
-        jogadorSelecionado != null &&
-        periodoAtual != PeriodoPartida.naoIniciada;
+  Widget _buildExitButton(
+    String label, {
+    required VoidCallback? onTap,
+    bool enabled = true,
+  }) {
     return GestureDetector(
-      onTap: isEnabled ? onTap : null,
+      onTap: enabled ? onTap : null,
       child: Opacity(
-        opacity: isEnabled ? 1.0 : 0.4,
+        opacity: enabled ? 1.0 : 0.4,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -355,20 +355,25 @@ class PartidaService {
     String partidaId,
   ) async {
     try {
-      final response = await _supabase
-          .from('eventos_partida')
-          .select('tempo_cronometro, criado_em, tipo_evento_id')
-          .eq('partida_id', partidaId)
-          .not('tempo_cronometro', 'is', null)
-          .isFilter('atleta_id', null)
-          .order('criado_em', ascending: false)
-          .limit(1)
-          .maybeSingle();
-      return response;
+      final eventos = await buscarEventosDaPartida(partidaId);
+      eventos.sort((a, b) {
+        final dateA = a['criadoEm']?.toString() ?? '';
+        final dateB = b['criadoEm']?.toString() ?? '';
+        return dateB.compareTo(dateA); // Descending order
+      });
+      for (var ev in eventos) {
+        if (ev['tempoCronometro'] != null && ev['atletaId'] == null) {
+          return {
+            'tempo_cronometro': ev['tempoCronometro'],
+            'criado_em': ev['criadoEm'],
+            'tipo_evento_id': ev['tipoEventoId'],
+          };
+        }
+      }
     } catch (e) {
-      debugPrint('Erro ao buscar último evento: $e');
-      return null;
+      debugPrint('Erro ao buscar ultimo evento: $e');
     }
+    return null;
   }
 
   Future<List<Arbitro>> listarTodosArbitros() async {
@@ -425,18 +430,41 @@ class PartidaService {
     return [];
   }
 
+  Future<Map<String, dynamic>?> buscarConfiguracaoModalidadeDaPartida(
+    String modalidadeId,
+  ) async {
+    try {
+      final response = await _dio.get('/modalidades/$modalidadeId');
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('Erro buscarConfiguracaoModalidadeDaPartida: $e');
+    }
+    return null;
+  }
+
   Future<List<TipoEventoEsporte>> buscarTiposDeEventoDaPartida(
     String modalidadeId,
   ) async {
     try {
-      final resMod = await _dio.get('/modalidades/$modalidadeId');
-      final String? esporteId = resMod.data['esporteId'];
-      if (esporteId != null) {
-        final resEvt = await _dio.get('/esportes/$esporteId/tipos-eventos');
+      final modalidade = await buscarConfiguracaoModalidadeDaPartida(modalidadeId);
+      final modalidadeCatalogoId = modalidade?['modalidadeCatalogoId']?.toString();
+      if (modalidadeCatalogoId != null && modalidadeCatalogoId.isNotEmpty) {
+        // O backend ainda expõe essa rota sob /esportes/{id}/tipos-eventos,
+        // mas o parâmetro esperado é o ID da modalidade catálogo.
+        final resEvt = await _dio.get(
+          '/esportes/$modalidadeCatalogoId/tipos-eventos',
+        );
         if (resEvt.statusCode == 200) {
           return (resEvt.data as List)
               .map((e) => TipoEventoEsporte.fromMap(e))
-              .toList();
+              .toList()
+            ..sort(
+              (a, b) => (a.ordemExibicao ?? a.idx ?? 9999).compareTo(
+                b.ordemExibicao ?? b.idx ?? 9999,
+              ),
+            );
         }
       }
     } catch (e) {
@@ -447,12 +475,21 @@ class PartidaService {
 
   Future<List<dynamic>> buscarInscritos(String equipeId) async {
     try {
-      final response = await _dio.get('/equipes/$equipeId/inscritos');
-      if (response.statusCode == 200) {
+      final response = await _dio.get('/times/campeonato/$equipeId/atletas');
+      if (response.statusCode == 200 && response.data is List) {
         return response.data as List<dynamic>;
       }
     } catch (e) {
-      debugPrint('Erro buscarInscritos: $e');
+      debugPrint('Erro buscarInscritos (novo endpoint): $e');
+    }
+
+    try {
+      final fallback = await _dio.get('/equipes/$equipeId/inscritos');
+      if (fallback.statusCode == 200 && fallback.data is List) {
+        return fallback.data as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('Erro buscarInscritos (fallback legado): $e');
     }
     return [];
   }
@@ -477,12 +514,15 @@ class PartidaService {
   Future<List<Map<String, dynamic>>> buscarEventosDaPartida(
     String partidaId,
   ) async {
-    final response = await _supabase
-        .from('eventos_partida')
-        .select('*, tipo_evento:tipo_evento_id(*)')
-        .eq('partida_id', partidaId)
-        .order('criado_em', ascending: true);
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _dio.get('/partidas/' + partidaId + '/eventos');
+      if (response.statusCode == 200 && response.data is List) {
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+    } catch (e) {
+      debugPrint("Erro buscarEventosDaPartida: " + e.toString());
+    }
+    return [];
   }
 
   Future<void> atualizarEvento({

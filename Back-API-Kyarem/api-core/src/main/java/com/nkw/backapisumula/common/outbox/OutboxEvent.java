@@ -12,6 +12,7 @@ import java.util.UUID;
 public class OutboxEvent {
 
     @Id
+    @JdbcTypeCode(SqlTypes.UUID)
     @Column(columnDefinition = "uuid")
     private UUID id;
 
