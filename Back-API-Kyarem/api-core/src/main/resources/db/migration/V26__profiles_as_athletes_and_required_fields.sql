@@ -9,24 +9,6 @@ SET data_nascimento = COALESCE(p.data_nascimento, a.data_nascimento),
 FROM operational.atletas a
 WHERE a.user_id = p.id;
 
-UPDATE operational.campeonato_atletas ca
-SET atleta_id = a.user_id
-FROM operational.atletas a
-WHERE ca.atleta_id = a.id
-  AND a.user_id IS NOT NULL;
-
-UPDATE operational.eventos_partida ep
-SET atleta_id = a.user_id
-FROM operational.atletas a
-WHERE ep.atleta_id = a.id
-  AND a.user_id IS NOT NULL;
-
-UPDATE operational.eventos_partida ep
-SET atleta_sai_id = a.user_id
-FROM operational.atletas a
-WHERE ep.atleta_sai_id = a.id
-  AND a.user_id IS NOT NULL;
-
 DO $$
 DECLARE
     target_table text;
@@ -51,6 +33,24 @@ BEGIN
         );
     END LOOP;
 END $$;
+
+UPDATE operational.campeonato_atletas ca
+SET atleta_id = a.user_id
+FROM operational.atletas a
+WHERE ca.atleta_id = a.id
+  AND a.user_id IS NOT NULL;
+
+UPDATE operational.eventos_partida ep
+SET atleta_id = a.user_id
+FROM operational.atletas a
+WHERE ep.atleta_id = a.id
+  AND a.user_id IS NOT NULL;
+
+UPDATE operational.eventos_partida ep
+SET atleta_sai_id = a.user_id
+FROM operational.atletas a
+WHERE ep.atleta_sai_id = a.id
+  AND a.user_id IS NOT NULL;
 
 ALTER TABLE operational.campeonato_atletas
     ADD CONSTRAINT fk_campeonato_atletas_atleta_profiles
