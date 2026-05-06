@@ -24,17 +24,17 @@ public class ModalidadeCatalogo {
     @Column(nullable = false)
     private String nome;
 
-    @Column(name = "slug", nullable = false)
+    @Column(name = "codigo", nullable = false)
     private String slug;
 
-    @Column(name = "genero")
+    @Column(name = "descricao")
     private String genero;
 
-    @Column(name = "motor_regras", nullable = false)
+    @Transient
     private String motorRegras;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "motor_configs_default", columnDefinition = "jsonb")
+    @Column(name = "regras_base_json", columnDefinition = "jsonb")
     private JsonNode motorConfigsDefault;
 
     @Column(nullable = false)
@@ -83,7 +83,21 @@ public class ModalidadeCatalogo {
     }
 
     public String getMotorRegras() {
-        return motorRegras;
+        if (motorRegras != null && !motorRegras.isBlank()) {
+            return motorRegras;
+        }
+        if (slug == null) {
+            return null;
+        }
+        return switch (slug.trim().toLowerCase()) {
+            case "futsal", "futsal_masculino", "futsal_feminino", "futsal_misto" -> "FUTSAL_V1";
+            case "quadra", "quadra_masculino", "quadra_feminino", "areia", "areia_misto" -> "VOLEI_V1";
+            case "basquete", "basquete_masculino", "basquete_feminino" -> "BASQUETE_V1";
+            case "handebol", "handebol_masculino", "handebol_feminino" -> "HANDEBOL_V1";
+            case "society", "society_masculino" -> "SOCIETY_V1";
+            case "campo", "campo_masculino" -> "FUTEBOL_CAMPO_V1";
+            default -> null;
+        };
     }
 
     public void setMotorRegras(String motorRegras) {
