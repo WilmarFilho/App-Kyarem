@@ -184,11 +184,15 @@ public class TimesController {
                 if (ct.getTime() == null)
                         return List.of();
                 List<Object[]> rows = entityManager.createNativeQuery("""
-                                SELECT a.id, a.nome_competicao, a.foto_url, ca.status, ca.numero_camisa
+                                SELECT p.id,
+                                       COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS nome,
+                                       p.avatar_url,
+                                       ca.status,
+                                       ca.numero_camisa
                                 FROM operational.campeonato_atletas ca
-                                JOIN operational.atletas a ON a.id = ca.atleta_id
+                                JOIN operational.profiles p ON p.id = ca.atleta_id
                                 WHERE ca.campeonato_time_id = :campeonatoTimeId
-                                ORDER BY ca.numero_camisa ASC NULLS LAST, a.nome_competicao ASC
+                                ORDER BY ca.numero_camisa ASC NULLS LAST, COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) ASC
                                 """)
                                 .setParameter("campeonatoTimeId", campeonatoTimeId)
                                 .getResultList();

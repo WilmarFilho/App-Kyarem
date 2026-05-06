@@ -26,7 +26,7 @@ public class Atletica {
     @Column(name = "escudo_url")
     private String escudoUrl;
 
-    @Column(name = "criado_por", columnDefinition = "uuid")
+    @Column(name = "criado_por", columnDefinition = "uuid", nullable = false)
     private UUID criadoPor;
 
     private String status;

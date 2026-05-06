@@ -6,6 +6,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +29,8 @@ public class MeController {
                 p.getNomeExibicao(),
                 p.getFotoUrl(),
                 p.getTelefone(),
+                p.getDataNascimento(),
+                p.getGenero(),
                 p.getRole()
         );
     }
@@ -37,6 +40,8 @@ public class MeController {
             String nomeExibicao,
             String fotoUrl,
             String telefone,
+            LocalDate dataNascimento,
+            String genero,
             String role
     ) {}
 }

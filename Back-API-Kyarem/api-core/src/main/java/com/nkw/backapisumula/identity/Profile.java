@@ -1,6 +1,7 @@
 package com.nkw.backapisumula.identity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -24,6 +25,12 @@ public class Profile {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    @Column(name = "data_nascimento")
+    private LocalDate dataNascimento;
+
+    @Column(name = "genero")
+    private String genero;
 
     private String status;
 
@@ -67,6 +74,17 @@ public class Profile {
 
     public String getFotoUrl() { return avatarUrl; }
     public void setFotoUrl(String fotoUrl) { this.avatarUrl = fotoUrl; }
+
+    public String getNome() {
+        if (nomeExibicao != null && !nomeExibicao.isBlank()) return nomeExibicao;
+        return nomeCompleto;
+    }
+
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
+
+    public String getGenero() { return genero; }
+    public void setGenero(String genero) { this.genero = genero; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

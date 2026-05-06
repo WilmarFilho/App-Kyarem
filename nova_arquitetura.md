@@ -222,8 +222,8 @@ Campos:
 - id
 - nome
 - nivel
-- data_inicio
-- data_fim
+- data_inicio          (obrigatorio)
+- data_fim             (obrigatorio)
 - status
 - escudo_url
 - criado_em
@@ -269,29 +269,12 @@ Campos:
 - slug
 - cor_principal
 - escudo_url
-- criado_por
+- criado_por           (obrigatorio, referencia um profile)
 - criado_em
 - status
 
 Regra:
 - presidente/dirigente pode criar uma ou varias atleticas
-
-operational.atletas
-- extensao de um profile para contexto esportivo
-
-Campos:
-- id
-- user_id
-- nome_competicao
-- foto_url
-- data_nascimento
-- genero
-- ativo
-- criado_em
-
-Regra:
-- user_id unico
-- um usuario comum so vira atleta quando houver esse registro + vinculos contextuais
 
 operational.atletica_membros
 - vinculo entre usuario e atletica
@@ -314,6 +297,8 @@ Usos:
 Regras importantes:
 - um usuario pode ter mais de um papel na mesma atletica se a regra permitir
 - deve existir no maximo um PRESIDENT ativo por atletica
+- o papel ATHLETE ativo em `operational.atletica_membros` e o que define quem e atleta na estrutura da atletica
+- dados pessoais reutilizaveis do atleta, como `data_nascimento` e `genero`, ficam em `operational.profiles`
 
 
 ## 5.4.1 Quadro de arbitragem
@@ -984,8 +969,9 @@ Atletica e times:
 - operational.times_atletica 1:N operational.campeonato_times
 
 Atletas:
-- operational.profiles 1:0..1 operational.atletas
-- operational.atletas 1:N operational.campeonato_atletas
+- operational.profiles 1:N operational.atletica_membros
+- operational.profiles 1:N operational.campeonato_atletas
+- operational.atletica_membros contextualiza quem e atleta por atletica
 
 Partidas:
 - operational.campeonato_modalidades 1:N operational.partidas
@@ -1009,10 +995,10 @@ Leitura publica:
 - operational.campeonato_times    -> public.artilharia
 - operational.campeonato_times    -> public.ranking_assistencias
 - operational.campeonatos         -> public.ranking_geral_campeonato
-- operational.atletas             -> public.metricas_atletas
-- operational.atletas             -> public.perfis_atletas
+- operational.profiles            -> public.metricas_atletas
+- operational.profiles            -> public.perfis_atletas
 - operational.atleticas           -> public.perfis_atleticas
-- operational.atletas             -> public.snapshot_comparacao_atletas
+- operational.profiles            -> public.snapshot_comparacao_atletas
 - operational.campeonato_times    -> public.snapshot_comparacao_times
 - operational.partidas            -> public.timeline_campeonato
 
@@ -1022,14 +1008,14 @@ Banco atual observado:
 - profiles.role simplifica demais o modelo
 - modalidades hoje esta ligada diretamente ao campeonato
 - tipos_eventos hoje esta ligado ao esporte, nao a modalidade concreta
-- atletas hoje nao estao claramente ligados a auth.users
 - equipes hoje ja nascem por campeonato/modalidade
 
 Evolucao proposta:
 - remover dependencia de um unico campo profiles.role
 - separar roles globais e papeis contextuais
 - manter auth.users como identidade unica
-- introduzir operational.atletas como extensao esportiva do usuario
+- usar `operational.atletica_membros` como fonte do papel ATHLETE
+- centralizar atributos pessoais reutilizaveis do atleta em `operational.profiles`
 - separar:
   esporte -> modalidade_catalogo -> campeonato_modalidade
 - transformar equipe atual em duas camadas:
@@ -1060,7 +1046,8 @@ Evolucao proposta:
 1. presidente/dirigente acessa o app global
 2. convoca usuarios comuns para fazerem parte da sua atletica
 3. cria registro em operational.atletica_membros com papel ATHLETE e status CONVOCADO
-4. se o usuario aceitar, status muda para ATIVO (e se torna operational.atletas caso ainda nao seja)
+4. se o usuario aceitar, status muda para ATIVO e o usuario passa a ser tratado como atleta daquela atletica
+5. dados pessoais como genero, data de nascimento e avatar permanecem em `operational.profiles`
 
 9.4 Criacao de times (App Global)
 1. presidente/dirigente cria os times permanentes (times_atletica) por modalidade_catalogo

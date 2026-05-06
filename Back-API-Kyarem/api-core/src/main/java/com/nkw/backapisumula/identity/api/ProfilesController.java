@@ -16,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -70,6 +71,12 @@ public class ProfilesController {
         if (req.telefone() != null) {
             profile.setTelefone(req.telefone().isBlank() ? null : req.telefone().trim());
         }
+        if (req.dataNascimento() != null) {
+            profile.setDataNascimento(req.dataNascimento());
+        }
+        if (req.genero() != null) {
+            profile.setGenero(req.genero().isBlank() ? null : req.genero().trim());
+        }
         if (req.avatarUrl() != null) {
             String url = req.avatarUrl().isBlank() ? null : req.avatarUrl().trim();
             profile.setFotoUrl(url);
@@ -81,7 +88,7 @@ public class ProfilesController {
         return AccessResponse.from(access);
     }
 
-    public record UpdateMeRequest(String nomeExibicao, String telefone, String avatarUrl) {}
+    public record UpdateMeRequest(String nomeExibicao, String telefone, String avatarUrl, LocalDate dataNascimento, String genero) {}
 
     /** Atualiza apenas o avatar do usuário autenticado. */
     @PatchMapping("/me/avatar")
@@ -245,6 +252,8 @@ public class ProfilesController {
             String nomeExibicao,
             String fotoUrl,
             String telefone,
+            LocalDate dataNascimento,
+            String genero,
             String role,
             OffsetDateTime criadoEm
     ) {
@@ -254,6 +263,8 @@ public class ProfilesController {
                     p.getNomeExibicao(),
                     p.getFotoUrl(),
                     p.getTelefone(),
+                    p.getDataNascimento(),
+                    p.getGenero(),
                     p.getRole(),
                     p.getCriadoEm()
             );
@@ -266,6 +277,8 @@ public class ProfilesController {
             String fotoUrl,
             String telefone,
             String email,
+            LocalDate dataNascimento,
+            String genero,
             String role,
             boolean isAdmin,
             boolean isReferee,
@@ -279,6 +292,8 @@ public class ProfilesController {
                     p.getFotoUrl(),
                     p.getTelefone(),
                     p.getEmail(),
+                    p.getDataNascimento(),
+                    p.getGenero(),
                     access.role(),
                     access.isAdmin(),
                     access.isReferee(),

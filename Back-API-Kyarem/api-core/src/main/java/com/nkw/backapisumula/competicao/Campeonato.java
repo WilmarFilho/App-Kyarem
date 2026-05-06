@@ -23,10 +23,10 @@ public class Campeonato {
 
     private String nivel;
 
-    @Column(name = "data_inicio")
+    @Column(name = "data_inicio", nullable = false)
     private LocalDate dataInicio;
 
-    @Column(name = "data_fim")
+    @Column(name = "data_fim", nullable = false)
     private LocalDate dataFim;
 
     @Column(name = "criado_em")

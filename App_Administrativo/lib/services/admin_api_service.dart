@@ -314,6 +314,8 @@ class AdminApiService {
   }
 
   // ============== ATLETAS ==============
+  // Atletas agora sao derivados de profiles + atletica_membros.
+  // Mantemos apenas a listagem por compatibilidade com fluxos legados.
   Future<List<Atleta>> listarAtletas(String atleticaId) async {
     try {
       final res = await _dio.get(
@@ -327,6 +329,9 @@ class AdminApiService {
     }
   }
 
+  @Deprecated(
+    'Cadastro direto de atleta foi descontinuado. Use profiles + atletica_membros.',
+  )
   Future<Atleta?> criarAtleta(Map<String, dynamic> data) async {
     try {
       final res = await _dio.post('/atletas', data: data);
@@ -337,6 +342,9 @@ class AdminApiService {
     }
   }
 
+  @Deprecated(
+    'Exclusao direta de atleta foi descontinuada. Use profiles + atletica_membros.',
+  )
   Future<bool> excluirAtleta(String id) async {
     try {
       await _dio.delete('/atletas/$id');

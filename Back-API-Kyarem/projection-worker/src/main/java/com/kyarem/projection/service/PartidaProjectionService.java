@@ -334,11 +334,11 @@ public class PartidaProjectionService {
                     ta.id AS equipe_id,
                     COALESCE(t_atl.nome, atl_ta.nome) AS equipe_nome,
                     atl_ta.cor_principal AS equipe_cor,
-                    a.id AS atleta_id,
-                    COALESCE(a.nome_competicao, p.nome_completo) AS atleta_nome_exibicao,
-                    a.foto_url AS atleta_foto_url,
-                    a_sai.id AS atleta_sai_id,
-                    COALESCE(a_sai.nome_competicao, p_sai.nome_completo) AS atleta_sai_nome,
+                    p.id AS atleta_id,
+                    COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS atleta_nome_exibicao,
+                    p.avatar_url AS atleta_foto_url,
+                    p_sai.id AS atleta_sai_id,
+                    COALESCE(NULLIF(p_sai.nome_exibicao, ''), p_sai.nome_completo) AS atleta_sai_nome,
                     ev.periodo,
                     ev.minuto,
                     ev.segundo,
@@ -350,10 +350,8 @@ public class PartidaProjectionService {
                 LEFT JOIN operational.campeonato_times ta ON ev.equipe_id = ta.id
                 LEFT JOIN operational.times_atletica t_atl ON ta.time_atletica_id = t_atl.id
                 LEFT JOIN operational.atleticas atl_ta ON t_atl.atletica_id = atl_ta.id
-                LEFT JOIN operational.atletas a ON ev.atleta_id = a.id
-                LEFT JOIN operational.profiles p ON a.user_id = p.id
-                LEFT JOIN operational.atletas a_sai ON ev.atleta_sai_id = a_sai.id
-                LEFT JOIN operational.profiles p_sai ON a_sai.user_id = p_sai.id
+                LEFT JOIN operational.profiles p ON ev.atleta_id = p.id
+                LEFT JOIN operational.profiles p_sai ON ev.atleta_sai_id = p_sai.id
                 WHERE ev.id = ?
                 ON CONFLICT (evento_id) DO UPDATE SET
                     partida_id = EXCLUDED.partida_id,
@@ -406,11 +404,11 @@ public class PartidaProjectionService {
                     ta.id AS equipe_id,
                     COALESCE(t_atl.nome, atl_ta.nome) AS equipe_nome,
                     atl_ta.cor_principal AS equipe_cor,
-                    a.id AS atleta_id,
-                    COALESCE(a.nome_competicao, p.nome_completo) AS atleta_nome_exibicao,
-                    a.foto_url AS atleta_foto_url,
-                    a_sai.id AS atleta_sai_id,
-                    COALESCE(a_sai.nome_competicao, p_sai.nome_completo) AS atleta_sai_nome,
+                    p.id AS atleta_id,
+                    COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS atleta_nome_exibicao,
+                    p.avatar_url AS atleta_foto_url,
+                    p_sai.id AS atleta_sai_id,
+                    COALESCE(NULLIF(p_sai.nome_exibicao, ''), p_sai.nome_completo) AS atleta_sai_nome,
                     ev.periodo,
                     ev.minuto,
                     ev.segundo,
@@ -422,10 +420,8 @@ public class PartidaProjectionService {
                 LEFT JOIN operational.campeonato_times ta ON ev.equipe_id = ta.id
                 LEFT JOIN operational.times_atletica t_atl ON ta.time_atletica_id = t_atl.id
                 LEFT JOIN operational.atleticas atl_ta ON t_atl.atletica_id = atl_ta.id
-                LEFT JOIN operational.atletas a ON ev.atleta_id = a.id
-                LEFT JOIN operational.profiles p ON a.user_id = p.id
-                LEFT JOIN operational.atletas a_sai ON ev.atleta_sai_id = a_sai.id
-                LEFT JOIN operational.profiles p_sai ON a_sai.user_id = p_sai.id
+                LEFT JOIN operational.profiles p ON ev.atleta_id = p.id
+                LEFT JOIN operational.profiles p_sai ON ev.atleta_sai_id = p_sai.id
                 WHERE ev.partida_id = ?
                 ON CONFLICT (evento_id) DO UPDATE SET
                     partida_id = EXCLUDED.partida_id,

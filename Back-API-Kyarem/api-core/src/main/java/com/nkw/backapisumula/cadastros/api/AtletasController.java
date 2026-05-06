@@ -29,8 +29,8 @@ public class AtletasController {
     }
 
     @GetMapping
-    public List<AtletaResponse> list() {
-        return atletaService.listAll().stream().map(AtletaResponse::from).toList();
+    public List<AtletaResponse> list(@RequestParam(required = false) UUID atleticaId) {
+        return atletaService.listAll(atleticaId).stream().map(AtletaResponse::from).toList();
     }
 
     @GetMapping("/{id}")

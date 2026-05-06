@@ -1,28 +1,24 @@
 package com.nkw.backapisumula.cadastros;
 
-import com.nkw.backapisumula.identity.Profile;
 import jakarta.persistence.*;
-import java.time.OffsetDateTime;
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "atletas", schema = "operational")
+@Table(name = "profiles", schema = "operational")
 public class Atleta {
 
     @Id
-    @GeneratedValue
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private Profile user;
+    @Column(name = "nome_exibicao")
+    private String nomeExibicao;
 
-    @Column(name = "nome_competicao")
-    private String nomeCompeticao;
+    @Column(name = "nome_completo")
+    private String nomeCompleto;
 
-    @Column(name = "foto_url")
+    @Column(name = "avatar_url")
     private String fotoUrl;
 
     @Column(name = "data_nascimento")
@@ -30,26 +26,17 @@ public class Atleta {
 
     private String genero;
 
-    private Boolean ativo = true;
-
-    @Column(name = "criado_em")
-    private OffsetDateTime criadoEm;
-
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
+    public String getNomeCompeticao() { return getNome(); }
+    public void setNomeCompeticao(String nomeCompeticao) { this.nomeExibicao = nomeCompeticao; }
 
-    public Profile getUser() { return user; }
-    public void setUser(Profile user) { this.user = user; }
-
-    public String getNomeCompeticao() { return nomeCompeticao; }
-    public void setNomeCompeticao(String nomeCompeticao) { this.nomeCompeticao = nomeCompeticao; }
-
-    public String getNome() { return nomeCompeticao; }
-    public void setNome(String nome) { this.nomeCompeticao = nome; }
-
-    public OffsetDateTime getCriadoEm() { return criadoEm; }
-    public void setCriadoEm(OffsetDateTime criadoEm) { this.criadoEm = criadoEm; }
+    public String getNome() {
+        if (nomeExibicao != null && !nomeExibicao.isBlank()) return nomeExibicao;
+        return nomeCompleto;
+    }
+    public void setNome(String nome) { this.nomeExibicao = nome; }
 
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
@@ -59,7 +46,4 @@ public class Atleta {
 
     public String getGenero() { return genero; }
     public void setGenero(String genero) { this.genero = genero; }
-
-    public Boolean getAtivo() { return ativo; }
-    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 }

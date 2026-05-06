@@ -5,6 +5,8 @@ class Profile {
   final String role; // admin, referee, user
   final String? email;
   final String? telefone;
+  final String? dataNascimento;
+  final String? genero;
   final String? universidade;
 
   Profile({
@@ -14,6 +16,8 @@ class Profile {
     required this.role,
     this.email,
     this.telefone,
+    this.dataNascimento,
+    this.genero,
     this.universidade,
   });
 
@@ -30,6 +34,10 @@ class Profile {
       role: map['role'] ?? 'user',
       email: map['email'],
       telefone: map['telefone'],
+      dataNascimento:
+          map['dataNascimento']?.toString() ??
+          map['data_nascimento']?.toString(),
+      genero: map['genero']?.toString(),
       universidade: map['universidade'],
     );
   }
@@ -39,6 +47,8 @@ class Profile {
       'nome_exibicao': nomeExibicao,
       'foto_url': fotoUrl,
       'telefone': telefone,
+      'data_nascimento': dataNascimento,
+      'genero': genero,
       'universidade': universidade,
     };
   }

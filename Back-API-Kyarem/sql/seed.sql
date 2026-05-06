@@ -28,13 +28,6 @@ DECLARE
     a1_u4_id UUID := gen_random_uuid();
     a1_u5_id UUID := gen_random_uuid();
     
-    -- Atlética 1 Atletas (operational.atletas)
-    a1_atl1_id UUID := gen_random_uuid();
-    a1_atl2_id UUID := gen_random_uuid();
-    a1_atl3_id UUID := gen_random_uuid();
-    a1_atl4_id UUID := gen_random_uuid();
-    a1_atl5_id UUID := gen_random_uuid();
-    
     -- Atlética 1 Equipes/Inscrições
     time_atl1_id UUID := gen_random_uuid();
     camp_atl1_id UUID := gen_random_uuid();
@@ -50,13 +43,6 @@ DECLARE
     a2_u3_id UUID := gen_random_uuid();
     a2_u4_id UUID := gen_random_uuid();
     a2_u5_id UUID := gen_random_uuid();
-    
-    -- Atlética 2 Atletas (operational.atletas)
-    a2_atl1_id UUID := gen_random_uuid();
-    a2_atl2_id UUID := gen_random_uuid();
-    a2_atl3_id UUID := gen_random_uuid();
-    a2_atl4_id UUID := gen_random_uuid();
-    a2_atl5_id UUID := gen_random_uuid();
     
     -- Atlética 2 Equipes/Inscrições
     time_atl2_id UUID := gen_random_uuid();
@@ -158,33 +144,16 @@ BEGIN
     (atletica2_id, a2_u5_id, 'ATHLETE', 'ATIVO', pres2_user_id);
 
     ----------------------------------------------------------------------------
-    -- 5. ATLETAS (Operational - Dados competitivos)
+    -- 5. CAMPEONATOS E MODALIDADES
     ----------------------------------------------------------------------------
-    INSERT INTO operational.atletas (id, user_id, nome_competicao, ativo)
-    VALUES 
-    (a1_atl1_id, a1_u1_id, 'A1 Eng', true),
-    (a1_atl2_id, a1_u2_id, 'A2 Eng', true),
-    (a1_atl3_id, a1_u3_id, 'A3 Eng', true),
-    (a1_atl4_id, a1_u4_id, 'A4 Eng', true),
-    (a1_atl5_id, a1_u5_id, 'A5 Eng', true),
-    
-    (a2_atl1_id, a2_u1_id, 'A1 Med', true),
-    (a2_atl2_id, a2_u2_id, 'A2 Med', true),
-    (a2_atl3_id, a2_u3_id, 'A3 Med', true),
-    (a2_atl4_id, a2_u4_id, 'A4 Med', true),
-    (a2_atl5_id, a2_u5_id, 'A5 Med', true);
-
-    ----------------------------------------------------------------------------
-    -- 6. CAMPEONATOS E MODALIDADES
-    ----------------------------------------------------------------------------
-    INSERT INTO operational.campeonatos (id, nome, nivel, status)
-    VALUES (campeonato_id, 'Intermed 2026', 'UNIVERSITARIO', 'EM_ANDAMENTO');
+    INSERT INTO operational.campeonatos (id, nome, nivel, data_inicio, data_fim, status)
+    VALUES (campeonato_id, 'Intermed 2026', 'UNIVERSITARIO', DATE '2026-01-15', DATE '2026-02-28', 'EM_ANDAMENTO');
 
     INSERT INTO operational.campeonato_modalidades (id, campeonato_id, modalidade_catalogo_id, nome_exibicao, status)
     VALUES (campeonato_modalidade_id, campeonato_id, modalidade_futsal_masc_id, 'Futsal Masc', 'ATIVA');
 
     ----------------------------------------------------------------------------
-    -- 7. INSCRIÇÃO DAS ATLÉTICAS
+    -- 6. INSCRIÇÃO DAS ATLÉTICAS
     ----------------------------------------------------------------------------
     INSERT INTO operational.campeonato_atleticas (id, campeonato_id, atletica_id)
     VALUES 
@@ -192,7 +161,7 @@ BEGIN
     (camp_atl2_id, campeonato_id, atletica2_id);
 
     ----------------------------------------------------------------------------
-    -- 8. TIMES PERMANENTES
+    -- 7. TIMES PERMANENTES
     ----------------------------------------------------------------------------
     INSERT INTO operational.times_atletica (id, atletica_id, modalidade_catalogo_id, nome, status)
     VALUES 
@@ -200,7 +169,7 @@ BEGIN
     (time_atl2_id, atletica2_id, modalidade_futsal_masc_id, 'Medicina Futsal', 'ATIVO');
 
     ----------------------------------------------------------------------------
-    -- 9. INSCRIÇÃO DO TIME NO CAMPEONATO E ELENCO FINAL
+    -- 8. INSCRIÇÃO DO TIME NO CAMPEONATO E ELENCO FINAL
     ----------------------------------------------------------------------------
     INSERT INTO operational.campeonato_times (id, campeonato_id, campeonato_atletica_id, campeonato_modalidade_id, time_atletica_id, status)
     VALUES 
@@ -210,16 +179,16 @@ BEGIN
     INSERT INTO operational.campeonato_atletas (campeonato_id, atletica_id, campeonato_time_id, atleta_id, numero_camisa, is_capitao, is_goleiro, status)
     VALUES 
     -- Eng
-    (campeonato_id, atletica1_id, camp_time1_id, a1_atl1_id, 1, false, true, 'ATIVO'),
-    (campeonato_id, atletica1_id, camp_time1_id, a1_atl2_id, 10, true, false, 'ATIVO'),
-    (campeonato_id, atletica1_id, camp_time1_id, a1_atl3_id, 9, false, false, 'ATIVO'),
-    (campeonato_id, atletica1_id, camp_time1_id, a1_atl4_id, 5, false, false, 'ATIVO'),
-    (campeonato_id, atletica1_id, camp_time1_id, a1_atl5_id, 3, false, false, 'ATIVO'),
+    (campeonato_id, atletica1_id, camp_time1_id, a1_u1_id, 1, false, true, 'ATIVO'),
+    (campeonato_id, atletica1_id, camp_time1_id, a1_u2_id, 10, true, false, 'ATIVO'),
+    (campeonato_id, atletica1_id, camp_time1_id, a1_u3_id, 9, false, false, 'ATIVO'),
+    (campeonato_id, atletica1_id, camp_time1_id, a1_u4_id, 5, false, false, 'ATIVO'),
+    (campeonato_id, atletica1_id, camp_time1_id, a1_u5_id, 3, false, false, 'ATIVO'),
     -- Med
-    (campeonato_id, atletica2_id, camp_time2_id, a2_atl1_id, 1, false, true, 'ATIVO'),
-    (campeonato_id, atletica2_id, camp_time2_id, a2_atl2_id, 10, true, false, 'ATIVO'),
-    (campeonato_id, atletica2_id, camp_time2_id, a2_atl3_id, 9, false, false, 'ATIVO'),
-    (campeonato_id, atletica2_id, camp_time2_id, a2_atl4_id, 5, false, false, 'ATIVO'),
-    (campeonato_id, atletica2_id, camp_time2_id, a2_atl5_id, 3, false, false, 'ATIVO');
+    (campeonato_id, atletica2_id, camp_time2_id, a2_u1_id, 1, false, true, 'ATIVO'),
+    (campeonato_id, atletica2_id, camp_time2_id, a2_u2_id, 10, true, false, 'ATIVO'),
+    (campeonato_id, atletica2_id, camp_time2_id, a2_u3_id, 9, false, false, 'ATIVO'),
+    (campeonato_id, atletica2_id, camp_time2_id, a2_u4_id, 5, false, false, 'ATIVO'),
+    (campeonato_id, atletica2_id, camp_time2_id, a2_u5_id, 3, false, false, 'ATIVO');
 
 END $$;

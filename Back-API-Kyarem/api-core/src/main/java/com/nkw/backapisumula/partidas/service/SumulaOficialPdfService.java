@@ -134,18 +134,14 @@ public class SumulaOficialPdfService {
         String capitaoA = inscritosA.stream()
                 .filter(i -> Boolean.TRUE.equals(i.getIsCapitao()))
                 .map(i -> Optional.ofNullable(i.getAtleta())
-                        .map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null
-                                ? a.getUser().getNomeCompleto()
-                                : a.getNomeCompeticao())
+                        .map(a -> a.getNome())
                         .orElse(""))
                 .findFirst().orElse("");
 
         String capitaoB = inscritosB.stream()
                 .filter(i -> Boolean.TRUE.equals(i.getIsCapitao()))
                 .map(i -> Optional.ofNullable(i.getAtleta())
-                        .map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null
-                                ? a.getUser().getNomeCompleto()
-                                : a.getNomeCompeticao())
+                        .map(a -> a.getNome())
                         .orElse(""))
                 .findFirst().orElse("");
 
@@ -230,8 +226,7 @@ public class SumulaOficialPdfService {
                 : "";
 
         String nomeAtleta = Optional.ofNullable(inscrito.getAtleta())
-                .map(a -> a.getUser() != null && a.getUser().getNomeCompleto() != null ? a.getUser().getNomeCompleto()
-                        : a.getNomeCompeticao())
+                .map(a -> a.getNome())
                 .orElse("");
         if (Boolean.TRUE.equals(inscrito.getIsGoleiro())) {
             nomeAtleta += " (G)";

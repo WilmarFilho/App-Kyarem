@@ -13,7 +13,6 @@ public interface CampeonatoAtletaRepository extends JpaRepository<CampeonatoAtle
     
     @Query("SELECT ca FROM CampeonatoAtleta ca " +
            "JOIN FETCH ca.atleta a " +
-           "LEFT JOIN FETCH a.user u " +
            "WHERE ca.campeonatoTime.id = :campeonatoTimeId")
     List<CampeonatoAtleta> findByCampeonatoTime_Id(UUID campeonatoTimeId);
 }

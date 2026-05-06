@@ -55,6 +55,8 @@ class ProfileService {
         role: data['role'] ?? 'user',
         email: data['email'] ?? user.email,
         telefone: data['telefone'],
+        dataNascimento: data['dataNascimento']?.toString(),
+        genero: data['genero']?.toString(),
       );
     } catch (e) {
       debugPrint('Erro ao buscar perfil: $e');
