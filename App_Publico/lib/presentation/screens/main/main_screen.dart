@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../models/campeonato_model.dart';
@@ -97,7 +96,9 @@ class _MainScreenState extends State<MainScreen> {
               ),
               ModalidadesScreen(
                 isMainScreenChild: true,
-                campeonato: AppGlobals.campeonatoAtivo ?? Campeonato(id: '', nome: 'Campeonato'),
+                campeonato:
+                    AppGlobals.campeonatoAtivo ??
+                    Campeonato(id: '', nome: 'Campeonato'),
                 modalidadeService: widget.modalidadeService,
               ),
               ConfiguracoesScreen(
