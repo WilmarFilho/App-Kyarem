@@ -36,28 +36,27 @@ class EstatisticaService {
     String modalidadeId,
   ) async {
     try {
-      // 1. Buscar todas as partidas da modalidade
-      final partidasResponse = await _supabase
-          .from('partidas')
-          .select('id')
-          .eq('modalidade_id', modalidadeId);
+      // 1. Buscar todas as partidas da modalidade nas duas tabelas
+      final pAoVivo = await _supabase
+          .from('partidas_ao_vivo')
+          .select('partida_id')
+          .eq('campeonato_modalidade_id', modalidadeId);
 
-      if (partidasResponse.isEmpty) return [];
+      final pHist = await _supabase
+          .from('partidas_historico')
+          .select('partida_id')
+          .eq('campeonato_modalidade_id', modalidadeId);
 
-      final List<String> partidasIds = (partidasResponse as List)
-          .map((p) => p['id'].toString())
-          .toList();
+      final List<String> partidasIds = [];
+      partidasIds.addAll((pAoVivo as List).map((p) => p['partida_id'].toString()));
+      partidasIds.addAll((pHist as List).map((p) => p['partida_id'].toString()));
 
-      // 2. Buscar os eventos dessas partidas que tenham atleta vinculado e tipo de evento
-      // Trazendo as relações de atleta, equipe e tipo de evento
+      if (partidasIds.isEmpty) return [];
+
+      // 2. Buscar os eventos dessas partidas que tenham atleta vinculado no schema public
       final eventosResponse = await _supabase
-          .from('eventos_partida')
-          .select('''
-            *,
-            atletas!eventos_partida_atleta_id_fkey(nome, atletica_id, foto_url),
-            equipes!eventos_partida_equipe_id_fkey(nome_equipe, atleticas(escudo_url)),
-            tipo_evento:tipo_evento_id(nome)
-          ''')
+          .from('eventos_partida_publicos')
+          .select('*')
           .inFilter('partida_id', partidasIds)
           .not('atleta_id', 'is', null);
 
@@ -67,19 +66,12 @@ class EstatisticaService {
         final atletaId = evento['atleta_id']?.toString();
         if (atletaId == null) continue;
 
-        // Extrai informações do atleta
-        final atletaInfo = evento['atletas'];
-        final nomeAtleta = atletaInfo?['nome'] ?? 'Desconhecido';
-        final fotoUrl = atletaInfo?['foto_url'];
+        final nomeAtleta = evento['atleta_nome_exibicao'] ?? 'Desconhecido';
+        final fotoUrl = evento['atleta_foto_url'];
+        final nomeEquipe = evento['equipe_nome'] ?? 'Time Desconhecido';
+        final equipeEscudoUrl = evento['equipe_cor']; // ou não ter escudo, apenas cor
 
-        // Extrai informações da equipe
-        final equipeInfo = evento['equipes'];
-        final nomeEquipe = equipeInfo?['nome_equipe'] ?? 'Time Desconhecido';
-        final equipeEscudoUrl = equipeInfo?['atleticas']?['escudo_url'];
-
-        // Extrai o tipo do evento para identificar gols, cartões, etc..
-        final tipoEventoNome =
-            evento['tipo_evento']?['nome']?.toString().toUpperCase() ?? '';
+        final tipoEventoNome = evento['tipo_evento_nome']?.toString().toUpperCase() ?? '';
 
         if (!mapEstatisticas.containsKey(atletaId)) {
           mapEstatisticas[atletaId] = EstatisticaAtleta(

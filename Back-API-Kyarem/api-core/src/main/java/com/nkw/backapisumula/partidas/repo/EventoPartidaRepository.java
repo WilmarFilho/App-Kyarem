@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param; // ← ADD
 
 import java.util.Collection; // ← ADD
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;        // ← ADD
 import java.util.UUID;
 
@@ -15,6 +16,8 @@ public interface EventoPartidaRepository extends JpaRepository<EventoPartida, UU
     List<EventoPartida> findByPartida_IdOrderByCriadoEmAsc(UUID partidaId);
 
     boolean existsByLocalEventoId(String localEventoId);
+
+    Optional<EventoPartida> findByLocalEventoId(String localEventoId);
 
     @Query("SELECT e.localEventoId FROM EventoPartida e WHERE e.localEventoId IN :ids")
     Set<String> findExistingLocalEventoIds(@Param("ids") Collection<String> ids);

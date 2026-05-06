@@ -18,6 +18,7 @@ public class Campeonato {
     @Column(nullable = false)
     private String nome;
 
+    @Transient
     private String slug;
 
     private String nivel;

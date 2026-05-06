@@ -24,22 +24,18 @@ public class ModalidadeCatalogo {
     @Column(nullable = false)
     private String nome;
 
-    @Column(name = "codigo", nullable = false)
+    @Column(name = "slug", nullable = false)
     private String slug;
 
-    @Column(name = "descricao")
+    @Column(name = "genero")
     private String genero;
 
-    @Column(name = "tipo_partida", nullable = false)
+    @Column(name = "motor_regras", nullable = false)
     private String motorRegras;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "regras_base_json", columnDefinition = "jsonb")
+    @Column(name = "motor_configs_default", columnDefinition = "jsonb")
     private JsonNode motorConfigsDefault;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "eventos_base_json", columnDefinition = "jsonb")
-    private JsonNode eventosBaseJson;
 
     @Column(nullable = false)
     private Boolean ativo = true;
@@ -110,11 +106,4 @@ public class ModalidadeCatalogo {
         this.ativo = ativo;
     }
 
-    public JsonNode getEventosBaseJson() {
-        return eventosBaseJson;
-    }
-
-    public void setEventosBaseJson(JsonNode eventosBaseJson) {
-        this.eventosBaseJson = eventosBaseJson;
-    }
 }

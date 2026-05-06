@@ -73,11 +73,34 @@ BEGIN
         INSERT INTO operational.esportes (id, nome) VALUES (esporte_futsal_id, 'Futsal');
     END IF;
 
-    SELECT id INTO modalidade_futsal_masc_id FROM operational.modalidades_catalogo WHERE codigo = 'futsal_masculino' LIMIT 1;
+    SELECT id
+      INTO modalidade_futsal_masc_id
+      FROM operational.modalidades_catalogo
+     WHERE slug = 'futsal'
+       AND upper(genero) = 'MASCULINO'
+     LIMIT 1;
     IF modalidade_futsal_masc_id IS NULL THEN
         modalidade_futsal_masc_id := gen_random_uuid();
-        INSERT INTO operational.modalidades_catalogo (id, esporte_id, codigo, nome, ativo)
-        VALUES (modalidade_futsal_masc_id, esporte_futsal_id, 'futsal_masculino', 'Futsal Masculino', true);
+        INSERT INTO operational.modalidades_catalogo (
+            id,
+            esporte_id,
+            nome,
+            slug,
+            genero,
+            motor_regras,
+            motor_configs_default,
+            ativo
+        )
+        VALUES (
+            modalidade_futsal_masc_id,
+            esporte_futsal_id,
+            'Futsal',
+            'futsal',
+            'MASCULINO',
+            'FUTSAL_V1',
+            '{"tempoPartidaMinutos":20}'::jsonb,
+            true
+        );
     END IF;
 
     ----------------------------------------------------------------------------
@@ -163,35 +186,21 @@ BEGIN
     ----------------------------------------------------------------------------
     -- 7. INSCRIÇÃO DAS ATLÉTICAS
     ----------------------------------------------------------------------------
-    INSERT INTO operational.campeonato_atleticas (id, campeonato_id, atletica_id, status)
+    INSERT INTO operational.campeonato_atleticas (id, campeonato_id, atletica_id)
     VALUES 
-    (camp_atl1_id, campeonato_id, atletica1_id, 'APROVADO'),
-    (camp_atl2_id, campeonato_id, atletica2_id, 'APROVADO');
+    (camp_atl1_id, campeonato_id, atletica1_id),
+    (camp_atl2_id, campeonato_id, atletica2_id);
 
     ----------------------------------------------------------------------------
-    -- 8. TIMES PERMANENTES (Roster) E ELENCO
+    -- 8. TIMES PERMANENTES
     ----------------------------------------------------------------------------
     INSERT INTO operational.times_atletica (id, atletica_id, modalidade_catalogo_id, nome, status)
     VALUES 
     (time_atl1_id, atletica1_id, modalidade_futsal_masc_id, 'Engenharia Futsal', 'ATIVO'),
     (time_atl2_id, atletica2_id, modalidade_futsal_masc_id, 'Medicina Futsal', 'ATIVO');
 
-    INSERT INTO operational.time_atletica_atletas (time_atletica_id, atleta_id, status)
-    VALUES 
-    (time_atl1_id, a1_atl1_id, 'ATIVO'),
-    (time_atl1_id, a1_atl2_id, 'ATIVO'),
-    (time_atl1_id, a1_atl3_id, 'ATIVO'),
-    (time_atl1_id, a1_atl4_id, 'ATIVO'),
-    (time_atl1_id, a1_atl5_id, 'ATIVO'),
-    
-    (time_atl2_id, a2_atl1_id, 'ATIVO'),
-    (time_atl2_id, a2_atl2_id, 'ATIVO'),
-    (time_atl2_id, a2_atl3_id, 'ATIVO'),
-    (time_atl2_id, a2_atl4_id, 'ATIVO'),
-    (time_atl2_id, a2_atl5_id, 'ATIVO');
-
     ----------------------------------------------------------------------------
-    -- 9. INSCRIÇÃO DO TIME NO CAMPEONATO (Roster do Camp)
+    -- 9. INSCRIÇÃO DO TIME NO CAMPEONATO E ELENCO FINAL
     ----------------------------------------------------------------------------
     INSERT INTO operational.campeonato_times (id, campeonato_id, campeonato_atletica_id, campeonato_modalidade_id, time_atletica_id, status)
     VALUES 

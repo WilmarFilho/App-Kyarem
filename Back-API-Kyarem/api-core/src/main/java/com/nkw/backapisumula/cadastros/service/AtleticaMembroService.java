@@ -129,7 +129,6 @@ public class AtleticaMembroService {
         membro.setStatus(STATUS_ATIVO);
         membro.setCriadoPor(actorUserId);
         membro.setCriadoEm(OffsetDateTime.now());
-        membro.setIniciadoEm(OffsetDateTime.now());
         return membroRepository.save(membro);
     }
 

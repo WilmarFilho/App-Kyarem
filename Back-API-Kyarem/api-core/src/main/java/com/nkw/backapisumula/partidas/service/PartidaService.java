@@ -227,7 +227,12 @@ public class PartidaService {
             if (snapshotSumula != null || (sumulaPdfUrl != null && !sumulaPdfUrl.isBlank())) {
                 p.setHashIntegridade(calcHashIntegridade(p.getSnapshotSumula(), p.getSumulaPdfUrl()));
             }
-            return repo.save(p);
+            Partida saved = repo.save(p);
+            eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaAtualizada", Map.of(
+                "status", saved.getStatus(),
+                "sumulaPdfUrl", saved.getSumulaPdfUrl() == null ? "" : saved.getSumulaPdfUrl()
+            ));
+            return getOrThrow(saved.getId());
         }
 
         // Caso esteja agendada, permite editar dados básicos
@@ -268,9 +273,14 @@ public class PartidaService {
         if (categoria != null) p.setCategoria(categoria);
         if (fase != null) p.setFase(fase);
 
-        repo.save(p);
+        Partida saved = repo.save(p);
+        eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaAtualizada", Map.of(
+            "status", saved.getStatus(),
+            "agendadoPara", saved.getAgendadoPara() == null ? "" : saved.getAgendadoPara().toString(),
+            "local", saved.getLocal() == null ? "" : saved.getLocal()
+        ));
         // Recarrega com EntityGraph para evitar LazyInitializationException
-        return getOrThrow(p.getId());
+        return getOrThrow(saved.getId());
     }
 
     @Transactional
@@ -343,7 +353,7 @@ public class PartidaService {
         p.setHashIntegridade(calcHashIntegridade(p.getSnapshotSumula(), p.getSumulaPdfUrl()));
 
         Partida saved = repo.save(p);
-        eventPublisherService.publish("Partida", saved.getId().toString(), "SúmulaFechada", Map.of(
+        eventPublisherService.publish("Partida", saved.getId().toString(), "SumulaFechada", Map.of(
             "hashIntegridade", saved.getHashIntegridade(),
             "sumulaPdfUrl", saved.getSumulaPdfUrl()
         ));

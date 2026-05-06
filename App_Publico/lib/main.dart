@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'models/campeonato_model.dart';
+import 'core/app_globals.dart';
 import 'presentation/screens/main/main_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/reset_password_screen.dart';
@@ -95,10 +96,7 @@ class MyApp extends StatelessWidget {
         '/reset-password': (context) => const ResetPasswordScreen(),
         '/perfil': (context) => const PerfilScreen(),
         '/modalidades': (context) => ModalidadesScreen(
-          campeonato: Campeonato(
-            id: dotenv.get('CAMPEONATO_ID'),
-            nome: dotenv.get('CAMPEONATO_NOME', fallback: 'Campeonato'),
-          ),
+          campeonato: AppGlobals.campeonatoAtivo ?? Campeonato(id: '', nome: 'Campeonato'),
         ),
         '/configuracoes': (context) => const ConfiguracoesScreen(),
       },

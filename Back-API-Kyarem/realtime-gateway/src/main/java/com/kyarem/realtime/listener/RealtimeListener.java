@@ -35,7 +35,7 @@ public class RealtimeListener {
     public void onRealtimeEvent(String payload) {
         try {
             JsonNode node = objectMapper.readTree(payload);
-            String matchId = node.path("matchId").asText();
+            String matchId = resolveMatchId(node);
 
             if (matchId.isBlank()) {
                 log.warn("[realtime-gateway] Evento sem matchId recebido, ignorando");
@@ -48,5 +48,24 @@ public class RealtimeListener {
         } catch (Exception ex) {
             log.error("[realtime-gateway] Erro ao processar evento realtime: {}", ex.getMessage());
         }
+    }
+
+    private String resolveMatchId(JsonNode node) {
+        String matchId = node.path("matchId").asText("");
+        if (!matchId.isBlank()) {
+            return matchId;
+        }
+
+        matchId = node.path("partidaId").asText("");
+        if (!matchId.isBlank()) {
+            return matchId;
+        }
+
+        String aggregateType = node.path("aggregateType").asText("");
+        if ("Partida".equalsIgnoreCase(aggregateType)) {
+            return node.path("aggregateId").asText("");
+        }
+
+        return "";
     }
 }

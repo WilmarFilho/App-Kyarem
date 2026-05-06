@@ -16,6 +16,9 @@ import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
 import com.nkw.backapisumula.config.FirebaseCloudMessagingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,7 @@ import static java.util.Map.entry;
 
 @Service
 public class EventoPartidaService {
+    private static final Logger log = LoggerFactory.getLogger(EventoPartidaService.class);
 
     // Mapeamento de nomes crus do banco → nomes amigáveis para notificações
     private static final Map<String, String> FRIENDLY_NAMES = Map.ofEntries(
@@ -79,8 +83,20 @@ public class EventoPartidaService {
     }
 
     public static boolean isGoalEvent(TipoEvento tipoEvento) {
-        if (tipoEvento == null || tipoEvento.getNome() == null) return false;
-        String nome = tipoEvento.getNome().trim().toUpperCase();
+        if (tipoEvento == null) return false;
+
+        String codigo = tipoEvento.getCodigo() == null ? "" : tipoEvento.getCodigo().trim().toUpperCase();
+        if (codigo.equals("GOL") || codigo.equals("PENALTI_MARCADO") || codigo.equals("PENALTI_CONVERTIDO")) {
+            return true;
+        }
+
+        if (Boolean.TRUE.equals(tipoEvento.getImpactaPlacar())
+                && tipoEvento.getPontosPro() != null
+                && tipoEvento.getPontosPro() > 0) {
+            return true;
+        }
+
+        String nome = tipoEvento.getNome() == null ? "" : tipoEvento.getNome().trim().toUpperCase();
         return nome.equals("GOL") || nome.equals("PENALTI_MARCADO") || nome.equals("PENALTI_CONVERTIDO");
     }
 
@@ -203,7 +219,14 @@ public class EventoPartidaService {
         if (minutoSegundo != null && !minutoSegundo.isBlank()) ev.setTempoCronometro(minutoSegundo);
         ev.setDescricaoDetalhada(descricaoDetalhada);
 
-        return repo.save(ev);
+        EventoPartida saved = repo.save(ev);
+        recalculateScore(partida);
+        eventPublisherService.publish("EventoPartida", saved.getId().toString(), "EventoAtualizado", Map.of(
+            "partidaId", partidaId.toString(),
+            "eventoId", saved.getId().toString(),
+            "tipoEvento", saved.getTipoEvento() == null ? "" : saved.getTipoEvento().getNome()
+        ));
+        return saved;
     }
 
     @Transactional
@@ -227,7 +250,15 @@ public class EventoPartidaService {
             throw new IllegalStateException("Evento não pertence à partida informada.");
         }
 
+        UUID deletedEventId = ev.getId();
+        String deletedEventType = ev.getTipoEvento() == null ? "" : ev.getTipoEvento().getNome();
         repo.delete(ev);
+        recalculateScore(partida);
+        eventPublisherService.publish("EventoPartida", deletedEventId.toString(), "EventoExcluido", Map.of(
+            "partidaId", partidaId.toString(),
+            "eventoId", deletedEventId.toString(),
+            "tipoEvento", deletedEventType
+        ));
     }
 
     /**
@@ -303,7 +334,11 @@ public class EventoPartidaService {
             toSave.add(ev);
         }
 
-        List<EventoPartida> saved = repo.saveAll(toSave);
+        List<EventoPartida> saved = persistEventosIdempotentes(toSave);
+        log.info("[api-core] Eventos gerais persistidos: partidaId={}, quantidade={}, eventoIds={}",
+                partidaId,
+                saved.size(),
+                saved.stream().map(EventoPartida::getId).toList());
 
         for (EventoPartida ev : saved) {
             String topic = "partida_" + partidaId;
@@ -314,6 +349,10 @@ public class EventoPartidaService {
                 "partidaId", partidaId.toString(),
                 "tipoEvento", ev.getTipoEvento().getNome()
             ));
+            log.info("[api-core] Evento geral publicado para outbox: partidaId={}, eventoId={}, tipoEvento={}",
+                    partidaId,
+                    ev.getId(),
+                    ev.getTipoEvento().getNome());
         }
 
         return saved;
@@ -441,15 +480,18 @@ public class EventoPartidaService {
             }
         }
 
-        List<EventoPartida> saved = repo.saveAll(toSave);
+        List<EventoPartida> saved = persistEventosIdempotentes(toSave);
+        log.info("[api-core] Eventos persistidos: partidaId={}, quantidade={}, eventoIds={}, golsA={}, golsB={}",
+                partidaId,
+                saved.size(),
+                saved.stream().map(EventoPartida::getId).toList(),
+                golsA,
+                golsB);
 
-        // Atualiza placar em batch
-        if (golsA > 0 || golsB > 0) {
-            int a = partida.getPlacarA() == null ? 0 : partida.getPlacarA();
-            int b = partida.getPlacarB() == null ? 0 : partida.getPlacarB();
-            partida.setPlacarA(a + golsA);
-            partida.setPlacarB(b + golsB);
-            partidaRepo.save(partida);
+        // Recalcula placar a partir do histórico persistido para manter consistência
+        // mesmo quando houver lotes mistos ou novos tipos de evento que impactam o placar.
+        if (!saved.isEmpty() || golsA > 0 || golsB > 0) {
+            recalculateScore(partida);
         }
 
         // Notificações + eventos Outbox
@@ -464,6 +506,12 @@ public class EventoPartidaService {
                 "placarA", partida.getPlacarA(),
                 "placarB", partida.getPlacarB()
             ));
+            log.info("[api-core] Evento publicado para outbox: partidaId={}, eventoId={}, tipoEvento={}, placarA={}, placarB={}",
+                    partidaId,
+                    ev.getId(),
+                    ev.getTipoEvento().getNome(),
+                    partida.getPlacarA(),
+                    partida.getPlacarB());
         }
 
         return saved;
@@ -522,6 +570,63 @@ public class EventoPartidaService {
         String nomeB = partida.getTimeB() != null && partida.getTimeB().getTime() != null
                 ? partida.getTimeB().getTime().getNome() : "Time B";
         return nomeA + " x " + nomeB;
+    }
+
+    private void recalculateScore(Partida partida) {
+        UUID timeAId = partida.getTimeA() == null ? null : partida.getTimeA().getId();
+        UUID timeBId = partida.getTimeB() == null ? null : partida.getTimeB().getId();
+
+        int placarA = 0;
+        int placarB = 0;
+
+        for (EventoPartida evento : repo.findByPartidaIdWithDetails(partida.getId())) {
+            TipoEvento tipo = evento.getTipoEvento();
+            CampeonatoTime equipe = evento.getEquipe();
+            if (tipo == null || equipe == null || !Boolean.TRUE.equals(tipo.getImpactaPlacar())) {
+                continue;
+            }
+
+            int pontosPro = tipo.getPontosPro() == null ? 1 : tipo.getPontosPro();
+            int pontosContra = tipo.getPontosContra() == null ? 0 : tipo.getPontosContra();
+
+            if (Objects.equals(equipe.getId(), timeAId)) {
+                placarA += pontosPro;
+                placarB += pontosContra;
+            } else if (Objects.equals(equipe.getId(), timeBId)) {
+                placarB += pontosPro;
+                placarA += pontosContra;
+            }
+        }
+
+        partida.setPlacarA(placarA);
+        partida.setPlacarB(placarB);
+        partidaRepo.save(partida);
+        log.info("[api-core] Placar recalculado: partidaId={}, placarA={}, placarB={}",
+                partida.getId(),
+                placarA,
+                placarB);
+    }
+
+    private List<EventoPartida> persistEventosIdempotentes(List<EventoPartida> eventos) {
+        List<EventoPartida> saved = new ArrayList<>(eventos.size());
+        for (EventoPartida evento : eventos) {
+            try {
+                saved.add(repo.saveAndFlush(evento));
+            } catch (DataIntegrityViolationException ex) {
+                String localEventoId = evento.getLocalEventoId();
+                if (localEventoId == null || localEventoId.isBlank()) {
+                    throw ex;
+                }
+
+                EventoPartida existente = repo.findByLocalEventoId(localEventoId)
+                        .orElseThrow(() -> ex);
+                log.warn("[api-core] Evento duplicado detectado por localEventoId, reutilizando existente: localEventoId={}, eventoId={}",
+                        localEventoId,
+                        existente.getId());
+                saved.add(existente);
+            }
+        }
+        return saved;
     }
 
     @FunctionalInterface

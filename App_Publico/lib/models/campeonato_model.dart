@@ -17,13 +17,13 @@ class Campeonato {
 
   factory Campeonato.fromMap(Map<String, dynamic> map) {
     return Campeonato(
-      id: (map['id'] ?? '').toString(),
+      id: (map['campeonato_id'] ?? map['id'] ?? '').toString(),
       nome: (map['nome'] ?? 'Sem nome').toString(),
-      escudoUrl: (map['escudoUrl'] ?? map['escudo_url'])?.toString(),
+      escudoUrl: (map['escudo_url'] ?? map['escudoUrl'])?.toString(),
       // API: nivelCampeonato | Supabase: nivel_campeonato
       nivel: (map['nivelCampeonato'] ?? map['nivel_campeonato'])?.toString(),
-      dataInicio: _parseDate(map['dataInicio'] ?? map['data_inicio']),
-      dataFim: _parseDate(map['dataFim'] ?? map['data_fim']),
+      dataInicio: _parseDate(map['data_inicio'] ?? map['dataInicio']),
+      dataFim: _parseDate(map['data_fim'] ?? map['dataFim']),
     );
   }
 

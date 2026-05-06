@@ -28,15 +28,6 @@ public class CampeonatoTime {
     @JoinColumn(name = "time_atletica_id", nullable = false)
     private TimeAtletica time;
 
-    @Column(name = "nome_exibicao")
-    private String nomeExibicao;
-
-    @Column(name = "grupo")
-    private String grupo;
-
-    @Column(name = "seed")
-    private Integer seed;
-
     @Column(name = "status", nullable = false)
     private String status = "CONFIRMADA";
 
@@ -83,30 +74,6 @@ public class CampeonatoTime {
         this.time = time;
     }
 
-    public String getNomeExibicao() {
-        return nomeExibicao;
-    }
-
-    public void setNomeExibicao(String nomeExibicao) {
-        this.nomeExibicao = nomeExibicao;
-    }
-
-    public String getGrupo() {
-        return grupo;
-    }
-
-    public void setGrupo(String grupo) {
-        this.grupo = grupo;
-    }
-
-    public Integer getSeed() {
-        return seed;
-    }
-
-    public void setSeed(Integer seed) {
-        this.seed = seed;
-    }
-
     public String getStatus() {
         return status;
     }
@@ -116,9 +83,7 @@ public class CampeonatoTime {
     }
 
     public String getNomeEquipe() {
-        return nomeExibicao != null && !nomeExibicao.isBlank()
-                ? nomeExibicao
-                : (time != null ? time.getNome() : null);
+        return time != null ? time.getNome() : null;
     }
 
     public com.nkw.backapisumula.cadastros.Atletica getAtletica() {

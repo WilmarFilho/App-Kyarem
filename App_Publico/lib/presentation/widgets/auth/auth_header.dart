@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/app_globals.dart';
 
 class AuthHeader extends StatefulWidget {
   final bool isSmall;
@@ -29,20 +28,15 @@ class _AuthHeaderState extends State<AuthHeader> {
       return _cachedCampeonato!;
     }
 
-    final campeonatoId = dotenv.get('CAMPEONATO_ID');
-    try {
-      final res = await Supabase.instance.client
-          .from('campeonatos')
-          .select('nome, escudo_url')
-          .eq('id', campeonatoId)
-          .single();
-
-      _cachedCampeonato = res; // Salva no cache para a próxima vez
+    final camp = AppGlobals.campeonatoAtivo;
+    if (camp != null) {
+      final res = {'nome': camp.nome, 'escudo_url': camp.escudoUrl};
+      _cachedCampeonato = res;
       return res;
-    } catch (e) {
-      debugPrint('Erro ao buscar campeonato: $e');
-      rethrow;
     }
+
+    // Fallback if null
+    return {'nome': 'Campeonato', 'escudo_url': null};
   }
 
   @override
@@ -74,22 +68,24 @@ class _AuthHeaderState extends State<AuthHeader> {
             }
 
             final data = snapshot.data!;
-            final nomeCampeonato = data['nome'] as String;
-            final escudoUrl = data['escudo_url'] as String;
+            final nomeCampeonato = data['nome'] as String? ?? 'Campeonato';
+            final escudoUrl = data['escudo_url'] as String?;
 
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(widget.isSmall ? 8 : 12),
-                  child: Image.network(
-                    escudoUrl,
-                    width: widget.isSmall ? 60 : 80,
-                    height: widget.isSmall ? 60 : 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildDefaultLogo(),
-                  ),
+                  child: escudoUrl != null && escudoUrl.isNotEmpty
+                      ? Image.network(
+                          escudoUrl,
+                          width: widget.isSmall ? 60 : 80,
+                          height: widget.isSmall ? 60 : 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildDefaultLogo(),
+                        )
+                      : _buildDefaultLogo(),
                 ),
                 SizedBox(height: widget.isSmall ? 10 : 16),
                 Text(

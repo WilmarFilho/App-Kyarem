@@ -78,8 +78,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _scrollController.addListener(_onScroll);
 
     _partidasRealtimeStream = _supabase
-        .from('partidas')
-        .stream(primaryKey: ['id']);
+        .from('partidas_ao_vivo')
+        .stream(primaryKey: ['partida_id']);
 
     _carregarDadosReais();
     _carregarDestaques();

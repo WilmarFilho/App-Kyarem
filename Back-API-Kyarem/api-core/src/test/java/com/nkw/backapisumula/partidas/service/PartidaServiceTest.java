@@ -106,7 +106,6 @@ class PartidaServiceTest {
     private CampeonatoTime campeonatoTime(UUID id) {
         CampeonatoTime ct = new CampeonatoTime();
         ct.setId(id);
-        ct.setNomeExibicao("Time " + id.toString().substring(0, 4));
         ct.setCampeonatoModalidade(campeonatoModalidade());
         ct.setCampeonato(campeonato());
         ct.setCampeonatoAtleticaId(UUID.randomUUID());
@@ -131,16 +130,18 @@ class PartidaServiceTest {
 
     @Test
     void create_equipesIguais_lancaIllegalStateException() {
-        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_A_ID,
-                null, "Ginásio A", "Masculino", "Grupos"));
+        assertThrows(IllegalStateException.class,
+                () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_A_ID,
+                        null, "Ginásio A", "Masculino", "Grupos"));
     }
 
     @Test
     void create_modalidadeNaoEncontrada_lancaIllegalStateException() {
         when(modalidadeRepo.findById(MODALIDADE_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
-                null, null, null, null));
+        assertThrows(IllegalStateException.class,
+                () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+                        null, null, null, null));
     }
 
     @Test
@@ -148,8 +149,9 @@ class PartidaServiceTest {
         when(modalidadeRepo.findById(MODALIDADE_ID)).thenReturn(Optional.of(campeonatoModalidade()));
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
-                null, null, null, null));
+        assertThrows(IllegalStateException.class,
+                () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+                        null, null, null, null));
     }
 
     @Test
@@ -188,8 +190,9 @@ class PartidaServiceTest {
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.of(eqA));
         when(equipeRepo.findById(EQUIPE_B_ID)).thenReturn(Optional.of(eqB));
 
-        assertThrows(IllegalStateException.class, () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
-                null, null, null, null));
+        assertThrows(IllegalStateException.class,
+                () -> service.create(USUARIO_ID, false, MODALIDADE_ID, EQUIPE_A_ID, EQUIPE_B_ID,
+                        null, null, null, null));
     }
 
     // ════════════════════════════════════════════════════════════════════════

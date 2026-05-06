@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,7 +31,7 @@ public class OutboxEvent {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload_json", columnDefinition = "jsonb")
-    private String payloadJson;
+    private Map<String, Object> payloadJson;
 
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
@@ -50,8 +51,9 @@ public class OutboxEvent {
     public String getAggregateType() { return aggregateType; }
     public String getAggregateId()   { return aggregateId; }
     public String getEventType()     { return eventType; }
-    public String getPayloadJson()   { return payloadJson; }
+    public Map<String, Object> getPayloadJson() { return payloadJson; }
     public Instant getOccurredAt()   { return occurredAt; }
+    public Instant getPublishedAt()  { return publishedAt; }
     public String getStatus()        { return status; }
     public int getRetryCount()       { return retryCount; }
 

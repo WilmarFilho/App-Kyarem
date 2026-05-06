@@ -201,8 +201,7 @@ public class AtleticasController {
             String fotoUrl,
             String papelCodigo,
             String status,
-            OffsetDateTime criadoEm,
-            OffsetDateTime iniciadoEm
+            OffsetDateTime criadoEm
     ) {
         static AtleticaMembroResponse from(AtleticaMembro membro) {
             return new AtleticaMembroResponse(
@@ -215,8 +214,7 @@ public class AtleticasController {
                     membro.getUser() != null ? membro.getUser().getFotoUrl() : null,
                     membro.getPapelCodigo(),
                     membro.getStatus(),
-                    membro.getCriadoEm(),
-                    membro.getIniciadoEm()
+                    membro.getCriadoEm()
             );
         }
     }

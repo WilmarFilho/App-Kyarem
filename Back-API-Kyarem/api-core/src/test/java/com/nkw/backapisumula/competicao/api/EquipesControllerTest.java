@@ -38,172 +38,181 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TimesController.class)
 class EquipesControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @MockBean private TimeAtleticaRepository timeAtleticaRepository;
-    @MockBean private CampeonatoTimeRepository campeonatoTimeRepository;
-    @MockBean private ModalidadeCatalogoRepository modalidadeCatalogoRepository;
-    @MockBean private CampeonatoModalidadeRepository campeonatoModalidadeRepository;
-    @MockBean private ApplicationLogService applicationLogService;
-    @MockBean private JwtDecoder jwtDecoder;
-    @MockBean private ProfileRepository profileRepository;
+        @MockBean
+        private TimeAtleticaRepository timeAtleticaRepository;
+        @MockBean
+        private CampeonatoTimeRepository campeonatoTimeRepository;
+        @MockBean
+        private ModalidadeCatalogoRepository modalidadeCatalogoRepository;
+        @MockBean
+        private CampeonatoModalidadeRepository campeonatoModalidadeRepository;
+        @MockBean
+        private ApplicationLogService applicationLogService;
+        @MockBean
+        private JwtDecoder jwtDecoder;
+        @MockBean
+        private ProfileRepository profileRepository;
 
-    private static final UUID ATLETICA_ID       = UUID.randomUUID();
-    private static final UUID CAMPEONATO_ID     = UUID.randomUUID();
-    private static final UUID MODALIDADE_ID     = UUID.randomUUID();
-    private static final UUID TIME_ATLETICA_ID  = UUID.randomUUID();
-    private static final UUID CAMPEONATO_TIME_ID = UUID.randomUUID();
+        private static final UUID ATLETICA_ID = UUID.randomUUID();
+        private static final UUID CAMPEONATO_ID = UUID.randomUUID();
+        private static final UUID MODALIDADE_ID = UUID.randomUUID();
+        private static final UUID TIME_ATLETICA_ID = UUID.randomUUID();
+        private static final UUID CAMPEONATO_TIME_ID = UUID.randomUUID();
 
-    private TimeAtletica timeAtletica() {
-        TimeAtletica t = new TimeAtletica();
-        t.setId(TIME_ATLETICA_ID);
-        t.setNome("Falcões do Norte");
-        t.setCriadoEm(OffsetDateTime.now());
-        return t;
-    }
+        private TimeAtletica timeAtletica() {
+                TimeAtletica t = new TimeAtletica();
+                t.setId(TIME_ATLETICA_ID);
+                t.setNome("Falcões do Norte");
+                t.setCriadoEm(OffsetDateTime.now());
+                return t;
+        }
 
-    private CampeonatoTime campeonatoTime() {
-        CampeonatoTime ct = new CampeonatoTime();
-        ct.setId(CAMPEONATO_TIME_ID);
-        ct.setNomeExibicao("Falcões do Norte");
-        return ct;
-    }
+        private CampeonatoTime campeonatoTime() {
+                CampeonatoTime ct = new CampeonatoTime();
+                ct.setId(CAMPEONATO_TIME_ID);
+                return ct;
+        }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // GET /api/v1/times/atletica/{atleticaId} — autenticado, qualquer role
-    // ════════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════
+        // GET /api/v1/times/atletica/{atleticaId} — autenticado, qualquer role
+        // ════════════════════════════════════════════════════════════════════════
 
-    @Test
-    @WithMockUser(roles = "aluno")
-    void listTimesPorAtletica_qualquerUsuarioAutenticado_retorna200() throws Exception {
-        when(timeAtleticaRepository.findAll()).thenReturn(List.of(timeAtletica()));
+        @Test
+        @WithMockUser(roles = "aluno")
+        void listTimesPorAtletica_qualquerUsuarioAutenticado_retorna200() throws Exception {
+                when(timeAtleticaRepository.findAll()).thenReturn(List.of(timeAtletica()));
 
-        mockMvc.perform(get("/api/v1/times/atletica/{atleticaId}", ATLETICA_ID))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
-    }
+                mockMvc.perform(get("/api/v1/times/atletica/{atleticaId}", ATLETICA_ID))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+        }
 
-    @Test
-    void listTimesPorAtletica_semAutenticacao_retorna4xx() throws Exception {
-        mockMvc.perform(get("/api/v1/times/atletica/{atleticaId}", ATLETICA_ID))
-                .andExpect(status().is4xxClientError());
-    }
+        @Test
+        void listTimesPorAtletica_semAutenticacao_retorna4xx() throws Exception {
+                mockMvc.perform(get("/api/v1/times/atletica/{atleticaId}", ATLETICA_ID))
+                                .andExpect(status().is4xxClientError());
+        }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // POST /api/v1/times/atletica — somente admin, director, president
-    // ════════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════
+        // POST /api/v1/times/atletica — somente admin, director, president
+        // ════════════════════════════════════════════════════════════════════════
 
-    @Test
-    void createTimeAtletica_semAutenticacao_retorna4xx() throws Exception {
-        String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
-                ATLETICA_ID, MODALIDADE_ID, "Falcões"));
+        @Test
+        void createTimeAtletica_semAutenticacao_retorna4xx() throws Exception {
+                String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
+                                ATLETICA_ID, MODALIDADE_ID, "Falcões"));
 
-        mockMvc.perform(post("/api/v1/times/atletica")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().is4xxClientError());
-    }
+                mockMvc.perform(post("/api/v1/times/atletica")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                                .andExpect(status().is4xxClientError());
+        }
 
-    /**
-     * NOTA: @WebMvcTest NÃO carrega @EnableMethodSecurity, portanto @PreAuthorize não é
-     * aplicado nesta camada. Testes de RBAC granular devem ser feitos em testes de integração.
-     * Aqui verificamos apenas que o endpoint responde corretamente para usuários autenticados.
-     */
-    @Test
-    @WithMockUser(roles = "admin")
-    void createTimeAtletica_autenticado_processaRequisicao() throws Exception {
-        when(modalidadeCatalogoRepository.findById(MODALIDADE_ID))
-                .thenReturn(Optional.of(new com.nkw.backapisumula.competicao.ModalidadeCatalogo()));
-        when(timeAtleticaRepository.save(any())).thenReturn(timeAtletica());
+        /**
+         * NOTA: @WebMvcTest NÃO carrega @EnableMethodSecurity, portanto @PreAuthorize
+         * não é
+         * aplicado nesta camada. Testes de RBAC granular devem ser feitos em testes de
+         * integração.
+         * Aqui verificamos apenas que o endpoint responde corretamente para usuários
+         * autenticados.
+         */
+        @Test
+        @WithMockUser(roles = "admin")
+        void createTimeAtletica_autenticado_processaRequisicao() throws Exception {
+                when(modalidadeCatalogoRepository.findById(MODALIDADE_ID))
+                                .thenReturn(Optional.of(new com.nkw.backapisumula.competicao.ModalidadeCatalogo()));
+                when(timeAtleticaRepository.save(any())).thenReturn(timeAtletica());
 
-        String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
-                ATLETICA_ID, MODALIDADE_ID, "Falcões"));
+                String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
+                                ATLETICA_ID, MODALIDADE_ID, "Falcões"));
 
-        mockMvc.perform(post("/api/v1/times/atletica")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated());
-    }
+                mockMvc.perform(post("/api/v1/times/atletica")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                                .andExpect(status().isCreated());
+        }
 
-    @Test
-    @WithMockUser(roles = "admin")
-    void createTimeAtletica_roleAdmin_retorna201() throws Exception {
-        when(modalidadeCatalogoRepository.findById(MODALIDADE_ID))
-                .thenReturn(Optional.of(new com.nkw.backapisumula.competicao.ModalidadeCatalogo()));
-        when(timeAtleticaRepository.save(any())).thenReturn(timeAtletica());
+        @Test
+        @WithMockUser(roles = "admin")
+        void createTimeAtletica_roleAdmin_retorna201() throws Exception {
+                when(modalidadeCatalogoRepository.findById(MODALIDADE_ID))
+                                .thenReturn(Optional.of(new com.nkw.backapisumula.competicao.ModalidadeCatalogo()));
+                when(timeAtleticaRepository.save(any())).thenReturn(timeAtletica());
 
-        String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
-                ATLETICA_ID, MODALIDADE_ID, "Falcões do Norte"));
+                String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
+                                ATLETICA_ID, MODALIDADE_ID, "Falcões do Norte"));
 
-        mockMvc.perform(post("/api/v1/times/atletica")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated());
-    }
+                mockMvc.perform(post("/api/v1/times/atletica")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                                .andExpect(status().isCreated());
+        }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // DELETE /api/v1/times/atletica/{timeId} — somente admin, director, president
-    // ════════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════
+        // DELETE /api/v1/times/atletica/{timeId} — somente admin, director, president
+        // ════════════════════════════════════════════════════════════════════════
 
-    @Test
-    @WithMockUser(roles = "admin")
-    void deleteTimeAtletica_roleAdmin_retorna204() throws Exception {
-        mockMvc.perform(delete("/api/v1/times/atletica/{id}", TIME_ATLETICA_ID).with(csrf()))
-                .andExpect(status().isNoContent());
-    }
+        @Test
+        @WithMockUser(roles = "admin")
+        void deleteTimeAtletica_roleAdmin_retorna204() throws Exception {
+                mockMvc.perform(delete("/api/v1/times/atletica/{id}", TIME_ATLETICA_ID).with(csrf()))
+                                .andExpect(status().isNoContent());
+        }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // GET /api/v1/times/campeonato/{campeonatoId}
-    // ════════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════
+        // GET /api/v1/times/campeonato/{campeonatoId}
+        // ════════════════════════════════════════════════════════════════════════
 
-    @Test
-    @WithMockUser(roles = "aluno")
-    void listTimesPorCampeonato_retorna200() throws Exception {
-        when(campeonatoTimeRepository.findAll()).thenReturn(List.of(campeonatoTime()));
+        @Test
+        @WithMockUser(roles = "aluno")
+        void listTimesPorCampeonato_retorna200() throws Exception {
+                when(campeonatoTimeRepository.findAll()).thenReturn(List.of(campeonatoTime()));
 
-        mockMvc.perform(get("/api/v1/times/campeonato/{campeonatoId}", CAMPEONATO_ID))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
-    }
+                mockMvc.perform(get("/api/v1/times/campeonato/{campeonatoId}", CAMPEONATO_ID))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+        }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // POST /api/v1/times/campeonato — somente admin, director, president
-    // ════════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════
+        // POST /api/v1/times/campeonato — somente admin, director, president
+        // ════════════════════════════════════════════════════════════════════════
 
-    @Test
-    @WithMockUser(roles = "admin")
-    void inscreverTimeCampeonato_roleAdmin_retorna201() throws Exception {
-        CampeonatoModalidade cm = new CampeonatoModalidade();
-        cm.setId(MODALIDADE_ID);
+        @Test
+        @WithMockUser(roles = "admin")
+        void inscreverTimeCampeonato_roleAdmin_retorna201() throws Exception {
+                CampeonatoModalidade cm = new CampeonatoModalidade();
+                cm.setId(MODALIDADE_ID);
 
-        when(campeonatoModalidadeRepository.findById(MODALIDADE_ID)).thenReturn(Optional.of(cm));
-        when(timeAtleticaRepository.findById(TIME_ATLETICA_ID)).thenReturn(Optional.of(timeAtletica()));
-        when(campeonatoTimeRepository.save(any())).thenReturn(campeonatoTime());
+                when(campeonatoModalidadeRepository.findById(MODALIDADE_ID)).thenReturn(Optional.of(cm));
+                when(timeAtleticaRepository.findById(TIME_ATLETICA_ID)).thenReturn(Optional.of(timeAtletica()));
+                when(campeonatoTimeRepository.save(any())).thenReturn(campeonatoTime());
 
-        String body = objectMapper.writeValueAsString(new TimesController.InscricaoTimeRequest(
-                MODALIDADE_ID, TIME_ATLETICA_ID, "Falcões do Norte"));
+                String body = objectMapper.writeValueAsString(new TimesController.InscricaoTimeRequest(
+                                MODALIDADE_ID, TIME_ATLETICA_ID, "Falcões do Norte"));
 
-        mockMvc.perform(post("/api/v1/times/campeonato")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated());
-    }
+                mockMvc.perform(post("/api/v1/times/campeonato")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                                .andExpect(status().isCreated());
+        }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // DELETE /api/v1/times/campeonato/{campeonatoTimeId}
-    // ════════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════
+        // DELETE /api/v1/times/campeonato/{campeonatoTimeId}
+        // ════════════════════════════════════════════════════════════════════════
 
-    @Test
-    @WithMockUser(roles = "admin")
-    void removerTimeCampeonato_roleAdmin_retorna204() throws Exception {
-        mockMvc.perform(delete("/api/v1/times/campeonato/{id}", CAMPEONATO_TIME_ID).with(csrf()))
-                .andExpect(status().isNoContent());
-    }
+        @Test
+        @WithMockUser(roles = "admin")
+        void removerTimeCampeonato_roleAdmin_retorna204() throws Exception {
+                mockMvc.perform(delete("/api/v1/times/campeonato/{id}", CAMPEONATO_TIME_ID).with(csrf()))
+                                .andExpect(status().isNoContent());
+        }
 }

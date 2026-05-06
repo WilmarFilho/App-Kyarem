@@ -81,7 +81,6 @@ public class ModalidadesController {
                 modalidadeCatalogo.setGenero(request.genero());
                 modalidadeCatalogo.setMotorRegras(request.motorRegras());
                 modalidadeCatalogo.setMotorConfigsDefault(request.motorConfigsDefault());
-                modalidadeCatalogo.setEventosBaseJson(request.eventosBaseJson());
                 modalidadeCatalogo.setAtivo(request.ativo() == null ? Boolean.TRUE : request.ativo());
                 return ModalidadeCatalogoResponse.from(modalidadeCatalogoRepository.save(modalidadeCatalogo));
         }
@@ -105,7 +104,6 @@ public class ModalidadesController {
                 if (request.genero() != null) modalidadeCatalogo.setGenero(request.genero());
                 if (request.motorRegras() != null) modalidadeCatalogo.setMotorRegras(request.motorRegras());
                 if (request.motorConfigsDefault() != null) modalidadeCatalogo.setMotorConfigsDefault(request.motorConfigsDefault());
-                if (request.eventosBaseJson() != null) modalidadeCatalogo.setEventosBaseJson(request.eventosBaseJson());
                 if (request.ativo() != null) modalidadeCatalogo.setAtivo(request.ativo());
 
                 return ModalidadeCatalogoResponse.from(modalidadeCatalogoRepository.save(modalidadeCatalogo));
@@ -250,7 +248,6 @@ public class ModalidadesController {
                         @NotNull String genero,
                         @NotNull String motorRegras,
                         @JsonObject(allowNull = true) JsonNode motorConfigsDefault,
-                        @JsonObject(allowNull = true) JsonNode eventosBaseJson,
                         Boolean ativo) {
         }
 
@@ -261,7 +258,6 @@ public class ModalidadesController {
                         String genero,
                         String motorRegras,
                         @JsonObject(allowNull = true) JsonNode motorConfigsDefault,
-                        @JsonObject(allowNull = true) JsonNode eventosBaseJson,
                         Boolean ativo) {
         }
 
@@ -336,7 +332,6 @@ public class ModalidadesController {
                         String genero,
                         String motorRegras,
                         JsonNode motorConfigsDefault,
-                        JsonNode eventosBaseJson,
                         Boolean ativo) {
                 public static ModalidadeCatalogoResponse from(ModalidadeCatalogo modalidadeCatalogo) {
                         return new ModalidadeCatalogoResponse(
@@ -352,7 +347,6 @@ public class ModalidadesController {
                                         modalidadeCatalogo.getGenero(),
                                         modalidadeCatalogo.getMotorRegras(),
                                         modalidadeCatalogo.getMotorConfigsDefault(),
-                                        modalidadeCatalogo.getEventosBaseJson(),
                                         modalidadeCatalogo.getAtivo());
                 }
         }

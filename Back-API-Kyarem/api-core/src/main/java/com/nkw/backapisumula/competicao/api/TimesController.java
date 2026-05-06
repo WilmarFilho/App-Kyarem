@@ -130,7 +130,6 @@ public class TimesController {
                 campeonatoTime.setCampeonato(campeonatoModalidade.getCampeonato());
                 campeonatoTime.setCampeonatoModalidade(campeonatoModalidade);
                 campeonatoTime.setTime(timeAtletica);
-                campeonatoTime.setNomeExibicao(request.nomeExibicao());
                 campeonatoTime.setStatus("CONFIRMADA");
                 // TODO: campeonatoAtleticaId is required by schema, but no entity/endpoint
                 // exists yet.
@@ -162,15 +161,14 @@ public class TimesController {
                 if (ct.getTime() == null)
                         throw new IllegalStateException("Time atlética não vinculado à equipe do campeonato.");
 
-                UUID timeAtleticaId = ct.getTime().getId();
                 int updated = entityManager.createNativeQuery("""
-                                UPDATE operational.time_atletica_atletas
+                                UPDATE operational.campeonato_atletas
                                 SET numero_camisa = :numeroCamisa
-                                WHERE time_atletica_id = :timeId
+                                WHERE campeonato_time_id = :campeonatoTimeId
                                   AND atleta_id = :atletaId
                                 """)
                                 .setParameter("numeroCamisa", request.numeroCamisa())
-                                .setParameter("timeId", timeAtleticaId)
+                                .setParameter("campeonatoTimeId", campeonatoTimeId)
                                 .setParameter("atletaId", atletaId)
                                 .executeUpdate();
                 if (updated == 0)
@@ -185,16 +183,14 @@ public class TimesController {
                                 .orElseThrow(() -> new IllegalStateException("Equipe do campeonato não encontrada."));
                 if (ct.getTime() == null)
                         return List.of();
-                UUID timeAtleticaId = ct.getTime().getId();
-
                 List<Object[]> rows = entityManager.createNativeQuery("""
-                                SELECT a.id, a.nome_competicao, a.foto_url, taa.status, taa.numero_camisa
-                                FROM operational.time_atletica_atletas taa
-                                JOIN operational.atletas a ON a.id = taa.atleta_id
-                                WHERE taa.time_atletica_id = :timeId
-                                ORDER BY taa.numero_camisa ASC NULLS LAST, a.nome_competicao ASC
+                                SELECT a.id, a.nome_competicao, a.foto_url, ca.status, ca.numero_camisa
+                                FROM operational.campeonato_atletas ca
+                                JOIN operational.atletas a ON a.id = ca.atleta_id
+                                WHERE ca.campeonato_time_id = :campeonatoTimeId
+                                ORDER BY ca.numero_camisa ASC NULLS LAST, a.nome_competicao ASC
                                 """)
-                                .setParameter("timeId", timeAtleticaId)
+                                .setParameter("campeonatoTimeId", campeonatoTimeId)
                                 .getResultList();
 
                 return rows.stream().map(r -> {

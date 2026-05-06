@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kyarem_eventos_publico/models/partida_model.dart';
+import 'package:kyarem_eventos_publico/core/app_globals.dart';
 
 class PartidaService {
   final _supabase = Supabase.instance.client;
@@ -12,32 +13,35 @@ class PartidaService {
     String status = 'all',
   }) async {
     try {
-      // 1. Iniciamos a base da query
-      var query = _supabase.from('partidas').select('''
-            *,
-            equipe_a:equipes!partidas_equipe_a_id_fkey(*, atleticas(*)),
-            equipe_b:equipes!partidas_equipe_b_id_fkey(*, atleticas(*))
-          ''');
+      List<Partida> allMatches = [];
 
-      // Aplica o filtro obrigatório de modalidade
-      query = query.eq('modalidade_id', modalityId);
+      // Se não for especificamente finalizadas_e_fechadas, busca nas ao_vivo
+      if (status != 'finalizadas_e_fechadas') {
+        var queryAoVivo = _supabase.from('partidas_ao_vivo').select('*');
+        queryAoVivo = queryAoVivo.eq('campeonato_modalidade_id', modalityId);
+        
+        if (status != 'all' && status != 'finalizadas_e_fechadas') {
+            queryAoVivo = queryAoVivo.eq('status', status);
+        }
 
-      // Lógica para o Status
-      if (status == 'all') {
-        // Se for 'all', não adicionamos nenhum filtro de status.
-        // A query continuará apenas com o filtro de modalidade_id.
-      } else if (status == 'finalizadas_e_fechadas') {
-        // Caso queira um grupo específico (como discutimos antes)
-        query = query.inFilter('status', ['finalizada', 'fechada']);
-      } else {
-        // Filtra pelo status específico passado (ex: 'andamento', 'agendada')
-        query = query.eq('status', status);
+        final resAoVivo = await queryAoVivo.order('agendado_para', ascending: true);
+        allMatches.addAll((resAoVivo as List).map((json) => Partida.fromMap(json)));
       }
 
-      // 4. Ordenação (Note que usei iniciada_em como no seu código original)
-      final response = await query.order('iniciada_em', ascending: false);
+      // Se for all ou especificamente finalizadas_e_fechadas, busca no historico
+      if (status == 'all' || status == 'finalizadas_e_fechadas') {
+        var queryHist = _supabase.from('partidas_historico').select('*');
+        queryHist = queryHist.eq('campeonato_modalidade_id', modalityId);
 
-      return (response as List).map((json) => Partida.fromMap(json)).toList();
+        if (status == 'finalizadas_e_fechadas') {
+           // O historico já tem finalizadas e fechadas
+        }
+
+        final resHist = await queryHist.order('iniciada_em', ascending: false);
+        allMatches.addAll((resHist as List).map((json) => Partida.fromMap(json)));
+      }
+
+      return allMatches;
     } catch (e) {
       // ignore: avoid_print
       print('Erro ao buscar partidas: $e');
@@ -47,18 +51,20 @@ class PartidaService {
 
   Future<List<Partida>> getActiveMatches() async {
     try {
-      final response = await _supabase
-          .from('partidas')
-          .select('''
-            *,
-            equipe_a:equipes!partidas_equipe_a_id_fkey(*, atleticas(*)),
-            equipe_b:equipes!partidas_equipe_b_id_fkey(*, atleticas(*))
-          ''')
+      var query = _supabase
+          .from('partidas_ao_vivo')
+          .select('*')
           .neq('status', 'agendada')
           .neq('status', 'finalizada')
-          .neq('status', 'fechada')
-          .order('iniciada_em', ascending: false);
+          .neq('status', 'fechada');
 
+      // Filtra pelo campeonato ativo configurado no .env
+      final campId = AppGlobals.campeonatoAtivo?.id;
+      if (campId != null && campId.isNotEmpty) {
+        query = query.eq('campeonato_id', campId);
+      }
+
+      final response = await query.order('partida_id', ascending: false);
       return (response as List).map((json) => Partida.fromMap(json)).toList();
     } catch (e) {
       // ignore: avoid_print
@@ -77,15 +83,17 @@ class PartidaService {
     }
 
     try {
-      final response = await _supabase
-          .from('partidas')
-          .select('''
-            *,
-            equipe_a:equipes!partidas_equipe_a_id_fkey(*, atleticas(*)),
-            equipe_b:equipes!partidas_equipe_b_id_fkey(*, atleticas(*)),
-            modalidade:modalidades(*)
-          ''')
-          .inFilter('status', ['finalizada', 'fechada'])
+      var query = _supabase
+          .from('partidas_historico')
+          .select('*');
+
+      // Filtra pelo campeonato ativo configurado no .env
+      final campId = AppGlobals.campeonatoAtivo?.id;
+      if (campId != null && campId.isNotEmpty) {
+        query = query.eq('campeonato_id', campId);
+      }
+
+      final response = await query
           .order('encerrada_em', ascending: false)
           .limit(4);
 

@@ -21,70 +21,27 @@ class AtletaService {
     }
 
     try {
-      // 1. Busca o ID do tipo de evento
-      final tipoEventoRes = await _supabase
-          .from('tipos_eventos')
-          .select('id')
-          .ilike('nome', '%$nomeTipoEvento%')
-          .maybeSingle();
-
-      if (tipoEventoRes == null) return [];
-      final tipoId = tipoEventoRes['id'];
-
-      // 2. Busca eventos com a Foreign Key EXPLÍCITA
-      final List<dynamic> res = await _supabase
-          .from('eventos_partida')
-          .select('''
-          atleta_id,
-          atleta:atletas!eventos_partida_atleta_id_fkey (
-            nome,
-            foto_url,
-            atleticas ( nome, escudo_url )
-          )
-        ''')
-          .eq('tipo_evento_id', tipoId);
+      // Busca o melhor jogador (com mais pontos/gols)
+      final res = await _supabase
+          .from('artilharia')
+          .select('*')
+          // Se tiver modalidade, seria bom filtrar, mas aqui estamos fazendo geral.
+          .order('pontuacoes', ascending: false)
+          .limit(1);
 
       if (res.isEmpty) return [];
 
-      // 3. Agrupamento e Contagem
-      Map<String, int> contagem = {};
-      Map<String, dynamic> infoAtleta = {};
-
-      for (var item in res) {
-        final dadosDoAtleta = item['atleta'];
-        if (dadosDoAtleta == null) continue;
-
-        String id = item['atleta_id'].toString();
-        contagem[id] = (contagem[id] ?? 0) + 1;
-        infoAtleta[id] = dadosDoAtleta;
-      }
-
-      // 4. Ordenação (Do maior para o menor)
-      var sortedKeys = contagem.keys.toList()
-        ..sort((a, b) => contagem[b]!.compareTo(contagem[a]!));
-
-      // 5. Retorno apenas do MELHOR (Top 1)
-      if (sortedKeys.isEmpty) return [];
-
-      final idLider = sortedKeys.first;
-      final atleta = infoAtleta[idLider];
-
-      String timeNome = "Geral";
-      String? timeEscudo;
-      if (atleta['atleticas'] != null) {
-        timeNome = atleta['atleticas']['nome'] ?? "Geral";
-        timeEscudo = atleta['atleticas']['escudo_url'];
-      }
+      final item = res.first;
 
       final result = [
         {
-          'atleta_id': idLider,
-          'nome': atleta['nome'] ?? 'Atleta',
-          'modalidade': timeNome,
-          'time_escudo': timeEscudo,
-          'valor': contagem[idLider].toString(),
+          'atleta_id': item['atleta_id'],
+          'nome': item['nome_exibicao'] ?? 'Atleta',
+          'modalidade': item['atletica_nome'] ?? 'Geral',
+          'time_escudo': item['atletica_escudo_url'],
+          'valor': item['pontuacoes']?.toString() ?? '0',
           'label': nomeTipoEvento.toUpperCase() == 'GOL' ? 'GOL' : 'PONTO',
-          'foto': atleta['foto_url'],
+          'foto': item['foto_url'],
         },
       ];
 

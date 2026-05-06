@@ -20,9 +20,10 @@ class ModalidadeService {
 
     try {
       final res = await _supabase
-          .from('modalidades')
+          .from('modalidades_vitrine')
           .select('*')
-          .eq('campeonato_id', campeonatoId);
+          .eq('campeonato_id', campeonatoId)
+          .eq('status', 'ativa');
 
       _cachedModalidades = (res as List)
           .map((e) => Modalidade.fromMap(Map<String, dynamic>.from(e)))

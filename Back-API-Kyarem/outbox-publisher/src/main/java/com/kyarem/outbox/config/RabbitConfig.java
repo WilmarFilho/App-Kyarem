@@ -6,6 +6,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Declara o exchange e as filas no RabbitMQ.
@@ -13,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RabbitConfig {
+    private static final Logger log = LoggerFactory.getLogger(RabbitConfig.class);
 
     public static final String EXCHANGE = "kyarem.events";
 
@@ -37,28 +40,48 @@ public class RabbitConfig {
 
     // ── Bindings ──────────────────────────────────────────────────────────────
 
-    @Bean public Binding bindProjectionMatch(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
-        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("match.#");
+    @Bean public Binding bindProjectionMatchPartida(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("partida.#");
+    }
+
+    @Bean public Binding bindProjectionMatchEvento(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("evento.#");
+    }
+
+    @Bean public Binding bindProjectionMatchStatus(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("status.#");
+    }
+
+    @Bean public Binding bindProjectionMatchSumula(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("sumula.#");
     }
 
     @Bean public Binding bindProjectionSocial(Queue projectionSocialQueue, TopicExchange kyaremExchange) {
         return BindingBuilder.bind(projectionSocialQueue).to(kyaremExchange).with("social.#");
     }
 
-    @Bean public Binding bindMetricsRecalcFinished(Queue metricsRecalcQueue, TopicExchange kyaremExchange) {
-        return BindingBuilder.bind(metricsRecalcQueue).to(kyaremExchange).with("match.finished");
-    }
-
     @Bean public Binding bindMetricsRecalcClosed(Queue metricsRecalcQueue, TopicExchange kyaremExchange) {
-        return BindingBuilder.bind(metricsRecalcQueue).to(kyaremExchange).with("match.closed");
+        return BindingBuilder.bind(metricsRecalcQueue).to(kyaremExchange).with("sumula.fechada");
     }
 
     @Bean public Binding bindMetricsRanking(Queue metricsRankingQueue, TopicExchange kyaremExchange) {
         return BindingBuilder.bind(metricsRankingQueue).to(kyaremExchange).with("ranking.requested");
     }
 
-    @Bean public Binding bindRealtimeNotify(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
-        return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("match.score.updated");
+    @Bean public Binding bindRealtimeNotifyPartida(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("partida.#");
+    }
+
+    @Bean public Binding bindRealtimeNotifyEvento(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("evento.#");
+    }
+
+    @Bean public Binding bindRealtimeNotifyStatus(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("status.#");
+    }
+
+    @Bean public Binding bindRealtimeNotifySumula(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("sumula.#");
     }
 
     // ── RabbitTemplate com JSON converter ────────────────────────────────────
@@ -72,6 +95,14 @@ public class RabbitConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(messageConverter());
+        template.setMandatory(true);
+        template.setReturnsCallback(returned ->
+                log.error("[outbox-publisher] Mensagem não roteada: exchange={}, routingKey={}, replyCode={}, replyText={}, body={}",
+                        returned.getExchange(),
+                        returned.getRoutingKey(),
+                        returned.getReplyCode(),
+                        returned.getReplyText(),
+                        new String(returned.getMessage().getBody())));
         return template;
     }
 }

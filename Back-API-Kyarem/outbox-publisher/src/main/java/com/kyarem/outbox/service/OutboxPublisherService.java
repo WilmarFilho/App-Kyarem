@@ -67,14 +67,31 @@ public class OutboxPublisherService {
         // A routing key é o eventType em lowercase com pontos
         // Ex: MatchScoreUpdated → match.score.updated
         String routingKey = toRoutingKey(event.getEventType());
+        log.info("[outbox-publisher] Publicando evento: outboxEventId={}, aggregateType={}, aggregateId={}, eventType={}, routingKey={}, payload={}",
+                event.getId(),
+                event.getAggregateType(),
+                event.getAggregateId(),
+                event.getEventType(),
+                routingKey,
+                event.getPayloadJson());
 
         try {
             rabbitTemplate.convertAndSend(EXCHANGE, routingKey, event.getPayloadJson());
             event.setStatus("PUBLISHED");
             event.setPublishedAt(Instant.now());
-            log.debug("[outbox-publisher] Publicado: {} → {}", event.getId(), routingKey);
+            log.info("[outbox-publisher] Evento publicado com sucesso: outboxEventId={}, routingKey={}, publishedAt={}",
+                    event.getId(),
+                    routingKey,
+                    event.getPublishedAt());
         } catch (Exception ex) {
-            log.error("[outbox-publisher] Falha ao publicar evento {}: {}", event.getId(), ex.getMessage());
+            log.error("[outbox-publisher] Falha ao publicar evento: outboxEventId={}, aggregateType={}, aggregateId={}, eventType={}, routingKey={}, erro={}",
+                    event.getId(),
+                    event.getAggregateType(),
+                    event.getAggregateId(),
+                    event.getEventType(),
+                    routingKey,
+                    ex.getMessage(),
+                    ex);
             event.setStatus("FAILED");
             event.setRetryCount(event.getRetryCount() + 1);
         }

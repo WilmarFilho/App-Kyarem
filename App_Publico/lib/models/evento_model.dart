@@ -55,21 +55,27 @@ class EventoPartida {
   });
 
   factory EventoPartida.fromMap(Map<String, dynamic> map) {
+    String min = map['minuto']?.toString() ?? '';
+    String sec = map['segundo']?.toString() ?? '';
+    String? tempoCronometro = map['tempo_cronometro']?.toString();
+    if (tempoCronometro == null && min.isNotEmpty && sec.isNotEmpty) {
+      tempoCronometro = "${min.padLeft(2, '0')}:${sec.padLeft(2, '0')}";
+    }
+
     return EventoPartida(
-      id: map['id'],
-      partidaId: map['partida_id'],
-      atletaId: map['atleta_id'],
-      equipeId: map['equipe_id'],
-      tipoEventoId: map['tipo_evento_id'],
-      tempoCronometro: map['tempo_cronometro'],
-      descricaoDetalhada: map['descricao_detalhada'],
+      id: (map['evento_id'] ?? map['id']).toString(),
+      partidaId: map['partida_id']?.toString() ?? '',
+      atletaId: map['atleta_id']?.toString(),
+      equipeId: map['equipe_id']?.toString(),
+      tipoEventoId: (map['tipo_evento_codigo'] ?? map['tipo_evento_id'] ?? '').toString(),
+      tempoCronometro: tempoCronometro,
+      descricaoDetalhada: map['descricao'] ?? map['descricao_detalhada'],
       criadoEm: map['criado_em'] != null 
-          ? DateTime.parse(map['criado_em']) 
+          ? DateTime.tryParse(map['criado_em'].toString()) 
           : null,
-      // Mapeamento de Joins (Supabase trará como objetos aninhados)
-      nomeAtleta: map['atletas']?['nome'],
-      nomeEquipe: map['equipes']?['nome_equipe'],
-      nomeEvento: map['tipos_eventos']?['nome'],
+      nomeAtleta: map['atleta_nome_exibicao'] ?? map['atletas']?['nome'],
+      nomeEquipe: map['equipe_nome'] ?? map['equipes']?['nome_equipe'],
+      nomeEvento: map['tipo_evento_nome'] ?? map['tipos_eventos']?['nome'],
     );
   }
 }

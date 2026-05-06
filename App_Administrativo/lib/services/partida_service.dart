@@ -578,6 +578,8 @@ class PartidaService {
       final sap = statusAntesPausa?.trim();
       if (sap != null && sap.isNotEmpty) {
         data["status_antes_pausa"] = sap;
+      } else if (status.toLowerCase() != 'pausada') {
+        data["status_antes_pausa"] = '';
       }
       await _dio.patch('/partidas/$partidaId/status', data: data);
     } catch (e) {

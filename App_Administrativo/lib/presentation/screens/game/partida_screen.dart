@@ -1307,16 +1307,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     _periodoAntesDoPausa = _periodoAtual;
 
-    _partidaService.atualizarPartida(
-      widget.partida.id,
-      novoStatus: 'pausada',
-      statusAntesPausa: _periodoAntesDoPausa == null
-          ? null
-          : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
-    );
-
     // Iniciar pausa técnica
     setState(() {
+      _periodoAtual = PeriodoPartida.pausada;
       _emPausaTecnica = true;
       _timeEmPausaTecnica = isTimeA ? nomeTimeA : nomeTimeB;
       _segundosPausaTecnica = 0;
@@ -1379,13 +1372,13 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     debugPrint("PAUSA TECNICA FINALIZADA");
 
-    _partidaService.atualizarPartida(
+    unawaited(_partidaService.atualizarPartida(
       widget.partida.id,
       novoStatus: 'pausada',
       statusAntesPausa: _periodoAntesDoPausa == null
           ? null
           : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
-    );
+    ));
 
     _registrarEventoComEquipe(
       'FIM_PAUSA_TECNICA',
@@ -1459,7 +1452,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           !_emPausaTecnica) {
         _periodoAntesDoPausa = _periodoAtual;
 
-        _partidaService.atualizarPartida(
+        atualizarServico = () => _partidaService.atualizarPartida(
           widget.partida.id,
           novoStatus: 'pausada',
           statusAntesPausa: _periodoAntesDoPausa == null
@@ -1499,6 +1492,11 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
           default:
             break;
+        }
+      } else {
+        if (_periodoAtual != PeriodoPartida.finalizada &&
+            _periodoAtual != PeriodoPartida.fechada) {
+          _periodoAtual = PeriodoPartida.pausada;
         }
       }
     });
@@ -1636,11 +1634,16 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     );
 
     setState(() {
-      if (nomeEvento.toLowerCase() == "gol") {
+      if (tipoObjeto.impactaPlacar) {
+        final pontosPro = tipoObjeto.pontosPro ?? 1;
+        final pontosContra = tipoObjeto.pontosContra ?? 0;
+
         if (isTimeA) {
-          _golsA++;
+          _golsA += pontosPro;
+          _golsB += pontosContra;
         } else {
-          _golsB++;
+          _golsB += pontosPro;
+          _golsA += pontosContra;
         }
       }
 

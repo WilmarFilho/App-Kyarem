@@ -31,17 +31,14 @@ class Modalidade {
 
   factory Modalidade.fromMap(Map<String, dynamic> map) {
     return Modalidade(
-      id: (map['id'] ?? '').toString(),
-      // API: campeonatoId | Supabase: campeonato_id
-      campeonatoId: (map['campeonatoId'] ?? map['campeonato_id'])?.toString(),
+      id: (map['campeonato_modalidade_id'] ?? map['id'] ?? '').toString(),
+      campeonatoId: (map['campeonato_id'] ?? map['campeonatoId'])?.toString(),
       campeonatoNome: map['campeonatoNome']?.toString(),
-      // API: esporteId | Supabase: esporte_id
-      esporteId: (map['esporteId'] ?? map['esporte_id'])?.toString(),
-      // API: esporteNome | Supabase join: esportes.nome
-      esporteNome: (map['esporteNome'] ?? map['esportes']?['nome'])?.toString(),
-      nome: map['nome']?.toString(),
-      tempoPartidaMinutos: _parseInt(map['tempoPartidaMinutos'] ?? map['tempo_partida_minutos']),
-      regras: _parseRegras(map['regrasJson'] ?? map['regras_json']),
+      esporteId: (map['esporte_id'] ?? map['esporteId'])?.toString(),
+      esporteNome: (map['esporte_nome'] ?? map['esporteNome'] ?? map['esportes']?['nome'])?.toString(),
+      nome: (map['nome_exibicao'] ?? map['modalidade_nome'] ?? map['nome'])?.toString(),
+      tempoPartidaMinutos: _parseInt(map['tempo_partida_minutos'] ?? map['tempoPartidaMinutos']),
+      regras: _parseRegras(map['regras_json'] ?? map['regrasJson']),
       genero: map['genero']?.toString(),
     );
   }

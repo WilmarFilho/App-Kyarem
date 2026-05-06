@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../models/campeonato_model.dart';
+import '../../../core/app_globals.dart';
 import '../../../services/partida_service.dart';
 import '../../../services/modalidade_service.dart';
 import '../../../services/atleta_service.dart';
@@ -96,10 +97,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
               ModalidadesScreen(
                 isMainScreenChild: true,
-                campeonato: Campeonato(
-                  id: dotenv.get('CAMPEONATO_ID'),
-                  nome: dotenv.get('CAMPEONATO_NOME', fallback: 'Campeonato'),
-                ),
+                campeonato: AppGlobals.campeonatoAtivo ?? Campeonato(id: '', nome: 'Campeonato'),
                 modalidadeService: widget.modalidadeService,
               ),
               ConfiguracoesScreen(

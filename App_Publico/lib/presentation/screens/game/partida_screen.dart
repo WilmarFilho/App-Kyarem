@@ -11,6 +11,7 @@ import 'resumo_estatistica_partida_screen.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
 import '../../../models/modalidade_model.dart';
 import '../../../services/modalidade_service.dart';
+import '../../../services/realtime_service.dart';
 
 class JogoDetalhesScreen extends StatefulWidget {
   final String partidaId;
@@ -66,9 +67,15 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       widget.supabaseClient ?? Supabase.instance.client;
   late final EventoService _eventoService =
       widget.eventoService ?? EventoService();
+  late final RealtimeService _realtimeService = RealtimeService();
 
-  late final Stream<List<Map<String, dynamic>>> _eventosStream;
-  late final Stream<Map<String, dynamic>> _partidaStream;
+  final _partidaController = StreamController<Map<String, dynamic>>.broadcast();
+  final _eventosController = StreamController<List<Map<String, dynamic>>>.broadcast();
+
+  Map<String, dynamic>? _partidaAtual;
+  List<Map<String, dynamic>> _eventosAtuais = [];
+  StreamSubscription? _sseSubscription;
+
   late Future<List<Map<String, dynamic>>> _futureTipos;
   Modalidade? _modalidadeObject;
   List<Map<String, dynamic>> _tiposEventosCache = [];
@@ -88,19 +95,6 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   void initState() {
     super.initState();
 
-    _partidaStream = supabase
-        .from('partidas')
-        .stream(primaryKey: ['id'])
-        .eq('id', widget.partidaId)
-        .limit(1)
-        .map((data) => data.first);
-
-    _eventosStream = supabase
-        .from('eventos_partida')
-        .stream(primaryKey: ['id'])
-        .eq('partida_id', widget.partidaId)
-        .order('criado_em', ascending: false);
-
     _futureTipos = _eventoService
         .getEventTypesByModality(widget.modalidadeId)
         .then((tipos) {
@@ -114,18 +108,95 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
 
     _loadModalidade();
 
-    // Escuta eventos para atualizar âncora do cronômetro
-    _eventosStream.listen((eventos) {
+    // 1. Carrega dados via HTTP (REST/Supabase)
+    _carregarDadosIniciais();
+
+    // 2. Conecta no SSE
+    _sseSubscription = _realtimeService.listenToMatch(widget.partidaId).listen((evento) {
+      if (!mounted) return;
+
+      final payload = _normalizarEventoRealtime(evento);
+      final aggregateType = payload['aggregateType']?.toString();
+      if (aggregateType != 'Partida' && aggregateType != 'EventoPartida') {
+        return;
+      }
+
+      unawaited(_carregarDadosIniciais());
+    });
+
+    // Escuta eventos e atualiza cronômetro localmente
+    _eventosController.stream.listen((eventos) {
       if (!mounted) return;
       _atualizarAncora(eventos);
     });
 
-    // Escuta status da partida para ligar/desligar o ticker
-    // IMPORTANTE: deve ser registrado antes de qualquer lógica de religar
-    _partidaStream.listen((dados) {
+    _partidaController.stream.listen((dados) {
       if (!mounted) return;
       _atualizarEstadoCronometro(dados['status']?.toString() ?? '');
     });
+  }
+
+  Future<void> _carregarDadosIniciais() async {
+    // Busca status da partida
+    try {
+      final resP = await supabase
+          .from('partidas_ao_vivo')
+          .select('*')
+          .eq('partida_id', widget.partidaId)
+          .maybeSingle();
+
+      if (resP != null) {
+        _partidaAtual = resP;
+        _partidaController.add(_partidaAtual!);
+        _atualizarEstadoCronometro(_partidaAtual!['status']?.toString() ?? '');
+      } else {
+        final resHist = await supabase
+            .from('partidas_historico')
+            .select('*')
+            .eq('partida_id', widget.partidaId)
+            .maybeSingle();
+        if (resHist != null) {
+          _partidaAtual = resHist;
+          _partidaController.add(_partidaAtual!);
+          _atualizarEstadoCronometro(_partidaAtual!['status']?.toString() ?? '');
+        }
+      }
+    } catch (e) {
+      debugPrint("Erro carregar partida HTTP: $e");
+    }
+
+    // Busca eventos (Usando a view pública ou a tabela operacional. Manteremos a operacional por causa do _tiposEventosCache)
+    try {
+      final resE = await supabase
+          .from('eventos_partida')
+          .select('*')
+          .eq('partida_id', widget.partidaId)
+          .order('criado_em', ascending: false);
+
+      if (resE.isNotEmpty) {
+        _eventosAtuais = List<Map<String, dynamic>>.from(resE);
+        _eventosController.add(_eventosAtuais);
+        _atualizarAncora(_eventosAtuais);
+      }
+    } catch (e) {
+      debugPrint("Erro carregar eventos HTTP: $e");
+    }
+  }
+
+  Map<String, dynamic> _normalizarEventoRealtime(dynamic evento) {
+    if (evento is! Map) return const {};
+
+    final base = Map<String, dynamic>.from(evento);
+    final nested = base['payloadJson'];
+    if (nested is Map) {
+      return {
+        ...Map<String, dynamic>.from(nested),
+        if (nested['aggregateType'] == null && base['aggregateType'] != null)
+          'aggregateType': base['aggregateType'],
+      };
+    }
+
+    return base;
   }
 
   Future<void> _loadModalidade() async {
@@ -146,6 +217,10 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   @override
   void dispose() {
     _cronometroTicker?.cancel();
+    _sseSubscription?.cancel();
+    _realtimeService.disconnect();
+    _partidaController.close();
+    _eventosController.close();
     super.dispose();
   }
 
@@ -374,7 +449,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       body: Column(
         children: [
           StreamBuilder<Map<String, dynamic>>(
-            stream: _partidaStream,
+            stream: _partidaController.stream,
             builder: (context, snapshot) {
               final dados = snapshot.data;
               return _buildScoreHeader(
@@ -639,7 +714,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
 
   Widget _buildTimelineStream() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _eventosStream,
+      stream: _eventosController.stream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(child: Text("Erro ao carregar lances"));

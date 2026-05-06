@@ -58,8 +58,6 @@ Infra externa:
 - Supabase Cloud
   auth.users + Postgres principal.
   O app geral le o schema public diretamente via Supabase SDK com RLS.
-  Escrita social (posts, curtidas, comentarios, seguidores) tambem e feita
-  diretamente via Supabase SDK, sem expor a api-core ao app geral.
   RLS policies garantem que cada usuario opera apenas seus proprios dados.
 
 
@@ -170,9 +168,6 @@ Campos:
 - status
 - criado_por
 - criado_em
-- iniciado_em
-- encerrado_em
-- observacoes
 
 Regra:
 - um usuario continua sendo globalmente USER ou ADMIN
@@ -203,12 +198,11 @@ Exemplos:
 Campos principais:
 - id
 - esporte_id
-- codigo
 - nome
-- descricao
-- tipo_partida
-- regras_base_json
-- eventos_base_json
+- slug
+- genero
+- motor_regras
+- motor_configs_default
 - ativo
 
 Relacionamento:
@@ -227,7 +221,6 @@ operational.campeonatos
 Campos:
 - id
 - nome
-- slug
 - nivel
 - data_inicio
 - data_fim
@@ -312,8 +305,6 @@ Campos:
 - status             (CONVOCADO | ATIVO | INATIVO | RECUSADO)
 - criado_por
 - criado_em
-- iniciado_em
-- encerrado_em
 
 Usos:
 - PRESIDENT de uma atletica
@@ -336,9 +327,6 @@ Campos:
 - status                 (ATIVO | INATIVO | SUSPENSO)
 - criado_por
 - criado_em
-- iniciado_em
-- encerrado_em
-- observacoes
 
 Usos:
 - marcar um usuario como arbitro no sistema antes de qualquer escala
@@ -359,15 +347,13 @@ Campos:
 - id
 - campeonato_id
 - atletica_id
-- status
-- aprovado_por
 - criado_em
 
 Relacionamento:
 - campeonatos N:N atleticas via campeonato_atleticas
 
 
-## 5.6 Times da atletica e elenco permanente
+## 5.6 Times da atletica
 operational.times_atletica
 - times permanentes da atletica por modalidade
 
@@ -386,21 +372,9 @@ Exemplos:
 - Atletica A / futsal masculino
 - Atletica A / volei feminino
 
-operational.time_atletica_atletas
-- elenco do time permanente da atletica
-- associa o atleta (que ja pertence a atletica) ao time especifico
-
-Campos:
-- id
-- time_atletica_id
-- atleta_id
-- status             (ATIVO | REMOVIDO)
-- adicionado_por
-- adicionado_em
-
-Regra:
-- O atleta ja deve ter a role contextual de ATHLETE (status ATIVO) na tabela operational.atletica_membros.
-- A associacao ao time e feita pelo presidente sem nova etapa de aceite.
+Observacao:
+- a composicao de atletas por time nao e mais mantida em tabela propria.
+- o vinculo atleta -> time passa a existir somente em `operational.campeonato_atletas`, no contexto do campeonato.
 
 
 ## 5.7 Inscricao de times e roster no campeonato
@@ -413,9 +387,6 @@ Campos:
 - campeonato_atletica_id
 - campeonato_modalidade_id
 - time_atletica_id
-- nome_exibicao
-- grupo
-- seed
 - status
 - criado_em
 
@@ -426,7 +397,7 @@ Relacionamentos:
 
 operational.campeonato_atletas
 - roster final do atleta no campeonato
-- deriva dos atletas do time da atletica (time_atletica_atletas) quando o time e inscrito
+- e a fonte unica da relacao atleta -> time dentro do campeonato
 
 Campos:
 - id
@@ -459,12 +430,11 @@ Campos:
 - id
 - campeonato_time_id
 - user_id nullable
-- nome
 - cargo
 - criado_em
 
 Observacao:
-- user_id pode ser nulo para permitir staff externo sem conta
+- o nome do staff deve ser resolvido pelo profile vinculado em `user_id`
 
 
 ## 5.9 Tipos de eventos e regras de partida
@@ -624,74 +594,15 @@ Usos:
 - RankingRecalculationRequested
 
 
-## 5.13 Rede Social - tabelas operacionais
-Escrita feita diretamente pelo app geral via Supabase SDK com RLS.
-Sem intermediario pela api-core.
+## 5.13 Social e notificacoes
+Escopo removido do schema operacional nesta arquitetura.
 
-operational.posts_sociais
-- publicacoes dos usuarios no feed social
-
-Campos:
-- id
-- autor_user_id
-- tipo                   (TEXT | FOTO | VIDEO | RESULTADO_PARTIDA | HIGHLIGHT_ATLETA)
-- conteudo_texto
-- midia_urls_json
-- referencia_tipo        (nullable: partida | atleta | atletica | campeonato)
-- referencia_id
-- visibilidade           (PUBLICO | APENAS_ATLETICA)
-- status
-- criado_em
-- atualizado_em
-
-operational.posts_curtidas
-- registro de curtidas em posts
-
-Campos:
-- id
-- post_id
-- user_id
-- criado_em
-
-operational.posts_comentarios
-- comentarios em posts, suporta threads
-
-Campos:
-- id
-- post_id
-- autor_user_id
-- conteudo
-- parent_comentario_id   (nullable)
-- status
-- criado_em
-
-operational.seguidores
-- vinculo de seguimento entre usuarios, atleticas e campeonatos
-
-Campos:
-- id
-- seguidor_user_id
-- seguido_user_id        (nullable)
-- seguido_atletica_id    (nullable)
-- seguido_campeonato_id  (nullable)
-- criado_em
-
-Regra:
-- exatamente um dos campos seguido_* deve ser preenchido
-
-operational.notificacoes
-
-Campos:
-- id
-- destinatario_user_id
-- tipo                   (CURTIDA | COMENTARIO | SEGUIDOR | CONVOCACAO | RESULTADO | MENCAO)
-- referencia_tipo
-- referencia_id
-- lida
-- criado_em
-
-Observacao:
-- projection-worker le essas tabelas e popula read models no schema public
+Tabelas removidas:
+- operational.posts_sociais
+- operational.posts_curtidas
+- operational.posts_comentarios
+- operational.seguidores
+- operational.notificacoes
 
 
 ## 6. ESTRUTURA DO SCHEMA PUBLIC
@@ -1016,52 +927,8 @@ Campos:
 - valido_ate
 
 
-## 6.6 Rede Social - read models publicos
-public.feed_posts
-- read model desnormalizado do feed social
-
-Campos:
-- post_id
-- autor_user_id
-- autor_nome_exibicao
-- autor_foto_url
-- autor_atletica_nome
-- tipo_post
-- conteudo_texto
-- midia_urls_json
-- referencia_tipo
-- referencia_id
-- referencia_preview_json
-- curtidas_count
-- comentarios_count
-- visibilidade
-- criado_em
-- atualizado_em
-
-public.comentarios_publicos
-
-Campos:
-- comentario_id
-- post_id
-- autor_user_id
-- autor_nome_exibicao
-- autor_foto_url
-- conteudo
-- parent_comentario_id
-- curtidas_count
-- criado_em
-
-public.contadores_sociais
-- contadores agregados por entidade (evita COUNT ao vivo)
-
-Campos:
-- entidade_tipo           (USUARIO | ATLETICA | CAMPEONATO)
-- entidade_id
-- seguidores_count
-- seguindo_count
-- posts_count
-- curtidas_totais
-- atualizado_em
+## 6.6 Rede Social
+Fora de escopo nesta versao da arquitetura.
 
 
 ## 6.7 Timeline ao vivo do campeonato
@@ -1115,11 +982,9 @@ Atletica e times:
 - operational.atleticas 1:N operational.times_atletica
 - operational.campeonato_atleticas 1:N operational.campeonato_times
 - operational.times_atletica 1:N operational.campeonato_times
-- operational.times_atletica 1:N operational.time_atletica_atletas
 
 Atletas:
 - operational.profiles 1:0..1 operational.atletas
-- operational.atletas 1:N operational.time_atletica_atletas
 - operational.atletas 1:N operational.campeonato_atletas
 
 Partidas:
@@ -1149,9 +1014,6 @@ Leitura publica:
 - operational.atleticas           -> public.perfis_atleticas
 - operational.atletas             -> public.snapshot_comparacao_atletas
 - operational.campeonato_times    -> public.snapshot_comparacao_times
-- operational.posts_sociais       -> public.feed_posts
-- operational.posts_comentarios   -> public.comentarios_publicos
-- operational.seguidores          -> public.contadores_sociais
 - operational.partidas            -> public.timeline_campeonato
 
 
@@ -1200,14 +1062,13 @@ Evolucao proposta:
 3. cria registro em operational.atletica_membros com papel ATHLETE e status CONVOCADO
 4. se o usuario aceitar, status muda para ATIVO (e se torna operational.atletas caso ainda nao seja)
 
-9.4 Criacao de times e elenco (App Global)
+9.4 Criacao de times (App Global)
 1. presidente/dirigente cria os times permanentes (times_atletica) por modalidade_catalogo
-2. presidente associa os atletas (que ja estao ATIVOS na atletica) aos seus times (cria time_atletica_atletas)
 
 9.5 Inscricao no campeonato (App Campeonato)
 1. presidente/dirigente entra no app do campeonato
-2. inscreve os times da atletica (que ja estao com os atletas associados) nas modalidades do campeonato (cria campeonato_times)
-3. os atletas dos times inscritos sao consolidados no roster do campeonato (cria campeonato_atletas)
+2. inscreve os times da atletica nas modalidades do campeonato (cria campeonato_times)
+3. o roster oficial do time no campeonato fica em `campeonato_atletas`, que passa a ser a fonte unica do vinculo atleta -> time
 4. unique parcial impede o mesmo atleta em duas atleticas no mesmo campeonato
 
 9.6 Criacao de Partidas e Equipe de Arbitragem (App Administrativo)
@@ -1231,21 +1092,6 @@ Evolucao proposta:
 4. API publica evento na outbox
 5. workers atualizam classificacoes, metricas e visoes publicas
 
-9.9 Publicacao social
-1. usuario autenticado cria post via Supabase SDK
-2. RLS valida que autor_user_id = auth.uid()
-3. registro gravado em operational.posts_sociais
-4. projection-worker le o novo post e popula public.feed_posts
-5. contadores em public.contadores_sociais sao incrementados
-6. notificacao criada em operational.notificacoes (para mencoes/replies)
-
-9.8 Seguir atletica ou campeonato
-1. usuario clica em seguir via Supabase SDK
-2. RLS valida que seguidor_user_id = auth.uid()
-3. registro gravado em operational.seguidores
-4. projection-worker atualiza public.contadores_sociais
-
-
 ## 10. DECISOES TECNICAS FINAIS
 1. Nao usar o realtime nativo do banco como peca central de longo prazo.
 2. Manter escrita critica do admin sempre via API.
@@ -1258,8 +1104,7 @@ Evolucao proposta:
 9. Deixar o schema public preparado para apps publicos e SSE.
 10. Manter compatibilidade conceitual com as entidades atuais de campeonato, modalidade, equipe, partida e evento, mas com estrutura mais forte para crescimento.
 11. O app geral nao tem acesso direto a api-core. Consome o schema public via Supabase SDK com RLS.
-12. Escrita social (posts, curtidas, comentarios, seguidores) e feita diretamente no Supabase SDK. RLS e a unica barreira de seguranca nessa camada.
-13. Campos de pontuacao sao sempre genericos no schema public. Especificidades de cada esporte ficam em campos _json para suportar qualquer modalidade.
+12. Campos de pontuacao sao sempre genericos no schema public. Especificidades de cada esporte ficam em campos _json para suportar qualquer modalidade.
 
 
 ## 11. RESUMO EXECUTIVO
@@ -1274,11 +1119,10 @@ O novo desenho passa a ter:
 - atleta vinculado a usuario, mas operando por entidade esportiva propria
 - partidas e eventos como nucleo da operacao de arbitragem
 - schema operational para transacao e escrita critica
-- schema public para leitura publica, metricas, realtime e rede social
+- schema public para leitura publica, metricas e realtime
 - arquitetura orientada a eventos para propagacao, sem abrir mao da consistencia nas operacoes criticas
-- app geral consome Supabase SDK diretamente (sem api-core) para leitura e escrita social
+- app geral consome Supabase SDK diretamente (sem api-core) para leitura publica
 - campos de pontuacao genericos no schema public para suportar todos os esportes e modalidades
-- rede social nativa com posts, curtidas, comentarios, seguidores e notificacoes
 - comparacoes entre atletas e times pre-calculadas pelo metrics-worker
 - perfis publicos ricos de atletas e atleticas
 - historico completo de partidas e eventos acessivel pelo app geral

@@ -42,12 +42,6 @@ public class AtleticaMembro {
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
 
-    @Column(name = "iniciado_em")
-    private OffsetDateTime iniciadoEm;
-
-    @Column(name = "encerrado_em")
-    private OffsetDateTime encerradoEm;
-
     public UUID getId() {
         return id;
     }
@@ -104,19 +98,4 @@ public class AtleticaMembro {
         this.criadoEm = criadoEm;
     }
 
-    public OffsetDateTime getIniciadoEm() {
-        return iniciadoEm;
-    }
-
-    public void setIniciadoEm(OffsetDateTime iniciadoEm) {
-        this.iniciadoEm = iniciadoEm;
-    }
-
-    public OffsetDateTime getEncerradoEm() {
-        return encerradoEm;
-    }
-
-    public void setEncerradoEm(OffsetDateTime encerradoEm) {
-        this.encerradoEm = encerradoEm;
-    }
 }
