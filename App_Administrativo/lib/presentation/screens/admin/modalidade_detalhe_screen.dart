@@ -77,7 +77,7 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
     String? campeonatoId = disponiveis.first.id;
     final nomeExibicaoCtrl = TextEditingController(text: _modalidade.nome);
     final categoriaCtrl = TextEditingController();
-    String genero = _modalidade.genero;
+    String genero = 'MISTO';
     bool loading = false;
 
     try {
@@ -433,7 +433,7 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
             runSpacing: 8,
             children: [
               _buildPill(_modalidade.esporteNome ?? 'Sem esporte'),
-              _buildPill(_labelGenero(_modalidade.genero)),
+              if (_modalidade.genero.isNotEmpty) _buildPill(_modalidade.genero),
               _buildPill(_labelMotor(_modalidade.motorRegras)),
               _buildPill(_modalidade.slug),
             ],

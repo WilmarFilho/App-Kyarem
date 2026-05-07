@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/esporte_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
@@ -15,6 +17,92 @@ class ModalidadeFormScreen extends StatefulWidget {
 class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final AdminApiService _api = AdminApiService();
+  final Map<String, Map<String, dynamic>> _defaultRulesByMotor = const {
+    'GENERICO_V1': {
+      'tempoPartidaMinutos': 20,
+      'periodos': 2,
+      'cronometroParado': true,
+      'tipoPontuacao': 'GOLS',
+      'setsParaVencer': null,
+      'pontosPorSet': null,
+      'faltasColetivasLimite': null,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+    'FUTSAL_V1': {
+      'tempoPartidaMinutos': 20,
+      'periodos': 2,
+      'cronometroParado': true,
+      'tipoPontuacao': 'GOLS',
+      'setsParaVencer': null,
+      'pontosPorSet': null,
+      'faltasColetivasLimite': 5,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+    'VOLEI_V1': {
+      'tempoPartidaMinutos': 0,
+      'periodos': 3,
+      'cronometroParado': false,
+      'tipoPontuacao': 'SETS',
+      'setsParaVencer': 3,
+      'pontosPorSet': 25,
+      'faltasColetivasLimite': null,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+    'BASQUETE_V1': {
+      'tempoPartidaMinutos': 40,
+      'periodos': 4,
+      'cronometroParado': true,
+      'tipoPontuacao': 'PONTOS',
+      'setsParaVencer': null,
+      'pontosPorSet': null,
+      'faltasColetivasLimite': null,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+    'HANDEBOL_V1': {
+      'tempoPartidaMinutos': 60,
+      'periodos': 2,
+      'cronometroParado': true,
+      'tipoPontuacao': 'GOLS',
+      'setsParaVencer': null,
+      'pontosPorSet': null,
+      'faltasColetivasLimite': null,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+    'SOCIETY_V1': {
+      'tempoPartidaMinutos': 50,
+      'periodos': 2,
+      'cronometroParado': false,
+      'tipoPontuacao': 'GOLS',
+      'setsParaVencer': null,
+      'pontosPorSet': null,
+      'faltasColetivasLimite': null,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+    'FUTEBOL_CAMPO_V1': {
+      'tempoPartidaMinutos': 90,
+      'periodos': 2,
+      'cronometroParado': false,
+      'tipoPontuacao': 'GOLS',
+      'setsParaVencer': null,
+      'pontosPorSet': null,
+      'faltasColetivasLimite': null,
+      'permiteProrrogacao': false,
+      'permitePenaltis': false,
+      'eventosPermitidos': null,
+    },
+  };
   final Map<String, List<_MotorOption>> _motorOptionsBySport = const {
     'futsal': [
       _MotorOption('FUTSAL_V1', 'Futsal'),
@@ -44,34 +132,35 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
   };
 
   late final TextEditingController _nomeController;
-  late final TextEditingController _slugController;
+  late final TextEditingController _descricaoController;
   List<Esporte> _esportes = [];
   String? _selectedEsporteId;
-  String _genero = 'MISTO';
   String? _selectedMotorRegras;
   bool _ativo = true;
   bool _isLoading = true;
   bool _isSaving = false;
-  bool _slugEditadoManualmente = false;
+  String _slug = '';
 
   @override
   void initState() {
     super.initState();
     _nomeController = TextEditingController(text: widget.modalidade?.nome ?? '');
-    _slugController = TextEditingController(text: widget.modalidade?.slug ?? '');
+    _descricaoController = TextEditingController(
+      text: widget.modalidade?.genero ?? '',
+    );
     _selectedMotorRegras = widget.modalidade?.motorRegras;
-    _slugEditadoManualmente = widget.modalidade != null;
     _selectedEsporteId = widget.modalidade?.esporteId;
-    _genero = widget.modalidade?.genero ?? 'MISTO';
     _ativo = widget.modalidade?.ativo ?? true;
+    _slug = widget.modalidade?.slug ?? '';
     _nomeController.addListener(_sincronizarSlugAutomatico);
+    _sincronizarSlugAutomatico();
     _carregar();
   }
 
   @override
   void dispose() {
     _nomeController.dispose();
-    _slugController.dispose();
+    _descricaoController.dispose();
     super.dispose();
   }
 
@@ -101,9 +190,10 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
     final payload = {
       'esporteId': _selectedEsporteId,
       'nome': _nomeController.text.trim(),
-      'slug': _slugController.text.trim(),
-      'genero': _genero,
+      'slug': _slug,
+      'genero': _descricaoController.text.trim(),
       'motorRegras': _selectedMotorRegras,
+      'motorConfigsDefault': _buildMotorConfigsDefault(_selectedMotorRegras),
       'ativo': _ativo,
     };
 
@@ -231,83 +321,14 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
-                        controller: _slugController,
+                        controller: _descricaoController,
                         decoration: _inputDecoration(
-                          'Identificador interno',
+                          'Descricao',
                           helper:
-                              'Gerado automaticamente para uso interno e URLs.',
-                        ).copyWith(
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _slugEditadoManualmente = !_slugEditadoManualmente;
-                                if (!_slugEditadoManualmente) {
-                                  _slugController.text = _slugify(
-                                    _nomeController.text,
-                                  );
-                                }
-                              });
-                            },
-                            icon: Icon(
-                              _slugEditadoManualmente
-                                  ? Icons.lock_open_rounded
-                                  : Icons.lock_rounded,
-                            ),
-                          ),
+                              'Texto livre para explicar a modalidade no catalogo.',
                         ),
-                        onChanged: (_) {
-                          if (_slugEditadoManualmente) return;
-                          setState(() => _slugEditadoManualmente = true);
-                        },
                         validator: (v) =>
                             v == null || v.trim().isEmpty ? 'Obrigatorio' : null,
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Gênero padrão',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          InkWell(
-                            onTap: () {
-                              _mostrarModalSelecao(
-                                context: context,
-                                titulo: 'Selecione o Gênero',
-                                opcoes: const [
-                                  _OpcaoSelect(valor: 'MASCULINO', rotulo: 'Masculino'),
-                                  _OpcaoSelect(valor: 'FEMININO', rotulo: 'Feminino'),
-                                  _OpcaoSelect(valor: 'MISTO', rotulo: 'Misto'),
-                                ],
-                                selecionado: _genero,
-                                onChanged: (value) => setState(() => _genero = value ?? 'MISTO'),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _genero == 'MASCULINO' ? 'Masculino' : (_genero == 'FEMININO' ? 'Feminino' : 'Misto'),
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                  const Icon(Icons.arrow_drop_down, color: Colors.black54),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 14),
                       _buildSectionTitle('Configuracao da sumula'),
@@ -353,6 +374,19 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: _selectedMotorRegras == null
+                              ? null
+                              : () => _mostrarPreviewRegras(
+                                    _selectedMotorRegras!,
+                                  ),
+                          icon: const Icon(Icons.visibility_outlined),
+                          label: const Text('Ver regras que serao preenchidas'),
+                        ),
                       ),
                       const SizedBox(height: 10),
                       SwitchListTile(
@@ -433,13 +467,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
   }
 
   void _sincronizarSlugAutomatico() {
-    if (_slugEditadoManualmente) return;
     final generated = _slugify(_nomeController.text);
-    if (_slugController.text != generated) {
-      _slugController.value = TextEditingValue(
-        text: generated,
-        selection: TextSelection.collapsed(offset: generated.length),
-      );
+    if (_slug != generated) {
+      setState(() => _slug = generated);
     }
   }
 
@@ -469,6 +499,89 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
     if (text.contains('handebol')) return 'handebol';
     if (text.contains('futebol')) return 'futebol';
     return 'default';
+  }
+
+  Map<String, dynamic>? _buildMotorConfigsDefault(String? motor) {
+    if (motor == null) return null;
+    final defaults = _defaultRulesByMotor[motor];
+    if (defaults == null) return null;
+    return Map<String, dynamic>.from(defaults);
+  }
+
+  void _mostrarPreviewRegras(String motor) {
+    final regras = _buildMotorConfigsDefault(motor) ?? const {};
+    final descricao = _motorOptionsForSelectedSport
+        .cast<_MotorOption?>()
+        .firstWhere((m) => m?.value == motor, orElse: () => null)
+        ?.label;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Regras base do modelo',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              descricao == null ? motor : '$descricao ($motor)',
+              style: const TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (regras.isEmpty)
+              const Text('Esse modelo nao possui regras padrao mapeadas na tela.')
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F8F8),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: SelectableText(
+                  const JsonEncoder.withIndent('  ').convert(regras),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   InputDecoration _inputDecoration(String label, {String? helper}) {

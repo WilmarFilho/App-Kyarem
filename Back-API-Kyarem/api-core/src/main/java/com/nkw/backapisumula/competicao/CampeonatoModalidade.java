@@ -41,15 +41,6 @@ public class CampeonatoModalidade {
     @Column(name = "formato_fases_json", columnDefinition = "jsonb")
     private JsonNode formatoFasesJson;
 
-    @Column(name = "tempo_partida_minutos")
-    private Integer tempoPartidaMinutos;
-
-    @Column(name = "permite_prorrogacao", nullable = false)
-    private Boolean permiteProrrogacao = false;
-
-    @Column(name = "permite_penaltis", nullable = false)
-    private Boolean permitePenaltis = false;
-
     @Column(name = "status", nullable = false)
     private String status = "ATIVA";
 
@@ -79,14 +70,6 @@ public class CampeonatoModalidade {
     public JsonNode getFormatoFasesJson() { return formatoFasesJson; }
     public void setFormatoFasesJson(JsonNode formatoFasesJson) { this.formatoFasesJson = formatoFasesJson; }
 
-    public void setTempoPartidaMinutos(Integer tempoPartidaMinutos) { this.tempoPartidaMinutos = tempoPartidaMinutos; }
-
-    public Boolean getPermiteProrrogacao() { return permiteProrrogacao; }
-    public void setPermiteProrrogacao(Boolean permiteProrrogacao) { this.permiteProrrogacao = permiteProrrogacao; }
-
-    public Boolean getPermitePenaltis() { return permitePenaltis; }
-    public void setPermitePenaltis(Boolean permitePenaltis) { this.permitePenaltis = permitePenaltis; }
-
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
@@ -102,14 +85,23 @@ public class CampeonatoModalidade {
         return modalidade != null ? modalidade.getEsporte() : null;
     }
 
+    public JsonNode getRegrasEfetivasJson() {
+        return ModalidadeRules.resolveEffectiveRules(
+                modalidade != null ? modalidade.getMotorRegras() : null,
+                modalidade != null ? modalidade.getMotorConfigsDefault() : null,
+                regrasJson
+        );
+    }
+
     public Integer getTempoPartidaMinutos() {
-        if (this.tempoPartidaMinutos != null) {
-            return this.tempoPartidaMinutos;
-        }
-        if (modalidade != null && modalidade.getMotorConfigsDefault() != null
-                && modalidade.getMotorConfigsDefault().has("tempoPartidaMinutos")) {
-            return modalidade.getMotorConfigsDefault().path("tempoPartidaMinutos").asInt(20);
-        }
-        return 20;
+        return getRegrasEfetivasJson().path("tempoPartidaMinutos").asInt(20);
+    }
+
+    public Boolean getPermiteProrrogacao() {
+        return getRegrasEfetivasJson().path("permiteProrrogacao").asBoolean(false);
+    }
+
+    public Boolean getPermitePenaltis() {
+        return getRegrasEfetivasJson().path("permitePenaltis").asBoolean(false);
     }
 }

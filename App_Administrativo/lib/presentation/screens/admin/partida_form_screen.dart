@@ -46,6 +46,22 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
 
   String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
 
+  Map<String, dynamic>? get _selectedModalidadeData {
+    if (_selectedModalidadeId == null) return null;
+    for (final modalidade in _modalidades) {
+      if (modalidade['id']?.toString() == _selectedModalidadeId) {
+        return modalidade is Map<String, dynamic> ? modalidade : null;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? get _selectedModalidadeRules {
+    final modalidade = _selectedModalidadeData;
+    final regras = modalidade?['regrasEfetivasJson'];
+    return regras is Map<String, dynamic> ? regras : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -677,6 +693,10 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                             ? 'Obrigatório'
                             : null,
                       ),
+                      if (_selectedModalidadeRules != null) ...[
+                        const SizedBox(height: 12),
+                        _buildRulesPreviewCard(_selectedModalidadeRules!),
+                      ],
                       const SizedBox(height: 22),
                       _buildSectionHeader(Icons.groups, 'Times / Equipes'),
                       const SizedBox(height: 12),
@@ -883,6 +903,81 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildRulesPreviewCard(Map<String, dynamic> regras) {
+    final tempo = _readIntRule(regras, 'tempoPartidaMinutos');
+    final periodos = _readIntRule(regras, 'periodos');
+    final cronometroParado = regras['cronometroParado'] == true;
+    final tipoPontuacao = regras['tipoPontuacao']?.toString() ?? '-';
+    final permiteProrrogacao = regras['permiteProrrogacao'] == true;
+    final permitePenaltis = regras['permitePenaltis'] == true;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4F0),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF85C39).withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Regras aplicadas na partida',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF85C39),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildRuleChip('Tempo: ${tempo ?? '-'} min'),
+              _buildRuleChip('Períodos: ${periodos ?? '-'}'),
+              _buildRuleChip('Pontuação: $tipoPontuacao'),
+              _buildRuleChip(
+                cronometroParado ? 'Cronômetro parado' : 'Cronômetro corrido',
+              ),
+              _buildRuleChip(
+                permiteProrrogacao ? 'Com prorrogação' : 'Sem prorrogação',
+              ),
+              _buildRuleChip(
+                permitePenaltis ? 'Com pênaltis' : 'Sem pênaltis',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRuleChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF6E2A14),
+        ),
+      ),
+    );
+  }
+
+  int? _readIntRule(Map<String, dynamic> regras, String key) {
+    final value = regras[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
   }
 
   Widget _buildLoadingRow(String msg) {

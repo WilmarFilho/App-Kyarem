@@ -11,9 +11,8 @@ class ModalidadeCampeonato {
   final String? nomeExibicao;
   final String? categoria;
   final String? genero;
-  final int? tempoPartidaMinutos;
-  final bool permiteProrrogacao;
-  final bool permitePenaltis;
+  final Map<String, dynamic>? regrasJson;
+  final Map<String, dynamic>? regrasEfetivasJson;
   final String? status;
 
   const ModalidadeCampeonato({
@@ -29,9 +28,8 @@ class ModalidadeCampeonato {
     this.nomeExibicao,
     this.categoria,
     this.genero,
-    this.tempoPartidaMinutos,
-    this.permiteProrrogacao = false,
-    this.permitePenaltis = false,
+    this.regrasJson,
+    this.regrasEfetivasJson,
     this.status,
   });
 
@@ -49,11 +47,12 @@ class ModalidadeCampeonato {
       nomeExibicao: map['nomeExibicao']?.toString(),
       categoria: map['categoria']?.toString(),
       genero: map['genero']?.toString(),
-      tempoPartidaMinutos: map['tempoPartidaMinutos'] is num
-          ? (map['tempoPartidaMinutos'] as num).toInt()
-          : int.tryParse(map['tempoPartidaMinutos']?.toString() ?? ''),
-      permiteProrrogacao: map['permiteProrrogacao'] == true,
-      permitePenaltis: map['permitePenaltis'] == true,
+      regrasJson: map['regrasJson'] is Map<String, dynamic>
+          ? map['regrasJson'] as Map<String, dynamic>
+          : null,
+      regrasEfetivasJson: map['regrasEfetivasJson'] is Map<String, dynamic>
+          ? map['regrasEfetivasJson'] as Map<String, dynamic>
+          : null,
       status: map['status']?.toString(),
     );
   }

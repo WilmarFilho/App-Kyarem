@@ -55,12 +55,16 @@ public class AtleticasController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('ROLE_admin')")
-    public AtleticaResponse create(@Valid @RequestBody CreateAtleticaRequest req) {
+    public AtleticaResponse create(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreateAtleticaRequest req
+    ) {
         Atletica a = new Atletica();
         a.setNome(req.nome());
         a.setSigla(req.sigla());
         a.setCorPrincipal(req.corPrincipal());
         a.setEscudoUrl(req.escudoUrl());
+        a.setCriadoPor(UUID.fromString(jwt.getSubject()));
         if (req.status() != null) {
             a.setStatus(req.status());
         } else {

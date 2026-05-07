@@ -30,7 +30,7 @@ public class ModalidadeCatalogo {
     @Column(name = "descricao")
     private String genero;
 
-    @Transient
+    @Column(name = "motor_regras", nullable = false)
     private String motorRegras;
 
     @JdbcTypeCode(SqlTypes.JSON)
@@ -105,7 +105,7 @@ public class ModalidadeCatalogo {
     }
 
     public JsonNode getMotorConfigsDefault() {
-        return motorConfigsDefault;
+        return ModalidadeRules.normalizeCatalogRules(motorConfigsDefault, getMotorRegras());
     }
 
     public void setMotorConfigsDefault(JsonNode motorConfigsDefault) {

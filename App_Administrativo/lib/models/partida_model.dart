@@ -24,6 +24,7 @@ class Partida {
   final Equipe? equipeB;
   final Modalidade? modalidade;
   final String? criadoPor;
+  final Map<String, dynamic>? regrasPartida;
   final Map<String, dynamic>? snapshotSumula;
 
   /// Alias para compatibilidade com código que usa 'agendadoPara'
@@ -52,6 +53,7 @@ class Partida {
     this.equipeB,
     this.modalidade,
     this.criadoPor,
+    this.regrasPartida,
     this.snapshotSumula,
   });
 
@@ -117,6 +119,9 @@ class Partida {
                 : null),
       modalidade: modalidade,
       criadoPor: map['criadoPor'] ?? map['criado_por'],
+      regrasPartida: map['regrasPartida'] is Map<String, dynamic>
+          ? map['regrasPartida'] as Map<String, dynamic>
+          : null,
       snapshotSumula: sumula,
     );
   }
@@ -144,6 +149,7 @@ class Partida {
     Equipe? equipeB,
     Modalidade? modalidade,
     String? criadoPor,
+    Map<String, dynamic>? regrasPartida,
     Map<String, dynamic>? snapshotSumula,
   }) {
     return Partida(
@@ -169,6 +175,7 @@ class Partida {
       equipeB: equipeB ?? this.equipeB,
       modalidade: modalidade ?? this.modalidade,
       criadoPor: criadoPor ?? this.criadoPor,
+      regrasPartida: regrasPartida ?? this.regrasPartida,
       snapshotSumula: snapshotSumula ?? this.snapshotSumula,
     );
   }

@@ -6,6 +6,7 @@ class ModalidadeCatalogo {
   final String slug;
   final String genero;
   final String motorRegras;
+  final Map<String, dynamic>? regrasBaseJson;
   final bool ativo;
 
   const ModalidadeCatalogo({
@@ -16,6 +17,7 @@ class ModalidadeCatalogo {
     required this.slug,
     required this.genero,
     required this.motorRegras,
+    this.regrasBaseJson,
     required this.ativo,
   });
 
@@ -28,6 +30,11 @@ class ModalidadeCatalogo {
       slug: map['slug']?.toString() ?? '',
       genero: map['genero']?.toString() ?? '',
       motorRegras: map['motorRegras']?.toString() ?? map['motor_regras']?.toString() ?? '',
+      regrasBaseJson: map['regrasBaseJson'] is Map<String, dynamic>
+          ? map['regrasBaseJson'] as Map<String, dynamic>
+          : map['motorConfigsDefault'] is Map<String, dynamic>
+          ? map['motorConfigsDefault'] as Map<String, dynamic>
+          : null,
       ativo: map['ativo'] == null ? true : map['ativo'] == true,
     );
   }
