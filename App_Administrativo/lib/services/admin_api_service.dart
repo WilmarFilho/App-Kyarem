@@ -584,6 +584,20 @@ class AdminApiService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> listarTiposEventosModalidadeCatalogo(
+    String modalidadeCatalogoId,
+  ) async {
+    try {
+      final res = await _dio.get('/esportes/$modalidadeCatalogoId/tipos-eventos');
+      return (res.data as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (e) {
+      debugPrint("Erro listarTiposEventosModalidadeCatalogo: $e");
+      return [];
+    }
+  }
+
   /// Busca uma modalidade especÃ­fica pelo ID.
   /// Retorna o map com id, campeonatoId, campeonatoNome, esporteNome, nome.
   /// Endpoint: GET /api/v1/modalidades/{id} (pÃºblico).

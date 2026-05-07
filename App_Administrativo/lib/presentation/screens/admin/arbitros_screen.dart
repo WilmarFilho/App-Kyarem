@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../services/auth_service.dart';
@@ -20,10 +20,13 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
   bool _canEdit = false;
   final TextEditingController _searchCtrl = TextEditingController();
 
+  static const int _itensPorPagina = 8;
   List<Arbitro> _todos = [];
   List<Arbitro> _filtrados = [];
   bool _isLoading = true;
   late AnimationController _animCtrl;
+  String _roleSelecionado = 'TODAS';
+  int _paginaAtual = 0;
 
   @override
   void initState() {
@@ -63,6 +66,8 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
       _todos = lista;
       _filtrados = lista;
       _isLoading = false;
+      _paginaAtual = 0;
+      _roleSelecionado = 'TODAS';
     });
     _animCtrl.reset();
     _animCtrl.forward();
@@ -71,10 +76,92 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
   void _filtrar() {
     final q = _searchCtrl.text.trim().toLowerCase();
     setState(() {
-      _filtrados = q.isEmpty
-          ? _todos
-          : _todos.where((a) => a.nome.toLowerCase().contains(q)).toList();
+      _filtrados = _todos.where((a) {
+        final matchesQuery = q.isEmpty || a.nome.toLowerCase().contains(q);
+
+        final r = a.role.trim();
+        final val = r.isEmpty ? 'INDEFINIDO' : r.toUpperCase();
+        final matchesRole =
+            _roleSelecionado == 'TODAS' || val == _roleSelecionado;
+
+        return matchesQuery && matchesRole;
+      }).toList();
+      _paginaAtual = 0;
     });
+  }
+
+  List<_StatusOption> get _statusOptions {
+    final options = <_StatusOption>[
+      _StatusOption(
+        value: 'TODAS',
+        label: 'Todas',
+        count: _todos.where((a) {
+          final q = _searchCtrl.text.trim().toLowerCase();
+          return q.isEmpty || a.nome.toLowerCase().contains(q);
+        }).length,
+        color: const Color(0xFFF85C39),
+      ),
+    ];
+
+    final rolesUnicos =
+        _todos
+            .map((a) {
+              final r = a.role.trim();
+              return r.isEmpty ? 'INDEFINIDO' : r.toUpperCase();
+            })
+            .toSet()
+            .toList()
+          ..sort();
+
+    for (final role in rolesUnicos) {
+      final count = _todos.where((a) {
+        final r = a.role.trim();
+        final val = r.isEmpty ? 'INDEFINIDO' : r.toUpperCase();
+        final q = _searchCtrl.text.trim().toLowerCase();
+        final matchesQuery = q.isEmpty || a.nome.toLowerCase().contains(q);
+        return val == role && matchesQuery;
+      }).length;
+
+      options.add(
+        _StatusOption(
+          value: role,
+          label: role == 'USER' || role == 'REFEREE' ? 'ÁRBITRO' : role,
+          count: count,
+          color: Colors.blueGrey,
+        ),
+      );
+    }
+
+    return options;
+  }
+
+  int get _totalPaginas {
+    if (_filtrados.isEmpty) return 1;
+    return (_filtrados.length / _itensPorPagina).ceil();
+  }
+
+  List<Arbitro> get _filtradosPaginados {
+    final inicio = _paginaAtual * _itensPorPagina;
+    final fim = (inicio + _itensPorPagina).clamp(0, _filtrados.length);
+    if (inicio >= _filtrados.length) {
+      return const <Arbitro>[];
+    }
+    return _filtrados.sublist(inicio, fim);
+  }
+
+  void _selecionarRole(String role) {
+    if (_roleSelecionado == role) return;
+    setState(() {
+      _roleSelecionado = role;
+      _filtrar();
+    });
+  }
+
+  void _mudarPagina(int pagina) {
+    if (pagina < 0 || pagina >= _totalPaginas || pagina == _paginaAtual) {
+      return;
+    }
+    setState(() => _paginaAtual = pagina);
   }
 
   @override
@@ -192,7 +279,9 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            _buildStatusFilterBar(),
+            const SizedBox(height: 12),
 
             // ── LISTA ──
             Expanded(
@@ -204,46 +293,56 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                     )
                   : _filtrados.isEmpty
                   ? _buildEmpty()
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: _filtrados.length,
-                      itemBuilder: (context, index) {
-                        final delay = index * 0.07;
-                        final anim = CurvedAnimation(
-                          parent: _animCtrl,
-                          curve: Interval(
-                            delay.clamp(0.0, 0.9),
-                            (delay + 0.5).clamp(0.1, 1.0),
-                            curve: Curves.easeOutCubic,
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: _filtradosPaginados.length,
+                            itemBuilder: (context, index) {
+                              final delay = index * 0.07;
+                              final anim = CurvedAnimation(
+                                parent: _animCtrl,
+                                curve: Interval(
+                                  delay.clamp(0.0, 0.9),
+                                  (delay + 0.5).clamp(0.1, 1.0),
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              );
+                              return FadeTransition(
+                                opacity: anim,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.15),
+                                    end: Offset.zero,
+                                  ).animate(anim),
+                                  child: _buildCard(_filtradosPaginados[index]),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                        return FadeTransition(
-                          opacity: anim,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.15),
-                              end: Offset.zero,
-                            ).animate(anim),
-                            child: _buildCard(_filtrados[index]),
-                          ),
-                        );
-                      },
+                        ),
+                        if (_filtrados.isNotEmpty) _buildPaginationBar(),
+                      ],
                     ),
             ),
           ],
         ),
       ),
       floatingActionButton: _canEdit
-          ? FloatingActionButton.extended(
-              onPressed: _showAddArbitroDialog,
-              backgroundColor: const Color(0xFFF85C39),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
-                'Adicionar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 72),
+              child: FloatingActionButton.extended(
+                onPressed: _showAddArbitroDialog,
+                backgroundColor: const Color(0xFFF85C39),
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'Adicionar Árbitro',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             )
@@ -584,6 +683,155 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
       ),
     );
   }
+
+  Widget _buildStatusFilterBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: Color(0xFFF85C39),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Filtrar por função',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const Spacer(),
+              Text(
+                '${_filtrados.length} resultado(s)',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _statusOptions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final item = _statusOptions[index];
+                final isSelected = item.value == _roleSelecionado;
+                return ChoiceChip(
+                  selected: isSelected,
+                  label: Text('${item.label} (${item.count})'),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : item.color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  backgroundColor: item.color.withValues(alpha: 0.10),
+                  selectedColor: item.color,
+                  side: BorderSide(
+                    color: isSelected
+                        ? item.color
+                        : item.color.withValues(alpha: 0.18),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  onSelected: (_) => _selecionarRole(item.value),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _paginaAtual > 0
+                ? () => _mudarPagina(_paginaAtual - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left_rounded),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
+          ),
+          const SizedBox(width: 8),
+          ...List.generate(_totalPaginas, (index) {
+            final isSelected = index == _paginaAtual;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => _mudarPagina(index),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFF85C39)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          IconButton(
+            onPressed: _paginaAtual < _totalPaginas - 1
+                ? () => _mudarPagina(_paginaAtual + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right_rounded),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusOption {
+  final String value;
+  final String label;
+  final int count;
+  final Color color;
+
+  _StatusOption({
+    required this.value,
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 }
 
 class _VincularExistenteView extends StatefulWidget {

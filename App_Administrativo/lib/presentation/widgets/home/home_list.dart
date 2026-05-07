@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
 import '../../screens/admin/atletica_detalhe_screen.dart';
 import '../../screens/admin/partida_form_screen.dart';
-import '../../screens/main/arbitro_detalhe_screen.dart';
+import '../../screens/admin/arbitro_detalhe_screen.dart';
 import '../../screens/admin/campeonato_form_screen.dart';
 import '../../screens/admin/modalidade_detalhe_screen.dart';
 

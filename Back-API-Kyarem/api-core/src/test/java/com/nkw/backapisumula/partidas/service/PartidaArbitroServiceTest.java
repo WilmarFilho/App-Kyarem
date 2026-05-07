@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -126,6 +127,22 @@ class PartidaArbitroServiceTest {
         assertEquals(PARTIDA_ID, resultado.getPartida().getId());
         assertEquals(ARBITRO_ID, resultado.getArbitro().getId());
         assertEquals("fiscal", resultado.getFuncao());
+    }
+
+    @Test
+    void add_preencheAuditoriaENormalizaFuncao() {
+        when(repo.existsByPartida_IdAndArbitro_Id(PARTIDA_ID, ARBITRO_ID)).thenReturn(false);
+        when(partidaRepo.findById(PARTIDA_ID)).thenReturn(Optional.of(partida()));
+        when(profileRepo.findById(ARBITRO_ID)).thenReturn(Optional.of(perfil()));
+        when(profileRepo.findRolesByUserId(ARBITRO_ID)).thenReturn(java.util.List.of("REFEREE"));
+        when(repo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        PartidaArbitro resultado = service.add(PARTIDA_ID, ARBITRO_ID, "Árbitro Principal", ACTION_USER_ID);
+
+        assertEquals("PRINCIPAL", resultado.getFuncao());
+        assertEquals(ACTION_USER_ID, resultado.getAdicionadoPor());
+        assertNotNull(resultado.getCriadoEm());
+        assertTrue(resultado.getCriadoEm().isBefore(OffsetDateTime.now().plusSeconds(1)));
     }
 
     // ════════════════════════════════════════════════════════════════════════

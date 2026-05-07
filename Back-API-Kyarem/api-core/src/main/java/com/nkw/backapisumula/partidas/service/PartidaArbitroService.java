@@ -8,6 +8,7 @@ import com.nkw.backapisumula.partidas.repo.PartidaArbitroRepository;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,7 +61,9 @@ public class PartidaArbitroService {
         PartidaArbitro pa = new PartidaArbitro();
         pa.setPartida(partida);
         pa.setArbitro(arbitro);
-        pa.setFuncao(funcao);
+        pa.setFuncao(normalizeFuncao(funcao));
+        pa.setAdicionadoPor(actionUserId);
+        pa.setCriadoEm(OffsetDateTime.now());
 
         // OBS: seu banco tem trigger fn_valida_role_arbitro, então se o role não for permitido, o INSERT falha.
         return repo.save(pa);
@@ -74,7 +77,23 @@ public class PartidaArbitroService {
         if (partida != null && partida.getCriadoPor() != null && !partida.getCriadoPor().equals(actionUserId)) {
             throw new IllegalStateException("Apenas o criador da partida pode adicionar ou remover árbitros.");
         }
-        
+
         repo.deleteById(partidaArbitroId);
+    }
+
+    private String normalizeFuncao(String funcao) {
+        if (funcao == null) {
+            return "";
+        }
+
+        String normalized = funcao.trim().toUpperCase();
+        return switch (normalized) {
+            case "ÁRBITRO PRINCIPAL", "ARBITRO PRINCIPAL", "PRINCIPAL" -> "PRINCIPAL";
+            case "ÁRBITRO ASSISTENTE", "ARBITRO ASSISTENTE", "ÁRBITRO AUXILIAR", "ARBITRO AUXILIAR", "AUXILIAR" -> "AUXILIAR";
+            case "MESÁRIO", "MESARIO" -> "MESARIO";
+            case "DELEGADO" -> "DELEGADO";
+            case "CRONOMETRISTA" -> "CRONOMETRISTA";
+            default -> normalized;
+        };
     }
 }

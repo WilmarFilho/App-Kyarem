@@ -233,9 +233,9 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
                       height: 180,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFF85C39), Color(0xFFE64A19)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                       ),
                     ),
@@ -749,6 +749,7 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
   }
 
   Widget _funcaoBadge(String funcao) {
+    final label = _rotuloFuncao(funcao);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -759,7 +760,7 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
         ),
       ),
       child: Text(
-        funcao,
+        label,
         style: const TextStyle(
           fontSize: 11,
           color: Color(0xFFF85C39),
@@ -772,6 +773,23 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
   String _formatarData(DateTime dt) {
     final local = dt.toLocal();
     return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')} ${local.hour.toString().padLeft(2, '0')}h${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _rotuloFuncao(String funcao) {
+    switch (funcao.trim().toUpperCase()) {
+      case 'PRINCIPAL':
+        return 'Árbitro principal';
+      case 'AUXILIAR':
+        return 'Árbitro auxiliar';
+      case 'MESARIO':
+        return 'Mesário';
+      case 'DELEGADO':
+        return 'Delegado';
+      case 'CRONOMETRISTA':
+        return 'Cronometrista';
+      default:
+        return funcao;
+    }
   }
 }
 
@@ -794,16 +812,41 @@ class _DesignarPartidaSheet extends StatefulWidget {
 
 class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
   Partida? _partidaSelecionada;
-  String _funcao = 'Árbitro Principal';
+  String _funcao = 'PRINCIPAL';
   final TextEditingController _buscaCtrl = TextEditingController();
   List<Partida> _filtradas = [];
 
-  static const List<String> _funcoes = [
-    'Árbitro Principal',
-    'Árbitro Assistente',
-    'Mesário',
-    'Delegado',
-    'Cronometrista',
+  static const List<_FuncaoArbitragemOption> _funcoes = [
+    _FuncaoArbitragemOption(
+      value: 'PRINCIPAL',
+      label: 'Árbitro principal',
+      subtitle: 'Responsável pela condução principal da partida.',
+      icon: Icons.workspace_premium_outlined,
+    ),
+    _FuncaoArbitragemOption(
+      value: 'AUXILIAR',
+      label: 'Árbitro auxiliar',
+      subtitle: 'Apoia decisões e controle lateral da partida.',
+      icon: Icons.assistant_direction_outlined,
+    ),
+    _FuncaoArbitragemOption(
+      value: 'MESARIO',
+      label: 'Mesário',
+      subtitle: 'Registra eventos e acompanha a súmula.',
+      icon: Icons.fact_check_outlined,
+    ),
+    _FuncaoArbitragemOption(
+      value: 'DELEGADO',
+      label: 'Delegado',
+      subtitle: 'Supervisiona a operação e a organização da partida.',
+      icon: Icons.verified_user_outlined,
+    ),
+    _FuncaoArbitragemOption(
+      value: 'CRONOMETRISTA',
+      label: 'Cronometrista',
+      subtitle: 'Controla tempo, pausas e retomadas do jogo.',
+      icon: Icons.timer_outlined,
+    ),
   ];
 
   @override
@@ -920,6 +963,85 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF85C39).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFF85C39).withValues(alpha: 0.14),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Função na partida',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF8A3A24),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 42,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _funcoes.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (_, index) {
+                          final item = _funcoes[index];
+                          final isSelected = item.value == _funcao;
+                          return ChoiceChip(
+                            selected: isSelected,
+                            label: Text(item.label),
+                            avatar: Icon(
+                              item.icon,
+                              size: 16,
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFFF85C39),
+                            ),
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF8A3A24),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            selectedColor: const Color(0xFFF85C39),
+                            backgroundColor: Colors.white,
+                            side: BorderSide(
+                              color: isSelected
+                                  ? const Color(0xFFF85C39)
+                                  : const Color(
+                                      0xFFF85C39,
+                                    ).withValues(alpha: 0.20),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            onSelected: (_) {
+                              setState(() => _funcao = item.value);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: _buildFuncaoPreview(
+                        _funcoes.firstWhere((item) => item.value == _funcao),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             // Lista de partidas
             Expanded(
@@ -1007,36 +1129,6 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
                     ),
             ),
 
-            // Seleção da função
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: DropdownButtonFormField<String>(
-                value: _funcao,
-                decoration: InputDecoration(
-                  labelText: 'Função',
-                  floatingLabelStyle: const TextStyle(color: Color(0xFFF85C39)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFF85C39),
-                      width: 1.5,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                ),
-                items: _funcoes
-                    .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                    .toList(),
-                onChanged: (v) => setState(() => _funcao = v ?? _funcao),
-              ),
-            ),
-
             // Botão confirmar
             Padding(
               padding: EdgeInsets.fromLTRB(
@@ -1083,4 +1175,63 @@ class _DesignarPartidaSheetState extends State<_DesignarPartidaSheet> {
     final l = dt.toLocal();
     return '${l.day.toString().padLeft(2, '0')}/${l.month.toString().padLeft(2, '0')}/${l.year} ${l.hour.toString().padLeft(2, '0')}h${l.minute.toString().padLeft(2, '0')}';
   }
+
+  Widget _buildFuncaoPreview(_FuncaoArbitragemOption funcao) {
+    return Container(
+      key: ValueKey(funcao.value),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF85C39).withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(funcao.icon, color: const Color(0xFFF85C39), size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  funcao.label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E2430),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  funcao.subtitle,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FuncaoArbitragemOption {
+  final String value;
+  final String label;
+  final String subtitle;
+  final IconData icon;
+
+  const _FuncaoArbitragemOption({
+    required this.value,
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+  });
 }

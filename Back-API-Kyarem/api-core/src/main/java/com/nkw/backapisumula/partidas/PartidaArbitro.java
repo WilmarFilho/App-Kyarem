@@ -35,6 +35,16 @@ public class PartidaArbitro {
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
 
+    @PrePersist
+    void prePersist() {
+        if (criadoEm == null) {
+            criadoEm = OffsetDateTime.now();
+        }
+        if (isCriador == null) {
+            isCriador = false;
+        }
+    }
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 

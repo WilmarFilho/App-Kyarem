@@ -13,10 +13,14 @@ class CampeonatosAdminScreen extends StatefulWidget {
 
 class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
     with SingleTickerProviderStateMixin {
-  late final AdminApiService _apiService = widget.apiService ?? AdminApiService();
+  static const int _itensPorPagina = 8;
+  late final AdminApiService _apiService =
+      widget.apiService ?? AdminApiService();
   List<Campeonato> _campeonatos = [];
   bool _isLoading = true;
   late AnimationController _animController;
+  String _statusSelecionado = 'TODOS';
+  int _paginaAtual = 0;
 
   @override
   void initState() {
@@ -40,6 +44,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
     setState(() {
       _campeonatos = lista;
       _isLoading = false;
+      _paginaAtual = 0;
     });
     _animController.reset();
     _animController.forward();
@@ -106,6 +111,86 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
     if (result == true) _carregarCampeonatos();
   }
 
+  List<_StatusOption> get _statusOptions {
+    final options = <_StatusOption>[
+      _StatusOption(
+        value: 'TODOS',
+        label: 'Todos',
+        count: _campeonatos.length,
+        color: const Color(0xFFF85C39),
+      ),
+    ];
+
+    final statusUnicos =
+        _campeonatos
+            .map((c) {
+              final s = c.status?.trim() ?? '';
+              return s.isEmpty ? 'indefinido' : s.toLowerCase();
+            })
+            .toSet()
+            .toList()
+          ..sort();
+
+    for (final status in statusUnicos) {
+      final count = _campeonatos.where((c) {
+        final s = c.status?.trim() ?? '';
+        final val = s.isEmpty ? 'indefinido' : s.toLowerCase();
+        return val == status;
+      }).length;
+      options.add(
+        _StatusOption(
+          value: status,
+          label: status == 'indefinido' ? 'Indefinido' : status.toUpperCase(),
+          count: count,
+          color: Colors.blueGrey,
+        ),
+      );
+    }
+
+    return options;
+  }
+
+  List<Campeonato> get _campeonatosFiltrados {
+    if (_statusSelecionado == 'TODOS') return _campeonatos;
+    return _campeonatos.where((c) {
+      final s = c.status?.trim() ?? '';
+      final val = s.isEmpty ? 'indefinido' : s.toLowerCase();
+      return val == _statusSelecionado;
+    }).toList();
+  }
+
+  int get _totalPaginas {
+    if (_campeonatosFiltrados.isEmpty) return 1;
+    return (_campeonatosFiltrados.length / _itensPorPagina).ceil();
+  }
+
+  List<Campeonato> get _campeonatosPaginados {
+    final inicio = _paginaAtual * _itensPorPagina;
+    final fim = (inicio + _itensPorPagina).clamp(
+      0,
+      _campeonatosFiltrados.length,
+    );
+    if (inicio >= _campeonatosFiltrados.length) {
+      return const <Campeonato>[];
+    }
+    return _campeonatosFiltrados.sublist(inicio, fim);
+  }
+
+  void _selecionarStatus(String status) {
+    if (_statusSelecionado == status) return;
+    setState(() {
+      _statusSelecionado = status;
+      _paginaAtual = 0;
+    });
+  }
+
+  void _mudarPagina(int pagina) {
+    if (pagina < 0 || pagina >= _totalPaginas || pagina == _paginaAtual) {
+      return;
+    }
+    setState(() => _paginaAtual = pagina);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,13 +241,16 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _abrirFormulario(),
-        backgroundColor: const Color(0xFFF85C39),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Novo',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Novo Campeonato',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
       body: _isLoading
@@ -171,30 +259,45 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
             )
           : _campeonatos.isEmpty
           ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _campeonatos.length,
-              itemBuilder: (context, index) {
-                final delay = index * 0.08;
-                final animation = CurvedAnimation(
-                  parent: _animController,
-                  curve: Interval(
-                    delay.clamp(0.0, 0.9),
-                    (delay + 0.5).clamp(0.1, 1.0),
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.2),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: _buildCampeonatoCard(_campeonatos[index]),
-                  ),
-                );
-              },
+          : Column(
+              children: [
+                _buildStatusFilterBar(),
+                Expanded(
+                  child: _campeonatosFiltrados.isEmpty
+                      ? _buildEmptyState(
+                          title: 'Nenhum campeonato neste status',
+                          subtitle: 'Tente outro filtro para ver resultados.',
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                          itemCount: _campeonatosPaginados.length,
+                          itemBuilder: (context, index) {
+                            final delay = index * 0.08;
+                            final animation = CurvedAnimation(
+                              parent: _animController,
+                              curve: Interval(
+                                delay.clamp(0.0, 0.9),
+                                (delay + 0.5).clamp(0.1, 1.0),
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.2),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: _buildCampeonatoCard(
+                                  _campeonatosPaginados[index],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                if (_campeonatosFiltrados.isNotEmpty) _buildPaginationBar(),
+              ],
             ),
     );
   }
@@ -331,28 +434,187 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({String? title, String? subtitle}) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.emoji_events_outlined, size: 72, color: Colors.black26),
           const SizedBox(height: 16),
-          const Text(
-            'Nenhum campeonato',
-            style: TextStyle(
+          Text(
+            title ?? 'Nenhum campeonato',
+            style: const TextStyle(
               color: Colors.black54,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Toque em "Novo" para criar o primeiro',
-            style: TextStyle(color: Colors.black38, fontSize: 14),
+          Text(
+            subtitle ?? 'Toque em "Novo" para criar o primeiro',
+            style: const TextStyle(color: Colors.black38, fontSize: 14),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildStatusFilterBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: Color(0xFFF85C39),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Filtrar por status',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const Spacer(),
+              Text(
+                '${_campeonatosFiltrados.length} resultado(s)',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _statusOptions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final item = _statusOptions[index];
+                final isSelected = item.value == _statusSelecionado;
+                return ChoiceChip(
+                  selected: isSelected,
+                  label: Text('${item.label} (${item.count})'),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : item.color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  backgroundColor: item.color.withValues(alpha: 0.10),
+                  selectedColor: item.color,
+                  side: BorderSide(
+                    color: isSelected
+                        ? item.color
+                        : item.color.withValues(alpha: 0.18),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  onSelected: (_) => _selecionarStatus(item.value),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _paginaAtual > 0
+                ? () => _mudarPagina(_paginaAtual - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left_rounded),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
+          ),
+          const SizedBox(width: 8),
+          ...List.generate(_totalPaginas, (index) {
+            final isSelected = index == _paginaAtual;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => _mudarPagina(index),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFF85C39)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          IconButton(
+            onPressed: _paginaAtual < _totalPaginas - 1
+                ? () => _mudarPagina(_paginaAtual + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right_rounded),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusOption {
+  final String value;
+  final String label;
+  final int count;
+  final Color color;
+
+  _StatusOption({
+    required this.value,
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 }

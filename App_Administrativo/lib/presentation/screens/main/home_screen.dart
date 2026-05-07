@@ -225,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final partidas = await _partidaService.listarPartidasMinhas();
       if (mounted) {
         setState(() {
-          _partidasDestaque = partidas;
+          _partidasDestaque = _filtrarPartidasHome(partidas);
           _carregandoDestaques = false;
         });
       }
@@ -237,7 +237,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _buscarDadosAba({bool isFirstLoad = false}) async {
     if (mounted) setState(() => _carregandoListaAba = true);
     try {
-      final dados = await _partidaService.buscarDadosPorAba(_abaSelecionada);
+      var dados = await _partidaService.buscarDadosPorAba(_abaSelecionada);
+      if (_abaSelecionada == 'Jogos') {
+        dados = _filtrarPartidasHome(List<Partida>.from(dados));
+      }
       if (mounted) {
         setState(() {
           _itensListaInferior = dados;
@@ -260,6 +263,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _itensListaInferior = [];
     });
     _buscarDadosAba();
+  }
+
+  List<Partida> _filtrarPartidasHome(List<Partida> partidas) {
+    return partidas
+        .where((partida) => partida.status.trim().toLowerCase() != 'fechada')
+        .toList();
   }
 
   void _navegarAdmin(Widget screen) {
@@ -531,7 +540,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 await _partidaService.listarPartidasMinhas();
                             if (mounted) {
                               setState(() {
-                                _partidasDestaque = minhas;
+                                _partidasDestaque = _filtrarPartidasHome(
+                                  minhas,
+                                );
                                 _loadingMeus = false;
                               });
                             }

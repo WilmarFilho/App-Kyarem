@@ -16,10 +16,13 @@ class ModalidadesAdminScreen extends StatefulWidget {
 
 class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     with SingleTickerProviderStateMixin {
+  static const int _itensPorPagina = 8;
   late final AdminApiService _api = widget.apiService ?? AdminApiService();
   List<ModalidadeCatalogo> _modalidades = [];
   bool _isLoading = true;
   late AnimationController _animController;
+  String _generoSelecionado = 'TODAS';
+  int _paginaAtual = 0;
 
   @override
   void initState() {
@@ -44,6 +47,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     setState(() {
       _modalidades = lista.cast<ModalidadeCatalogo>();
       _isLoading = false;
+      _paginaAtual = 0;
     });
     _animController
       ..reset()
@@ -116,6 +120,86 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     }
   }
 
+  List<_StatusOption> get _statusOptions {
+    final options = <_StatusOption>[
+      _StatusOption(
+        value: 'TODAS',
+        label: 'Todas',
+        count: _modalidades.length,
+        color: const Color(0xFFF85C39),
+      ),
+    ];
+
+    final generosUnicos =
+        _modalidades
+            .map((m) {
+              final g = m.genero.trim();
+              return g.isEmpty ? 'indefinido' : g.toLowerCase();
+            })
+            .toSet()
+            .toList()
+          ..sort();
+
+    for (final genero in generosUnicos) {
+      final count = _modalidades.where((m) {
+        final g = m.genero.trim();
+        final val = g.isEmpty ? 'indefinido' : g.toLowerCase();
+        return val == genero;
+      }).length;
+      options.add(
+        _StatusOption(
+          value: genero,
+          label: genero == 'indefinido' ? 'Indefinido' : genero.toUpperCase(),
+          count: count,
+          color: Colors.blueGrey,
+        ),
+      );
+    }
+
+    return options;
+  }
+
+  List<ModalidadeCatalogo> get _modalidadesFiltradas {
+    if (_generoSelecionado == 'TODAS') return _modalidades;
+    return _modalidades.where((m) {
+      final g = m.genero.trim();
+      final val = g.isEmpty ? 'indefinido' : g.toLowerCase();
+      return val == _generoSelecionado;
+    }).toList();
+  }
+
+  int get _totalPaginas {
+    if (_modalidadesFiltradas.isEmpty) return 1;
+    return (_modalidadesFiltradas.length / _itensPorPagina).ceil();
+  }
+
+  List<ModalidadeCatalogo> get _modalidadesPaginadas {
+    final inicio = _paginaAtual * _itensPorPagina;
+    final fim = (inicio + _itensPorPagina).clamp(
+      0,
+      _modalidadesFiltradas.length,
+    );
+    if (inicio >= _modalidadesFiltradas.length) {
+      return const <ModalidadeCatalogo>[];
+    }
+    return _modalidadesFiltradas.sublist(inicio, fim);
+  }
+
+  void _selecionarGenero(String genero) {
+    if (_generoSelecionado == genero) return;
+    setState(() {
+      _generoSelecionado = genero;
+      _paginaAtual = 0;
+    });
+  }
+
+  void _mudarPagina(int pagina) {
+    if (pagina < 0 || pagina >= _totalPaginas || pagina == _paginaAtual) {
+      return;
+    }
+    setState(() => _paginaAtual = pagina);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,13 +236,16 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _abrirFormulario(),
-        backgroundColor: const Color(0xFFF85C39),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Nova modalidade',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Nova modalidade',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
       body: _isLoading
@@ -172,29 +259,47 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _modalidades.length,
-              itemBuilder: (context, index) {
-                final animation = CurvedAnimation(
-                  parent: _animController,
-                  curve: Interval(
-                    (index * 0.08).clamp(0.0, 0.9),
-                    ((index * 0.08) + 0.5).clamp(0.1, 1.0),
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.15),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: _buildCard(_modalidades[index]),
-                  ),
-                );
-              },
+          : Column(
+              children: [
+                _buildStatusFilterBar(),
+                Expanded(
+                  child: _modalidadesFiltradas.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Nenhuma modalidade neste filtro',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                          itemCount: _modalidadesPaginadas.length,
+                          itemBuilder: (context, index) {
+                            final animation = CurvedAnimation(
+                              parent: _animController,
+                              curve: Interval(
+                                (index * 0.08).clamp(0.0, 0.9),
+                                ((index * 0.08) + 0.5).clamp(0.1, 1.0),
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.15),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: _buildCard(_modalidadesPaginadas[index]),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                if (_modalidadesFiltradas.isNotEmpty) _buildPaginationBar(),
+              ],
             ),
     );
   }
@@ -236,4 +341,163 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
       ),
     );
   }
+
+  Widget _buildStatusFilterBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: Color(0xFFF85C39),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Filtrar por gênero',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const Spacer(),
+              Text(
+                '${_modalidadesFiltradas.length} resultado(s)',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _statusOptions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final item = _statusOptions[index];
+                final isSelected = item.value == _generoSelecionado;
+                return ChoiceChip(
+                  selected: isSelected,
+                  label: Text('${item.label} (${item.count})'),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : item.color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  backgroundColor: item.color.withValues(alpha: 0.10),
+                  selectedColor: item.color,
+                  side: BorderSide(
+                    color: isSelected
+                        ? item.color
+                        : item.color.withValues(alpha: 0.18),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  onSelected: (_) => _selecionarGenero(item.value),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _paginaAtual > 0
+                ? () => _mudarPagina(_paginaAtual - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left_rounded),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
+          ),
+          const SizedBox(width: 8),
+          ...List.generate(_totalPaginas, (index) {
+            final isSelected = index == _paginaAtual;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => _mudarPagina(index),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFF85C39)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          IconButton(
+            onPressed: _paginaAtual < _totalPaginas - 1
+                ? () => _mudarPagina(_paginaAtual + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right_rounded),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusOption {
+  final String value;
+  final String label;
+  final int count;
+  final Color color;
+
+  _StatusOption({
+    required this.value,
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 }

@@ -16,10 +16,13 @@ class AtleticasAdminScreen extends StatefulWidget {
 
 class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     with SingleTickerProviderStateMixin {
+  static const int _itensPorPagina = 8;
   late final AdminApiService _api = widget.apiService ?? AdminApiService();
   List<Atletica> _atleticas = [];
   bool _isLoading = true;
   late AnimationController _animController;
+  String _statusSelecionado = 'TODAS';
+  int _paginaAtual = 0;
 
   @override
   void initState() {
@@ -44,6 +47,8 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     setState(() {
       _atleticas = lista;
       _isLoading = false;
+      _paginaAtual = 0;
+      _statusSelecionado = 'TODAS';
     });
     _animController
       ..reset()
@@ -102,6 +107,85 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     }
   }
 
+  List<_StatusOption> get _statusOptions {
+    final options = <_StatusOption>[
+      _StatusOption(
+        value: 'TODAS',
+        label: 'Todas',
+        count: _atleticas.length,
+        color: const Color(0xFFF85C39),
+      ),
+    ];
+
+    final statusUnicos = _atleticas
+        .map((a) {
+          final s = a.status?.trim() ?? '';
+          return s.isEmpty ? 'indefinido' : s.toLowerCase();
+        })
+        .toSet()
+        .toList()
+      ..sort();
+
+    for (final status in statusUnicos) {
+      final count = _atleticas.where((a) {
+        final s = a.status?.trim() ?? '';
+        final val = s.isEmpty ? 'indefinido' : s.toLowerCase();
+        return val == status;
+      }).length;
+      options.add(
+        _StatusOption(
+          value: status,
+          label: status == 'indefinido' ? 'Indefinido' : status.toUpperCase(),
+          count: count,
+          color: Colors.blueGrey,
+        ),
+      );
+    }
+
+    return options;
+  }
+
+  List<Atletica> get _atleticasFiltradas {
+    if (_statusSelecionado == 'TODAS') return _atleticas;
+    return _atleticas.where((a) {
+      final s = a.status?.trim() ?? '';
+      final val = s.isEmpty ? 'indefinido' : s.toLowerCase();
+      return val == _statusSelecionado;
+    }).toList();
+  }
+
+  int get _totalPaginas {
+    if (_atleticasFiltradas.isEmpty) return 1;
+    return (_atleticasFiltradas.length / _itensPorPagina).ceil();
+  }
+
+  List<Atletica> get _atleticasPaginadas {
+    final inicio = _paginaAtual * _itensPorPagina;
+    final fim = (inicio + _itensPorPagina).clamp(
+      0,
+      _atleticasFiltradas.length,
+    );
+    if (inicio >= _atleticasFiltradas.length) {
+      return const <Atletica>[];
+    }
+    return _atleticasFiltradas.sublist(inicio, fim);
+  }
+
+  void _selecionarStatus(String status) {
+    if (_statusSelecionado == status) return;
+    setState(() {
+      _statusSelecionado = status;
+      _paginaAtual = 0;
+    });
+  }
+
+  void _mudarPagina(int pagina) {
+    if (pagina < 0 || pagina >= _totalPaginas || pagina == _paginaAtual) {
+      return;
+    }
+    setState(() => _paginaAtual = pagina);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,13 +222,16 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _abrirFormulario(),
-        backgroundColor: const Color(0xFFF85C39),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Nova atlética',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Nova atlética',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
       body: _isLoading
@@ -158,29 +245,47 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _atleticas.length,
-              itemBuilder: (context, index) {
-                final animation = CurvedAnimation(
-                  parent: _animController,
-                  curve: Interval(
-                    (index * 0.08).clamp(0.0, 0.9),
-                    ((index * 0.08) + 0.5).clamp(0.1, 1.0),
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.15),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: _buildCard(_atleticas[index]),
-                  ),
-                );
-              },
+          : Column(
+              children: [
+                _buildStatusFilterBar(),
+                Expanded(
+                  child: _atleticasFiltradas.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Nenhuma atlética neste filtro',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                          itemCount: _atleticasPaginadas.length,
+                          itemBuilder: (context, index) {
+                            final animation = CurvedAnimation(
+                              parent: _animController,
+                              curve: Interval(
+                                (index * 0.08).clamp(0.0, 0.9),
+                                ((index * 0.08) + 0.5).clamp(0.1, 1.0),
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.15),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: _buildCard(_atleticasPaginadas[index]),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                if (_atleticasFiltradas.isNotEmpty) _buildPaginationBar(),
+              ],
             ),
     );
   }
@@ -233,4 +338,167 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
       ),
     );
   }
+
+  Widget _buildStatusFilterBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: Color(0xFFF85C39),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Filtrar por status',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const Spacer(),
+              Text(
+                '${_atleticasFiltradas.length} resultado(s)',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _statusOptions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final item = _statusOptions[index];
+                final isSelected = item.value == _statusSelecionado;
+                return ChoiceChip(
+                  selected: isSelected,
+                  label: Text('${item.label} (${item.count})'),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : item.color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  backgroundColor: item.color.withValues(alpha: 0.10),
+                  selectedColor: item.color,
+                  side: BorderSide(
+                    color: isSelected
+                        ? item.color
+                        : item.color.withValues(alpha: 0.18),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  onSelected: (_) => _selecionarStatus(item.value),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _paginaAtual > 0
+                ? () => _mudarPagina(_paginaAtual - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left_rounded),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade100,
+            ),
+          ),
+          const SizedBox(width: 8),
+          ...List.generate(_totalPaginas, (index) {
+            final isSelected = index == _paginaAtual;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => _mudarPagina(index),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFF85C39)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          IconButton(
+            onPressed: _paginaAtual < _totalPaginas - 1
+                ? () => _mudarPagina(_paginaAtual + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right_rounded),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade100,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusOption {
+  final String value;
+  final String label;
+  final int count;
+  final Color color;
+
+  _StatusOption({
+    required this.value,
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 }

@@ -4,6 +4,7 @@ import 'package:kyarem_eventos/models/modalidade_campeonato_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
 import 'package:kyarem_eventos/services/admin_api_service.dart';
 
+import 'modalidade_campeonato_associacao_screen.dart';
 import 'modalidade_form_screen.dart';
 
 class ModalidadeDetalheScreen extends StatefulWidget {
@@ -74,246 +75,22 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
       return;
     }
 
-    String? campeonatoId = disponiveis.first.id;
-    final nomeExibicaoCtrl = TextEditingController(text: _modalidade.nome);
-    final categoriaCtrl = TextEditingController();
-    String genero = 'MISTO';
-    bool loading = false;
-
-    try {
-      final created = await showDialog<ModalidadeCampeonato?>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setStateModal) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text('Associar ao campeonato'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Campeonato',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: loading
-                            ? null
-                            : () {
-                                _mostrarModalSelecao(
-                                  context: context,
-                                  titulo: 'Selecione o Campeonato',
-                                  opcoes: disponiveis
-                                      .map(
-                                        (c) => _OpcaoSelect(
-                                          valor: c.id,
-                                          rotulo: c.nome,
-                                        ),
-                                      )
-                                      .toList(),
-                                  selecionado: campeonatoId,
-                                  onChanged: (val) =>
-                                      setStateModal(() => campeonatoId = val),
-                                );
-                              },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                disponiveis
-                                    .firstWhere(
-                                      (c) => c.id == campeonatoId,
-                                      orElse: () => disponiveis.first,
-                                    )
-                                    .nome,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const Icon(
-                                Icons.arrow_drop_down,
-                                color: Colors.black54,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: nomeExibicaoCtrl,
-                    decoration: _inputDecoration('Nome exibido no campeonato'),
-                    enabled: !loading,
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: categoriaCtrl,
-                    decoration: _inputDecoration('Categoria (opcional)'),
-                    enabled: !loading,
-                  ),
-                  const SizedBox(height: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Gênero da disputa',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: loading
-                            ? null
-                            : () {
-                                _mostrarModalSelecao(
-                                  context: context,
-                                  titulo: 'Selecione o Gênero',
-                                  opcoes: const [
-                                    _OpcaoSelect(
-                                      valor: 'MASCULINO',
-                                      rotulo: 'Masculino',
-                                    ),
-                                    _OpcaoSelect(
-                                      valor: 'FEMININO',
-                                      rotulo: 'Feminino',
-                                    ),
-                                    _OpcaoSelect(
-                                      valor: 'MISTO',
-                                      rotulo: 'Misto',
-                                    ),
-                                  ],
-                                  selecionado: genero,
-                                  onChanged: (val) => setStateModal(
-                                    () => genero = val ?? genero,
-                                  ),
-                                );
-                              },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _labelGenero(genero),
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const Icon(
-                                Icons.arrow_drop_down,
-                                color: Colors.black54,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              if (!loading)
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancelar'),
-                ),
-              loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () async {
-                        if (campeonatoId == null || campeonatoId!.isEmpty)
-                          return;
-                        setStateModal(() => loading = true);
-                        try {
-                          final result = await _api
-                              .associarModalidadeAoCampeonato({
-                                'campeonatoId': campeonatoId,
-                                'modalidadeCatalogoId': _modalidade.id,
-                                'nomeExibicao':
-                                    nomeExibicaoCtrl.text.trim().isEmpty
-                                    ? _modalidade.nome
-                                    : nomeExibicaoCtrl.text.trim(),
-                                'categoria': categoriaCtrl.text.trim().isEmpty
-                                    ? null
-                                    : categoriaCtrl.text.trim(),
-                                'genero': genero,
-                                'status': 'ATIVA',
-                              });
-                          if (!context.mounted) return;
-                          Navigator.pop(dialogContext, result);
-                        } catch (e) {
-                          setStateModal(() => loading = false);
-                          if (!context.mounted) return;
-                          String errorMsg = e.toString().replaceAll(
-                            'Exception: ',
-                            '',
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF85C39),
-                      ),
-                      child: const Text(
-                        'Associar',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-            ],
-          ),
+    final created = await Navigator.push<ModalidadeCampeonato>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ModalidadeCampeonatoAssociacaoScreen(
+          modalidade: _modalidade,
+          campeonatosDisponiveis: disponiveis,
         ),
-      );
+      ),
+    );
 
-      if (created != null && mounted) {
-        await _carregar();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Modalidade associada ao campeonato.')),
-        );
-      }
-    } finally {
-      nomeExibicaoCtrl.dispose();
-      categoriaCtrl.dispose();
+    if (created != null && mounted) {
+      await _carregar();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Modalidade associada ao campeonato.')),
+      );
     }
   }
 
@@ -434,7 +211,6 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
             children: [
               _buildPill(_modalidade.esporteNome ?? 'Sem esporte'),
               if (_modalidade.genero.isNotEmpty) _buildPill(_modalidade.genero),
-              _buildPill(_labelMotor(_modalidade.motorRegras)),
               _buildPill(_modalidade.slug),
             ],
           ),
@@ -460,7 +236,7 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
           const SizedBox(height: 12),
           if (_associacoes.isEmpty)
             Text(
-              'Ainda nao existe nenhuma associacao para essa modalidade.',
+              'Não existe associação para essa modalidade.',
               style: TextStyle(color: Colors.grey.shade600),
             )
           else

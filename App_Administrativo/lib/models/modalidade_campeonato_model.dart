@@ -13,6 +13,7 @@ class ModalidadeCampeonato {
   final String? genero;
   final Map<String, dynamic>? regrasJson;
   final Map<String, dynamic>? regrasEfetivasJson;
+  final Map<String, dynamic>? formatoFasesJson;
   final String? status;
 
   const ModalidadeCampeonato({
@@ -30,6 +31,7 @@ class ModalidadeCampeonato {
     this.genero,
     this.regrasJson,
     this.regrasEfetivasJson,
+    this.formatoFasesJson,
     this.status,
   });
 
@@ -52,6 +54,9 @@ class ModalidadeCampeonato {
           : null,
       regrasEfetivasJson: map['regrasEfetivasJson'] is Map<String, dynamic>
           ? map['regrasEfetivasJson'] as Map<String, dynamic>
+          : null,
+      formatoFasesJson: map['formatoFasesJson'] is Map<String, dynamic>
+          ? map['formatoFasesJson'] as Map<String, dynamic>
           : null,
       status: map['status']?.toString(),
     );
