@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
-import 'package:kyarem_eventos/models/modalidade_campeonato_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
 import 'package:kyarem_eventos/services/admin_api_service.dart';
 

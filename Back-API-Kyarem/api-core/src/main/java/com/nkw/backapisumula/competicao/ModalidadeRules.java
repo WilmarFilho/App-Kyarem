@@ -25,7 +25,8 @@ public final class ModalidadeRules {
         return normalized;
     }
 
-    public static ObjectNode resolveEffectiveRules(String motorRegras, JsonNode catalogRules, JsonNode championshipRules) {
+    public static ObjectNode resolveEffectiveRules(String motorRegras, JsonNode catalogRules,
+            JsonNode championshipRules) {
         ObjectNode effective = defaultRulesForMotor(motorRegras);
         mergeInto(effective, catalogRules);
         mergeInto(effective, championshipRules);
@@ -139,7 +140,8 @@ public final class ModalidadeRules {
 
         source.fields().forEachRemaining(entry -> {
             JsonNode value = entry.getValue();
-            if (value != null && value.isObject() && target.has(entry.getKey()) && target.get(entry.getKey()).isObject()) {
+            if (value != null && value.isObject() && target.has(entry.getKey())
+                    && target.get(entry.getKey()).isObject()) {
                 mergeInto((ObjectNode) target.get(entry.getKey()), value);
             } else {
                 target.set(entry.getKey(), value == null ? NullNode.instance : value.deepCopy());
