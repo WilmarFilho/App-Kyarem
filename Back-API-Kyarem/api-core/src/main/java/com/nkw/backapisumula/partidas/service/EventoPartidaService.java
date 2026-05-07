@@ -331,6 +331,7 @@ public class EventoPartidaService {
                 campeonatoTimeRepo.findById(r.campeonatoTimeId()).ifPresent(ev::setEquipe);
             }
 
+            populateEventoFields(ev, partida);
             toSave.add(ev);
         }
 
@@ -472,6 +473,7 @@ public class EventoPartidaService {
             if (r.descricaoDetalhada() != null && !r.descricaoDetalhada().isBlank()) {
                 ev.setPayloadJson(objectMapper.valueToTree(Map.of("descricao", r.descricaoDetalhada())));
             }
+            populateEventoFields(ev, partida);
             toSave.add(ev);
 
             if (isGoalEvent(tipoEvento)) {
@@ -518,6 +520,45 @@ public class EventoPartidaService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Preenche periodo, minuto, segundo baseado no tempoCronometro e no estado atual da partida.
+     */
+    private void populateEventoFields(EventoPartida ev, Partida partida) {
+        // Popula periodo a partir do periodo_atual da partida
+        if (partida.getPeriodoAtual() != null && !partida.getPeriodoAtual().isBlank()) {
+            ev.setPeriodo(partida.getPeriodoAtual());
+        } else if (partida.getStatus() != null) {
+            // Fallback: mapeia status legado para período
+            ev.setPeriodo(mapStatusLegadoParaPeriodo(partida.getStatus()));
+        }
+
+        // Extrai minuto e segundo do formato MM:SS
+        String tempo = ev.getTempoCronometro();
+        if (tempo != null && tempo.matches("\\d+:\\d{2}")) {
+            String[] partes = tempo.split(":");
+            try {
+                ev.setMinuto(Integer.parseInt(partes[0]));
+                ev.setSegundo(Integer.parseInt(partes[1]));
+            } catch (NumberFormatException ignored) {
+                // mantém nulo se não conseguir parsear
+            }
+        }
+    }
+
+    private String mapStatusLegadoParaPeriodo(String status) {
+        if (status == null) return null;
+        switch (status.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "1° tempo": return "1_TEMPO";
+            case "intervalo": return "INTERVALO";
+            case "2° tempo": return "2_TEMPO";
+            case "prorrogação": return "PRORROGACAO";
+            case "acréscimo": return "ACRESCIMO";
+            case "pênaltis": return "PENALTIS";
+            default: return status.toUpperCase();
+        }
+    }
+
 
     private Partida getPartidaEmAndamento(UUID partidaId, UUID userId, boolean isArbitroOnly) {
         Partida partida = partidaRepo.findById(partidaId)

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -568,18 +568,18 @@ class PartidaService {
   Future<void> atualizarPartida(
     String partidaId, {
     String? novoStatus,
-    String? statusAntesPausa,
+    String? periodoAntesPausa,
   }) async {
     final status = novoStatus?.trim();
     if (status == null || status.isEmpty) return;
 
     try {
       final data = <String, dynamic>{"status": status};
-      final sap = statusAntesPausa?.trim();
-      if (sap != null && sap.isNotEmpty) {
-        data["status_antes_pausa"] = sap;
+      final pap = periodoAntesPausa?.trim();
+      if (pap != null && pap.isNotEmpty) {
+        data["periodo_antes_pausa"] = pap;
       } else if (status.toLowerCase() != 'pausada') {
-        data["status_antes_pausa"] = '';
+        data["periodo_antes_pausa"] = '';
       }
       await _dio.patch('/partidas/$partidaId/status', data: data);
     } catch (e) {
@@ -645,6 +645,54 @@ class PartidaService {
       debugPrint("Erro buscarPartidaPorId: $e");
     }
     return null;
+  }
+
+  /// Subscreve ao Supabase Realtime para mudanças na partida (operational.partidas).
+  RealtimeChannel subscribeRealtimePartida(
+    String partidaId, {
+    required void Function(Map<String, dynamic> payload) onUpdate,
+  }) {
+    return _supabase
+        .channel('partida_$partidaId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'operational',
+          table: 'partidas',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: partidaId,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            if (newRecord.isNotEmpty) onUpdate(newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Subscreve ao Supabase Realtime para novos eventos da partida.
+  RealtimeChannel subscribeRealtimeEventos(
+    String partidaId, {
+    required void Function(Map<String, dynamic> payload) onInsert,
+  }) {
+    return _supabase
+        .channel('eventos_partida_$partidaId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'operational',
+          table: 'eventos_partida',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'partida_id',
+            value: partidaId,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            if (newRecord.isNotEmpty) onInsert(newRecord);
+          },
+        )
+        .subscribe();
   }
 
   void dispose() {

@@ -299,6 +299,7 @@ public class PartidaService {
         }
 
         p.setStatus(STATUS_PRIMEIRO_TEMPO);
+        p.setPeriodoAtual("1_TEMPO");
         p.setIniciadaEm(OffsetDateTime.now());
         Partida saved = repo.save(p);
         
@@ -362,7 +363,7 @@ public class PartidaService {
     }
 
     @Transactional
-    public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status, String statusAntesPausa) {
+    public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status, String periodoAntesPausa) {
         Partida p = getOrThrow(partidaId);
 
         // Se for árbitro (sem ser admin/delegado), só pode alterar se estiver atribuído à partida
@@ -385,13 +386,19 @@ public class PartidaService {
 
         p.setStatus(normalized);
 
-        if (statusAntesPausa != null) {
-            if (statusAntesPausa.isBlank()) {
-                p.setStatusAntesPausa(null);
+        // Popula periodo_atual baseado no status
+        String periodoAtualValor = mapStatusToPeriodoAtual(normalized);
+        if (periodoAtualValor != null) {
+            p.setPeriodoAtual(periodoAtualValor);
+        }
+
+        if (periodoAntesPausa != null) {
+            if (periodoAntesPausa.isBlank()) {
+                p.setPeriodoAntesPausa(null);
             } else {
-                String normalizedAntesPausa = normalizeStatusForDb(statusAntesPausa);
+                String normalizedAntesPausa = normalizeStatusForDb(periodoAntesPausa);
                 validateStatus(normalizedAntesPausa);
-                p.setStatusAntesPausa(normalizedAntesPausa);
+                p.setPeriodoAntesPausa(normalizedAntesPausa);
             }
         }
 
@@ -413,6 +420,23 @@ public class PartidaService {
 
         // Recarrega com EntityGraph
         return getOrThrow(saved.getId());
+    }
+
+    private String mapStatusToPeriodoAtual(String status) {
+        if (status == null) return null;
+        switch (status.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "1° tempo": return "1_TEMPO";
+            case "intervalo": return "INTERVALO";
+            case "2° tempo": return "2_TEMPO";
+            case "prorrogação": return "PRORROGACAO";
+            case "acréscimo": return "ACRESCIMO";
+            case "pausada": return null; // mantém o periodo_atual inalterado na pausa
+            case "pênaltis": return "PENALTIS";
+            case "finalizada": return "FINALIZADO";
+            case "fechada": return "FECHADO";
+            case "agendada": return "NAO_INICIADA";
+            default: return null;
+        }
     }
 
     private String normalizeStatusForDb(String raw) {

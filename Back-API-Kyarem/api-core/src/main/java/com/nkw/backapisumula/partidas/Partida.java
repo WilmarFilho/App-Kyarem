@@ -39,8 +39,8 @@ public class Partida {
     @Column(nullable = false)
     private String status = "AGENDADA";
 
-    @Column(name = "status_antes_pausa")
-    private String statusAntesPausa;
+    @Column(name = "periodo_antes_pausa")
+    private String periodoAntesPausa;
 
     @Column(name = "agendado_para")
     private OffsetDateTime dataHoraAgendada;
@@ -61,8 +61,6 @@ public class Partida {
     private Integer placarTimeB = 0;
 
     private String fase;
-
-    private String rodada;
 
     private String categoria;
 
@@ -110,8 +108,15 @@ public class Partida {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public String getStatusAntesPausa() { return statusAntesPausa; }
-    public void setStatusAntesPausa(String statusAntesPausa) { this.statusAntesPausa = statusAntesPausa; }
+    public String getPeriodoAntesPausa() { return periodoAntesPausa; }
+    public void setPeriodoAntesPausa(String periodoAntesPausa) { this.periodoAntesPausa = periodoAntesPausa; }
+
+    /** @deprecated Use getPeriodoAntesPausa() */
+    @Deprecated
+    public String getStatusAntesPausa() { return periodoAntesPausa; }
+    /** @deprecated Use setPeriodoAntesPausa() */
+    @Deprecated
+    public void setStatusAntesPausa(String v) { this.periodoAntesPausa = v; }
 
     public OffsetDateTime getDataHoraAgendada() { return dataHoraAgendada; }
     public void setDataHoraAgendada(OffsetDateTime dataHoraAgendada) { this.dataHoraAgendada = dataHoraAgendada; }
@@ -133,9 +138,6 @@ public class Partida {
 
     public String getFase() { return fase; }
     public void setFase(String fase) { this.fase = fase; }
-
-    public String getRodada() { return rodada; }
-    public void setRodada(String rodada) { this.rodada = rodada; }
 
     public String getCategoria() { return categoria; }
     public void setCategoria(String categoria) { this.categoria = categoria; }

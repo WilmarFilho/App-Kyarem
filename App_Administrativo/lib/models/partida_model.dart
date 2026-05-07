@@ -5,7 +5,7 @@ class Partida {
   final String id;
   final String modalidadeId;
   final String status;
-  final String? statusAntesPausa;
+  final String? periodoAntesPausa;
   final String? periodoAtual;
   final String? sumulaPdfUrl;
   final String? hashIntegridade;
@@ -34,7 +34,7 @@ class Partida {
     required this.id,
     required this.modalidadeId,
     required this.status,
-    this.statusAntesPausa,
+    this.periodoAntesPausa,
     this.periodoAtual,
     this.sumulaPdfUrl,
     this.hashIntegridade,
@@ -84,7 +84,8 @@ class Partida {
       id: map['id'] ?? '',
       modalidadeId: map['modalidadeId'] ?? '',
       status: map['status'] ?? '',
-      statusAntesPausa: map['status_antes_pausa'] ?? map['statusAntesPausa'],
+      periodoAntesPausa: map['periodo_antes_pausa'] ?? map['periodoAntesPausa']
+          ?? map['status_antes_pausa'] ?? map['statusAntesPausa'],
       periodoAtual: map['periodoAtual'] ?? map['periodo_atual'],
       sumulaPdfUrl: map['sumula_pdf_url'] ?? map['sumulaPdfUrl'],
       hashIntegridade: map['hash_integridade'] ?? map['hashIntegridade'],
@@ -130,7 +131,7 @@ class Partida {
     String? id,
     String? modalidadeId,
     String? status,
-    String? statusAntesPausa,
+    String? periodoAntesPausa,
     String? periodoAtual,
     String? sumulaPdfUrl,
     String? hashIntegridade,
@@ -156,7 +157,7 @@ class Partida {
       id: id ?? this.id,
       modalidadeId: modalidadeId ?? this.modalidadeId,
       status: status ?? this.status,
-      statusAntesPausa: statusAntesPausa ?? this.statusAntesPausa,
+      periodoAntesPausa: periodoAntesPausa ?? this.periodoAntesPausa,
       periodoAtual: periodoAtual ?? this.periodoAtual,
       sumulaPdfUrl: sumulaPdfUrl ?? this.sumulaPdfUrl,
       hashIntegridade: hashIntegridade ?? this.hashIntegridade,

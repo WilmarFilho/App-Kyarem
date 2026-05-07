@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/models/tipo_evento_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 import 'package:kyarem_eventos/services/partida_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Implementação fake de [PartidaService] para uso exclusivo em testes de widget.
 ///
@@ -9,15 +12,23 @@ import 'package:kyarem_eventos/services/partida_service.dart';
 /// Timer.periodic é criado e nenhuma operação SQLite ocorre — eliminando
 /// completamente o problema de "A Timer is still pending" nos testes.
 class FakePartidaService extends PartidaService {
+  final SupabaseClient _fakeSupabaseClient = SupabaseClient(
+    'https://fake-project.supabase.co',
+    'fake-anon-key',
+  );
+
   final List<Partida> partidas;
   final List<TipoEventoEsporte> tiposEvento;
   final List<Map<String, dynamic>> inscritosA;
   final List<Map<String, dynamic>> inscritosB;
   final List<Map<String, dynamic>> eventosPartida;
   final Map<String, dynamic>? ultimoEventoComTempo;
+  final Uint8List pdfBytes;
+  final (int?, String?) endPartidaResult;
   int startPartidaChamadas = 0;
   final List<Map<String, dynamic>> eventosSalvos = [];
   final List<Map<String, String?>> statusAtualizados = [];
+  int endPartidaChamadas = 0;
 
   FakePartidaService({
     this.partidas = const [],
@@ -26,7 +37,10 @@ class FakePartidaService extends PartidaService {
     this.inscritosB = const [],
     this.eventosPartida = const [],
     this.ultimoEventoComTempo,
-  }) : super.forTesting();
+    Uint8List? pdfBytes,
+    this.endPartidaResult = (200, null),
+  }) : pdfBytes = pdfBytes ?? Uint8List(0),
+       super.forTesting();
 
   @override
   Future<List<Partida>> listarTodasPartidas() async => partidas;
@@ -111,18 +125,43 @@ class FakePartidaService extends PartidaService {
   Future<void> atualizarPartida(
     String partidaId, {
     String? novoStatus,
-    String? statusAntesPausa,
+    String? periodoAntesPausa,
   }) async {
     statusAtualizados.add({
       'partidaId': partidaId,
       'novoStatus': novoStatus,
-      'statusAntesPausa': statusAntesPausa,
+      'periodoAntesPausa': periodoAntesPausa,
     });
   }
 
   @override
   Future<void> startPartida(String partidaId) async {
     startPartidaChamadas++;
+  }
+
+  @override
+  Future<(int?, String?)> endPartida(String partidaId) async {
+    endPartidaChamadas++;
+    return endPartidaResult;
+  }
+
+  @override
+  Future<Uint8List> baixarSumulaOficialPdf(String partidaId) async => pdfBytes;
+
+  @override
+  RealtimeChannel subscribeRealtimePartida(
+    String partidaId, {
+    required void Function(Map<String, dynamic> payload) onUpdate,
+  }) {
+    return _fakeSupabaseClient.channel('fake_partida_$partidaId');
+  }
+
+  @override
+  RealtimeChannel subscribeRealtimeEventos(
+    String partidaId, {
+    required void Function(Map<String, dynamic> payload) onInsert,
+  }) {
+    return _fakeSupabaseClient.channel('fake_eventos_$partidaId');
   }
 
   @override
