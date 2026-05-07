@@ -127,60 +127,62 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     // Escuta eventos e atualiza cronômetro localmente
     _eventosController.stream.listen((eventos) {
       if (!mounted) return;
-      _atualizarAncora(eventos);
+      _eventosAtuais = eventos;
+      _reconstruirEstadoCronometro();
     });
 
     _partidaController.stream.listen((dados) {
       if (!mounted) return;
-      _atualizarEstadoCronometro(dados['status']?.toString() ?? '');
+      _partidaAtual = dados;
+      _reconstruirEstadoCronometro();
     });
   }
 
   Future<void> _carregarDadosIniciais() async {
-    // Busca status da partida
+    Map<String, dynamic>? partida;
+    List<Map<String, dynamic>> eventos = [];
+
     try {
       final resP = await supabase
-          .from('partidas_ao_vivo')
-          .select('*')
-          .eq('partida_id', widget.partidaId)
+          .schema('operational')
+          .from('partidas')
+          .select(
+            'id, status, placar_a, placar_b, iniciada_em, periodo_atual, periodo_antes_pausa, atualizado_em',
+          )
+          .eq('id', widget.partidaId)
           .maybeSingle();
 
       if (resP != null) {
-        _partidaAtual = resP;
-        _partidaController.add(_partidaAtual!);
-        _atualizarEstadoCronometro(_partidaAtual!['status']?.toString() ?? '');
-      } else {
-        final resHist = await supabase
-            .from('partidas_historico')
-            .select('*')
-            .eq('partida_id', widget.partidaId)
-            .maybeSingle();
-        if (resHist != null) {
-          _partidaAtual = resHist;
-          _partidaController.add(_partidaAtual!);
-          _atualizarEstadoCronometro(_partidaAtual!['status']?.toString() ?? '');
-        }
+        partida = Map<String, dynamic>.from(resP);
       }
     } catch (e) {
       debugPrint("Erro carregar partida HTTP: $e");
     }
 
-    // Busca eventos (Usando a view pública ou a tabela operacional. Manteremos a operacional por causa do _tiposEventosCache)
     try {
       final resE = await supabase
+          .schema('operational')
           .from('eventos_partida')
-          .select('*')
+          .select('*, tipo_evento:tipo_evento_id(id, nome, codigo)')
           .eq('partida_id', widget.partidaId)
           .order('criado_em', ascending: false);
 
       if (resE.isNotEmpty) {
-        _eventosAtuais = List<Map<String, dynamic>>.from(resE);
-        _eventosController.add(_eventosAtuais);
-        _atualizarAncora(_eventosAtuais);
+        eventos = List<Map<String, dynamic>>.from(resE);
       }
     } catch (e) {
       debugPrint("Erro carregar eventos HTTP: $e");
     }
+
+    if (!mounted) return;
+
+    if (partida != null) {
+      _partidaAtual = partida;
+      _partidaController.add(partida);
+    }
+    _eventosAtuais = eventos;
+    _eventosController.add(eventos);
+    _reconstruirEstadoCronometro();
   }
 
   Map<String, dynamic> _normalizarEventoRealtime(dynamic evento) {
@@ -237,129 +239,115 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   }
 
   String _friendlyEventName(Map<String, dynamic> ev) {
-    final tipoData = _tiposEventosCache.firstWhere(
-      (t) => t['id'] == ev['tipo_evento_id'],
-      orElse: () => {'nome': 'Evento'},
-    );
-    final rawName = tipoData['nome']?.toString() ?? 'Evento';
-    return EventoService.friendly(rawName);
+    final rawName = _eventTypeCode(ev);
+    return EventoService.friendly(rawName.isEmpty ? 'Evento' : rawName);
   }
 
-  /// Lê o último evento e atualiza a âncora (segundosAncora + timestampAncora)
-  void _atualizarAncora(List<Map<String, dynamic>> eventos) {
-    final eventoAncora = eventos.firstWhere(
-      (e) => e['tempo_cronometro'] != null && e['criado_em'] != null,
-      orElse: () => {},
-    );
-
-    if (eventoAncora.isEmpty) return;
-
-    final novaAncora = _parseTempoCronometro(
-      eventoAncora['tempo_cronometro'].toString(),
-    );
-    final novoTimestamp = DateTime.tryParse(
-      eventoAncora['criado_em'].toString(),
-    );
-
-    if (novoTimestamp == null) return;
-
-    // Descobre se o último evento indica pausa
-    final tipoId = eventoAncora['tipo_evento_id']?.toString();
-    final tipoData = _tiposEventosCache.firstWhere(
-      (t) => t['id'] == tipoId,
-      orElse: () => {'nome': ''},
-    );
-    final rawNome = (tipoData['nome']?.toString() ?? '').toUpperCase();
-    final eventoIndicaPausa =
-        rawNome.contains('PAUSADA') ||
-        rawNome.contains('PAUSA_TECNICA') ||
-        rawNome.contains('INTERVALO') ||
-        rawNome.contains('FIM_');
-
-    setState(() {
-      _segundosAncora = novaAncora;
-      _timestampAncora = novoTimestamp;
-
-      if (_cronometroRodando && !eventoIndicaPausa) {
-        _segundosExibidos =
-            novaAncora +
-            DateTime.now().toUtc().difference(novoTimestamp.toUtc()).inSeconds;
-      } else {
-        _segundosExibidos = novaAncora;
-      }
-    });
-
-    if (eventoIndicaPausa && _cronometroRodando) {
-      // Evento de pausa → trava ticker imediatamente
-      _cronometroRodando = false;
-      _cronometroTicker?.cancel();
-    } else if (!eventoIndicaPausa && !_cronometroRodando) {
-      // Evento de ação → só religar se o STATUS já confirmou que está rodando
-      //
-      // FIX: _statusAtual.isEmpty cobre o caso de re-entrada onde o stream de
-      // eventos chega ANTES do stream de status. Enquanto o status não
-      // chegou, não ligamos o ticker em hipótese alguma.
-      final statusPermiteRodar = _statusRodando.contains(
-        _statusAtual.toLowerCase(),
-      );
-      if (!statusPermiteRodar || _statusAtual.isEmpty) return;
-
-      _cronometroRodando = true;
-      _cronometroTicker?.cancel();
-      _cronometroTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
-        if (_timestampAncora != null) {
-          setState(() {
-            _segundosExibidos =
-                _segundosAncora +
-                DateTime.now()
-                    .toUtc()
-                    .difference(_timestampAncora!.toUtc())
-                    .inSeconds;
-          });
-        }
-      });
-    }
-  }
-
-  /// Liga ou desliga o ticker conforme o status atual da partida
-  void _atualizarEstadoCronometro(String status) {
-    // FIX: atualiza _statusAtual PRIMEIRO — antes de qualquer decisão de ligar/desligar.
-    // Isso garante que _atualizarAncora (que pode rodar concorrentemente) já
-    // enxerga o status correto ao checar _statusAtual.
+  void _reconstruirEstadoCronometro() {
+    final status = (_partidaAtual?['status']?.toString() ?? '').toLowerCase();
     _statusAtual = status;
 
-    final deveRodar = _statusRodando.contains(status.toLowerCase());
-
-    if (deveRodar && !_cronometroRodando) {
-      // Status passou para rodando → liga o ticker
-      _cronometroRodando = true;
-      _cronometroTicker?.cancel();
-      _cronometroTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
-        if (_timestampAncora != null) {
-          setState(() {
-            _segundosExibidos =
-                _segundosAncora +
-                DateTime.now()
-                    .toUtc()
-                    .difference(_timestampAncora!.toUtc())
-                    .inSeconds;
-          });
-        }
+    final eventosAsc = [..._eventosAtuais]
+      ..sort((a, b) {
+        final aTs = DateTime.tryParse(a['criado_em']?.toString() ?? '');
+        final bTs = DateTime.tryParse(b['criado_em']?.toString() ?? '');
+        if (aTs == null && bTs == null) return 0;
+        if (aTs == null) return -1;
+        if (bTs == null) return 1;
+        return aTs.compareTo(bTs);
       });
-    } else if (!deveRodar && _cronometroRodando) {
-      // Status passou para pausada/intervalo/finalizada → desliga o ticker
-      _cronometroRodando = false;
-      _cronometroTicker?.cancel();
-      setState(() => _segundosExibidos = _segundosAncora);
-    } else if (!deveRodar && !_cronometroRodando) {
-      // FIX: já estava parado E status não é rodando (ex: re-entrada com status
-      // 'pausada') → garante que o display congela no valor da âncora atual.
-      // Sem esse bloco, o display poderia ficar no valor padrão 0 até o
-      // próximo evento chegar.
-      setState(() => _segundosExibidos = _segundosAncora);
+
+    int segundosBase = 0;
+    DateTime? timestampBase;
+    bool emExecucao = false;
+
+    for (final evento in eventosAsc) {
+      final timestamp = DateTime.tryParse(evento['criado_em']?.toString() ?? '');
+      if (timestamp == null) continue;
+
+      final code = _eventTypeCode(evento);
+      final tempoRaw = evento['tempo_cronometro']?.toString();
+      final tempoEvento = (tempoRaw != null && tempoRaw.isNotEmpty)
+          ? _parseTempoCronometro(tempoRaw)
+          : null;
+
+      final segundosNoMomento = tempoEvento ??
+          (emExecucao && timestampBase != null
+              ? segundosBase +
+                    timestamp.toUtc().difference(timestampBase.toUtc()).inSeconds
+              : segundosBase);
+
+      if (code == 'PARTIDA_PAUSADA' ||
+          code == 'PAUSA_TECNICA' ||
+          code == 'INTERVALO' ||
+          code.startsWith('FIM_')) {
+        segundosBase = segundosNoMomento;
+        timestampBase = timestamp;
+        emExecucao = false;
+        continue;
+      }
+
+      if (code == 'PARTIDA_RETOMADA' ||
+          code.startsWith('INICIO_') ||
+          code == 'ACRESCIMO' ||
+          code == 'PRORROGACAO') {
+        segundosBase = segundosNoMomento;
+        timestampBase = timestamp;
+        emExecucao = true;
+        continue;
+      }
+
+      if (tempoEvento != null) {
+        segundosBase = tempoEvento;
+        timestampBase = timestamp;
+      }
     }
+
+    final deveRodar = _statusRodando.contains(status);
+    final segundosExibidos = (deveRodar && timestampBase != null)
+        ? segundosBase +
+            DateTime.now().toUtc().difference(timestampBase.toUtc()).inSeconds
+        : segundosBase;
+
+    _cronometroTicker?.cancel();
+
+    setState(() {
+      _segundosAncora = segundosBase;
+      _timestampAncora = timestampBase;
+      _segundosExibidos = segundosExibidos.clamp(0, 99 * 60 + 59);
+      _cronometroRodando = deveRodar;
+    });
+
+    if (deveRodar && timestampBase != null) {
+      _cronometroTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || _timestampAncora == null) return;
+        setState(() {
+          _segundosExibidos =
+              _segundosAncora +
+              DateTime.now()
+                  .toUtc()
+                  .difference(_timestampAncora!.toUtc())
+                  .inSeconds;
+        });
+      });
+    }
+  }
+
+  String _eventTypeCode(Map<String, dynamic> ev) {
+    final joined = ev['tipo_evento'];
+    if (joined is Map) {
+      final code = joined['codigo']?.toString();
+      final name = joined['nome']?.toString();
+      return (code ?? name ?? '').trim().toUpperCase();
+    }
+
+    final tipoData = _tiposEventosCache.firstWhere(
+      (t) => t['id'] == ev['tipo_evento_id'],
+      orElse: () => const <String, dynamic>{},
+    );
+    final code = tipoData['codigo']?.toString();
+    final name = tipoData['nome']?.toString();
+    return (code ?? name ?? '').trim().toUpperCase();
   }
 
   /// Converte "MM:SS" → total em segundos
@@ -788,11 +776,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
 
     final horaEvento = _formatarHoraMinuto(ev['criado_em']?.toString());
 
-    final tipoData = _tiposEventosCache.firstWhere(
-      (t) => t['id'] == ev['tipo_evento_id'],
-      orElse: () => {'nome': 'Evento'},
-    );
-    final String rawNome = (tipoData['nome']?.toString() ?? '').toUpperCase();
+    final String rawNome = _eventTypeCode(ev);
 
     IconData iconData = Icons.info_outline;
     Color iconColor = Colors.grey;
@@ -806,7 +790,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     } else if (rawNome.contains('VERMELHO')) {
       iconData = Icons.style;
       iconColor = Colors.red;
-    } else if (rawNome.contains('SUBSTITUIÇÃO')) {
+    } else if (rawNome.contains('SUBSTITUICAO')) {
       iconData = Icons.swap_horiz;
       iconColor = Colors.blue;
     } else if (rawNome.contains('FALTA')) {
@@ -820,6 +804,9 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
         rawNome.contains('PRORROGACAO')) {
       iconData = Icons.timer;
       iconColor = Colors.green;
+    } else if (rawNome.contains('PAUSADA') || rawNome.contains('RETOMADA')) {
+      iconData = Icons.pause_circle_outline;
+      iconColor = const Color(0xFFF85C39);
     } else if (rawNome.contains('FIM')) {
       iconData = Icons.timer;
       iconColor = const Color(0xFFF85C39);
@@ -872,9 +859,9 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (ev['atleta_id'] != null) ...[
+                      if (ev['tempo_cronometro'] != null) ...[
                         Text(
-                          "${ev['tempo_cronometro'] ?? "00'00"}",
+                          "${ev['tempo_cronometro'] ?? "00:00"}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,

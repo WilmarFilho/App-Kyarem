@@ -732,7 +732,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     debugPrint("REGISTRANDO EVENTO: $nomeEventoNoBanco");
     // 1. Tentar encontrar o tipo de evento na lista carregada
     final tipoEvento = _tiposDeEventosDisponiveis.firstWhere(
-      (e) => e.nome == nomeEventoNoBanco,
+      (e) => e.codigo == nomeEventoNoBanco,
       orElse: () => TipoEventoEsporte(
         id: '',
         nome: nomeEventoNoBanco,
@@ -778,7 +778,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       "REGISTRANDO EVENTO COM EQUIPE: $nomeEventoNoBanco equipeId=$equipeId",
     );
     final tipoEvento = _tiposDeEventosDisponiveis.firstWhere(
-      (e) => e.nome == nomeEventoNoBanco,
+      (e) => e.codigo == nomeEventoNoBanco,
       orElse: () => TipoEventoEsporte(
         id: '',
         nome: nomeEventoNoBanco,
