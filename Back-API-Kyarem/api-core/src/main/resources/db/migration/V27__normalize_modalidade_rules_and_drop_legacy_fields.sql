@@ -65,6 +65,21 @@ END $$;
 ALTER TABLE operational.modalidades_catalogo
     ADD COLUMN IF NOT EXISTS regras_base_json JSONB;
 
+ALTER TABLE operational.modalidades_catalogo
+    ADD COLUMN IF NOT EXISTS motor_regras VARCHAR(50);
+
+UPDATE operational.modalidades_catalogo
+SET motor_regras = CASE
+    WHEN lower(coalesce(codigo, '')) IN ('futsal', 'futsal_masculino', 'futsal_feminino', 'futsal_misto') THEN 'FUTSAL_V1'
+    WHEN lower(coalesce(codigo, '')) IN ('quadra', 'quadra_masculino', 'quadra_feminino', 'areia', 'areia_misto') THEN 'VOLEI_V1'
+    WHEN lower(coalesce(codigo, '')) IN ('basquete', 'basquete_masculino', 'basquete_feminino') THEN 'BASQUETE_V1'
+    WHEN lower(coalesce(codigo, '')) IN ('handebol', 'handebol_masculino', 'handebol_feminino') THEN 'HANDEBOL_V1'
+    WHEN lower(coalesce(codigo, '')) IN ('society', 'society_masculino') THEN 'SOCIETY_V1'
+    WHEN lower(coalesce(codigo, '')) IN ('campo', 'campo_masculino') THEN 'FUTEBOL_CAMPO_V1'
+    ELSE 'GENERICO_V1'
+END
+WHERE coalesce(trim(motor_regras), '') = '';
+
 WITH defaults AS (
     SELECT
         id,
