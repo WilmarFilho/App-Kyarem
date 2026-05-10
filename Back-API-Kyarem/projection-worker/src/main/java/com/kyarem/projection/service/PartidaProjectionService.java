@@ -40,8 +40,20 @@ public class PartidaProjectionService {
                     syncCampeonatoModalidade(resolveAggregateId(payload, "campeonatoModalidadeId"));
             case "CampeonatoModalidadeExcluida" ->
                     deleteCampeonatoModalidade(resolveAggregateId(payload, "campeonatoModalidadeId"));
+            case "CampeonatoAtleticaCriada", "CampeonatoAtleticaAtualizada" ->
+                    syncCampeonatoAtletica(resolveAggregateId(payload, "campeonatoAtleticaId"));
+            case "CampeonatoAtleticaExcluida" ->
+                    deleteCampeonatoAtletica(resolveAggregateId(payload, "campeonatoAtleticaId"));
+            case "CampeonatoAtletaCriado", "CampeonatoAtletaAtualizado" ->
+                    syncCampeonatoAtleta(resolveAggregateId(payload, "campeonatoAtletaId"));
+            case "CampeonatoAtletaExcluido" ->
+                    deleteCampeonatoAtleta(resolveAggregateId(payload, "campeonatoAtletaId"));
             case "AtleticaCriada", "AtleticaAtualizada" -> syncAtletica(resolveAggregateId(payload, "atleticaId"));
             case "AtleticaExcluida" -> deleteAtletica(resolveAggregateId(payload, "atleticaId"));
+            case "AtleticaMembroCriado", "AtleticaMembroAtualizado" ->
+                    syncAtleticaMembro(resolveAggregateId(payload, "atleticaMembroId"));
+            case "AtleticaMembroExcluido" ->
+                    deleteAtleticaMembro(resolveAggregateId(payload, "atleticaMembroId"));
             case "ProfileCriado", "ProfileAtualizado" -> syncProfile(resolveAggregateId(payload, "profileId"));
             case "PartidaCriada", "PartidaIniciada", "StatusAlterado", "PartidaAtualizada" -> syncPartidaProjection(partidaId);
             case "EventoRegistrado", "EventoAtualizado" -> {
@@ -152,14 +164,13 @@ public class PartidaProjectionService {
         }
         jdbcTemplate.update("""
                 INSERT INTO public.campeonatos_vitrine (
-                    campeonato_id, nome, slug, nivel, data_inicio, data_fim, status, escudo_url, criado_em, atualizado_em
+                    campeonato_id, nome, nivel, data_inicio, data_fim, status, escudo_url, criado_em, atualizado_em
                 )
-                SELECT id, nome, slug, nivel, data_inicio, data_fim, status, escudo_url, criado_em, now()
+                SELECT id, nome, nivel, data_inicio, data_fim, status, escudo_url, criado_em, now()
                 FROM operational.campeonatos
                 WHERE id = ?
                 ON CONFLICT (campeonato_id) DO UPDATE SET
                     nome = EXCLUDED.nome,
-                    slug = EXCLUDED.slug,
                     nivel = EXCLUDED.nivel,
                     data_inicio = EXCLUDED.data_inicio,
                     data_fim = EXCLUDED.data_fim,
@@ -228,6 +239,62 @@ public class PartidaProjectionService {
         }
     }
 
+    private void syncCampeonatoAtletica(UUID campeonatoAtleticaId) {
+        if (campeonatoAtleticaId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.campeonato_atleticas_publicos (
+                    campeonato_atletica_id, campeonato_id, atletica_id, criado_em
+                )
+                SELECT id, campeonato_id, atletica_id, criado_em
+                FROM operational.campeonato_atleticas
+                WHERE id = ?
+                ON CONFLICT (campeonato_atletica_id) DO UPDATE SET
+                    campeonato_id = EXCLUDED.campeonato_id,
+                    atletica_id = EXCLUDED.atletica_id,
+                    criado_em = EXCLUDED.criado_em
+                """, campeonatoAtleticaId);
+    }
+
+    private void deleteCampeonatoAtletica(UUID campeonatoAtleticaId) {
+        if (campeonatoAtleticaId != null) {
+            jdbcTemplate.update("DELETE FROM public.campeonato_atleticas_publicos WHERE campeonato_atletica_id = ?", campeonatoAtleticaId);
+        }
+    }
+
+    private void syncCampeonatoAtleta(UUID campeonatoAtletaId) {
+        if (campeonatoAtletaId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.campeonato_atletas_publicos (
+                    campeonato_atleta_id, campeonato_id, atletica_id, campeonato_time_id, atleta_id,
+                    status, numero_camisa, is_capitao, is_goleiro, inscrito_em
+                )
+                SELECT id, campeonato_id, atletica_id, campeonato_time_id, atleta_id,
+                       status, numero_camisa, is_capitao, is_goleiro, inscrito_em
+                FROM operational.campeonato_atletas
+                WHERE id = ?
+                ON CONFLICT (campeonato_atleta_id) DO UPDATE SET
+                    campeonato_id = EXCLUDED.campeonato_id,
+                    atletica_id = EXCLUDED.atletica_id,
+                    campeonato_time_id = EXCLUDED.campeonato_time_id,
+                    atleta_id = EXCLUDED.atleta_id,
+                    status = EXCLUDED.status,
+                    numero_camisa = EXCLUDED.numero_camisa,
+                    is_capitao = EXCLUDED.is_capitao,
+                    is_goleiro = EXCLUDED.is_goleiro,
+                    inscrito_em = EXCLUDED.inscrito_em
+                """, campeonatoAtletaId);
+    }
+
+    private void deleteCampeonatoAtleta(UUID campeonatoAtletaId) {
+        if (campeonatoAtletaId != null) {
+            jdbcTemplate.update("DELETE FROM public.campeonato_atletas_publicos WHERE campeonato_atleta_id = ?", campeonatoAtletaId);
+        }
+    }
+
     private void syncAtletica(UUID atleticaId) {
         if (atleticaId == null) {
             return;
@@ -255,6 +322,33 @@ public class PartidaProjectionService {
     private void deleteAtletica(UUID atleticaId) {
         if (atleticaId != null) {
             jdbcTemplate.update("DELETE FROM public.perfis_atleticas WHERE atletica_id = ?", atleticaId);
+        }
+    }
+
+    private void syncAtleticaMembro(UUID atleticaMembroId) {
+        if (atleticaMembroId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.atletica_membros_publicos (
+                    atletica_membro_id, atletica_id, user_id, papel_codigo, status, criado_por, criado_em
+                )
+                SELECT id, atletica_id, user_id, papel_codigo, status, criado_por, criado_em
+                FROM operational.atletica_membros
+                WHERE id = ?
+                ON CONFLICT (atletica_membro_id) DO UPDATE SET
+                    atletica_id = EXCLUDED.atletica_id,
+                    user_id = EXCLUDED.user_id,
+                    papel_codigo = EXCLUDED.papel_codigo,
+                    status = EXCLUDED.status,
+                    criado_por = EXCLUDED.criado_por,
+                    criado_em = EXCLUDED.criado_em
+                """, atleticaMembroId);
+    }
+
+    private void deleteAtleticaMembro(UUID atleticaMembroId) {
+        if (atleticaMembroId != null) {
+            jdbcTemplate.update("DELETE FROM public.atletica_membros_publicos WHERE atletica_membro_id = ?", atleticaMembroId);
         }
     }
 
@@ -288,8 +382,7 @@ public class PartidaProjectionService {
                     partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
                     status, periodo_atual, categoria, fase, agendado_para, iniciada_em, local,
                     placar_a, placar_b, versao_estado, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla,
-                    time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id,
-                    time_a_cor_principal, time_b_cor_principal, cronometro, atualizado_em
+                    time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id, cronometro, atualizado_em
                 )
                 SELECT
                     p.id,
@@ -315,8 +408,6 @@ public class PartidaProjectionService {
                     atl_b.escudo_url,
                     atl_a.id,
                     atl_b.id,
-                    atl_a.cor_principal,
-                    atl_b.cor_principal,
                     last_event.tempo_cronometro,
                     now()
                 FROM operational.partidas p
@@ -357,8 +448,6 @@ public class PartidaProjectionService {
                     time_b_escudo_url = EXCLUDED.time_b_escudo_url,
                     time_a_atletica_id = EXCLUDED.time_a_atletica_id,
                     time_b_atletica_id = EXCLUDED.time_b_atletica_id,
-                    time_a_cor_principal = EXCLUDED.time_a_cor_principal,
-                    time_b_cor_principal = EXCLUDED.time_b_cor_principal,
                     cronometro = EXCLUDED.cronometro,
                     atualizado_em = now()
                 """;
@@ -374,8 +463,8 @@ public class PartidaProjectionService {
                     status, periodo_atual, categoria, fase, agendado_para, iniciada_em, encerrada_em, local,
                     placar_a, placar_b, versao_estado, campeonato_nome, campeonato_slug, esporte_nome, modalidade_nome,
                     modalidade_codigo, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla, time_a_escudo_url, time_b_escudo_url,
-                    time_a_atletica_id, time_b_atletica_id, time_a_atletica_nome, time_b_atletica_nome, time_a_cor_principal,
-                    time_b_cor_principal, resultado, houve_prorrogacao, houve_penaltis, placar_penaltis_a, placar_penaltis_b,
+                    time_a_atletica_id, time_b_atletica_id, time_a_atletica_nome, time_b_atletica_nome,
+                    resultado, houve_prorrogacao, houve_penaltis, placar_penaltis_a, placar_penaltis_b,
                     duracao_minutos, sumula_pdf_url, atualizado_em
                 )
                 SELECT
@@ -410,8 +499,6 @@ public class PartidaProjectionService {
                     atl_b.id,
                     atl_a.nome,
                     atl_b.nome,
-                    atl_a.cor_principal,
-                    atl_b.cor_principal,
                     CASE
                         WHEN COALESCE(p.placar_a, 0) > COALESCE(p.placar_b, 0) THEN 'VITORIA_A'
                         WHEN COALESCE(p.placar_b, 0) > COALESCE(p.placar_a, 0) THEN 'VITORIA_B'
@@ -483,8 +570,6 @@ public class PartidaProjectionService {
                     time_b_atletica_id = EXCLUDED.time_b_atletica_id,
                     time_a_atletica_nome = EXCLUDED.time_a_atletica_nome,
                     time_b_atletica_nome = EXCLUDED.time_b_atletica_nome,
-                    time_a_cor_principal = EXCLUDED.time_a_cor_principal,
-                    time_b_cor_principal = EXCLUDED.time_b_cor_principal,
                     resultado = EXCLUDED.resultado,
                     houve_prorrogacao = EXCLUDED.houve_prorrogacao,
                     houve_penaltis = EXCLUDED.houve_penaltis,
@@ -524,7 +609,7 @@ public class PartidaProjectionService {
         return """
                 INSERT INTO public.eventos_partida_publicos (
                     evento_id, partida_id, tipo_evento_id, tipo_evento_codigo, tipo_evento_nome, impacta_placar,
-                    equipe_id, equipe_nome, equipe_cor, atleta_id, atleta_nome_exibicao, atleta_foto_url,
+                    equipe_id, equipe_nome, atleta_id, atleta_nome_exibicao, atleta_foto_url,
                     atleta_sai_id, atleta_sai_nome, arbitro_user_id, periodo, minuto, segundo, tempo_cronometro,
                     descricao_detalhada, payload_json, is_substitution, ordem_evento, criado_em
                 )
@@ -537,7 +622,6 @@ public class PartidaProjectionService {
                     coalesce(te.impacta_placar, false) AS impacta_placar,
                     ta.id AS equipe_id,
                     COALESCE(t_atl.nome, atl_ta.nome) AS equipe_nome,
-                    atl_ta.cor_principal AS equipe_cor,
                     p.id AS atleta_id,
                     COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS atleta_nome_exibicao,
                     p.avatar_url AS atleta_foto_url,
@@ -569,7 +653,6 @@ public class PartidaProjectionService {
                     impacta_placar = EXCLUDED.impacta_placar,
                     equipe_id = EXCLUDED.equipe_id,
                     equipe_nome = EXCLUDED.equipe_nome,
-                    equipe_cor = EXCLUDED.equipe_cor,
                     atleta_id = EXCLUDED.atleta_id,
                     atleta_nome_exibicao = EXCLUDED.atleta_nome_exibicao,
                     atleta_foto_url = EXCLUDED.atleta_foto_url,

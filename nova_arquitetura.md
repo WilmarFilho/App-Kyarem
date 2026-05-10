@@ -1141,6 +1141,9 @@ Revisao aplicada para alinhar o `schema public` ao `schema operational` validado
 - `public.eventos_partida_publicos` espelha `operational.eventos_partida`
 - `public.perfis_atletas` espelha os campos publicos de `operational.profiles`
 - `public.perfis_atleticas` espelha os campos publicos de `operational.atleticas`
+- `public.atletica_membros_publicos` espelha `operational.atletica_membros`
+- `public.campeonato_atleticas_publicos` espelha `operational.campeonato_atleticas`
+- `public.campeonato_atletas_publicos` espelha `operational.campeonato_atletas`
 
 ### 12.3 Regra obrigatoria de projeção
 Fluxo oficial para qualquer espelho novo ou alterado:
@@ -1153,6 +1156,8 @@ Aplicado nesta revisao para:
 - campeonatos
 - modalidades de campeonato
 - atleticas
+- membros de atletica
+- roster de atletas em campeonato
 - perfis publicos
 - partidas
 - eventos de partida
@@ -1165,3 +1170,6 @@ Aplicado nesta revisao para:
 ### 12.5 Observacao de implementacao
 - backend nao deve mais fazer escrita direta no `schema public` para entidades espelhadas
 - qualquer nova tabela publica espelhada deve seguir o mesmo molde event-driven
+- `public.campeonatos_vitrine` nao possui `slug`, pois o estado final validado de `operational.campeonatos` nao usa mais essa coluna
+- `public.eventos_partida_publicos` nao possui `equipe_cor`
+- `public.partidas_ao_vivo` e `public.partidas_historico` nao possuem mais `time_a_cor_principal` e `time_b_cor_principal`

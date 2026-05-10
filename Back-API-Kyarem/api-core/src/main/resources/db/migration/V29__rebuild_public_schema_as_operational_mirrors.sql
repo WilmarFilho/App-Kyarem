@@ -27,7 +27,6 @@ DROP TABLE IF EXISTS public.perfis_atleticas CASCADE;
 CREATE TABLE public.campeonatos_vitrine (
     campeonato_id       UUID        PRIMARY KEY,
     nome                VARCHAR(200) NOT NULL,
-    slug                VARCHAR(160),
     nivel               VARCHAR(50),
     data_inicio         DATE,
     data_fim            DATE,
@@ -81,8 +80,6 @@ CREATE TABLE public.partidas_ao_vivo (
     time_b_escudo_url        VARCHAR(500),
     time_a_atletica_id       UUID,
     time_b_atletica_id       UUID,
-    time_a_cor_principal     VARCHAR(50),
-    time_b_cor_principal     VARCHAR(50),
     cronometro               VARCHAR(20),
     atualizado_em            TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_partidas_ao_vivo_status
@@ -124,8 +121,6 @@ CREATE TABLE public.partidas_historico (
     time_b_atletica_id       UUID,
     time_a_atletica_nome     VARCHAR(200),
     time_b_atletica_nome     VARCHAR(200),
-    time_a_cor_principal     VARCHAR(50),
-    time_b_cor_principal     VARCHAR(50),
     resultado                VARCHAR(20) CHECK (resultado IN ('VITORIA_A','EMPATE','VITORIA_B')),
     houve_prorrogacao        BOOLEAN     NOT NULL DEFAULT FALSE,
     houve_penaltis           BOOLEAN     NOT NULL DEFAULT FALSE,
@@ -150,7 +145,6 @@ CREATE TABLE public.eventos_partida_publicos (
     impacta_placar           BOOLEAN     NOT NULL DEFAULT FALSE,
     equipe_id                UUID,
     equipe_nome              VARCHAR(200),
-    equipe_cor               VARCHAR(50),
     atleta_id                UUID,
     atleta_nome_exibicao     VARCHAR(200),
     atleta_foto_url          VARCHAR(500),
@@ -196,11 +190,62 @@ CREATE TABLE public.perfis_atleticas (
     atualizado_em            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE public.atletica_membros_publicos (
+    atletica_membro_id       UUID        PRIMARY KEY,
+    atletica_id              UUID        NOT NULL,
+    user_id                  UUID        NOT NULL,
+    papel_codigo             VARCHAR(30) NOT NULL,
+    status                   VARCHAR(20) NOT NULL,
+    criado_por               UUID,
+    criado_em                TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_atletica_membros_publicos_user
+    ON public.atletica_membros_publicos (user_id, papel_codigo, status);
+
+CREATE INDEX idx_atletica_membros_publicos_atletica
+    ON public.atletica_membros_publicos (atletica_id, papel_codigo, status);
+
+CREATE TABLE public.campeonato_atleticas_publicos (
+    campeonato_atletica_id   UUID        PRIMARY KEY,
+    campeonato_id            UUID        NOT NULL,
+    atletica_id              UUID        NOT NULL,
+    criado_em                TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_campeonato_atleticas_publicos_campeonato
+    ON public.campeonato_atleticas_publicos (campeonato_id, atletica_id);
+
+CREATE INDEX idx_campeonato_atleticas_publicos_atletica
+    ON public.campeonato_atleticas_publicos (atletica_id, campeonato_id);
+
+CREATE TABLE public.campeonato_atletas_publicos (
+    campeonato_atleta_id     UUID        PRIMARY KEY,
+    campeonato_id            UUID        NOT NULL,
+    atletica_id              UUID        NOT NULL,
+    campeonato_time_id       UUID        NOT NULL,
+    atleta_id                UUID        NOT NULL,
+    status                   VARCHAR(30) NOT NULL,
+    numero_camisa            INTEGER,
+    is_capitao               BOOLEAN     NOT NULL DEFAULT FALSE,
+    is_goleiro               BOOLEAN     NOT NULL DEFAULT FALSE,
+    inscrito_em              TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_campeonato_atletas_publicos_atleta
+    ON public.campeonato_atletas_publicos (atleta_id, campeonato_id, status);
+
+CREATE INDEX idx_campeonato_atletas_publicos_atletica
+    ON public.campeonato_atletas_publicos (atletica_id, campeonato_id, status);
+
+CREATE INDEX idx_campeonato_atletas_publicos_time
+    ON public.campeonato_atletas_publicos (campeonato_time_id, atleta_id);
+
 INSERT INTO public.campeonatos_vitrine (
-    campeonato_id, nome, slug, nivel, data_inicio, data_fim, status, escudo_url, criado_em, atualizado_em
+    campeonato_id, nome, nivel, data_inicio, data_fim, status, escudo_url, criado_em, atualizado_em
 )
 SELECT
-    c.id, c.nome, NULL, c.nivel, c.data_inicio, c.data_fim, c.status, c.escudo_url, c.criado_em, now()
+    c.id, c.nome, c.nivel, c.data_inicio, c.data_fim, c.status, c.escudo_url, c.criado_em, now()
 FROM operational.campeonatos c;
 
 INSERT INTO public.modalidades_vitrine (
@@ -262,8 +307,7 @@ INSERT INTO public.partidas_ao_vivo (
     partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
     status, periodo_atual, categoria, fase, agendado_para, iniciada_em, local,
     placar_a, placar_b, versao_estado, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla,
-    time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id,
-    time_a_cor_principal, time_b_cor_principal, cronometro, atualizado_em
+    time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id, cronometro, atualizado_em
 )
 SELECT
     p.id,
@@ -289,8 +333,6 @@ SELECT
     atl_b.escudo_url,
     atl_a.id,
     atl_b.id,
-    atl_a.cor_principal,
-    atl_b.cor_principal,
     last_event.tempo_cronometro,
     now()
 FROM operational.partidas p
@@ -315,7 +357,7 @@ INSERT INTO public.partidas_historico (
     placar_a, placar_b, versao_estado, campeonato_nome, campeonato_slug, esporte_nome, modalidade_nome,
     modalidade_codigo, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla, time_a_escudo_url, time_b_escudo_url,
     time_a_atletica_id, time_b_atletica_id, time_a_atletica_nome, time_b_atletica_nome,
-    time_a_cor_principal, time_b_cor_principal, resultado, houve_prorrogacao, houve_penaltis,
+    resultado, houve_prorrogacao, houve_penaltis,
     placar_penaltis_a, placar_penaltis_b, duracao_minutos, sumula_pdf_url, atualizado_em
 )
 SELECT
@@ -350,8 +392,6 @@ SELECT
     atl_b.id,
     atl_a.nome,
     atl_b.nome,
-    atl_a.cor_principal,
-    atl_b.cor_principal,
     CASE
         WHEN COALESCE(p.placar_a, 0) > COALESCE(p.placar_b, 0) THEN 'VITORIA_A'
         WHEN COALESCE(p.placar_b, 0) > COALESCE(p.placar_a, 0) THEN 'VITORIA_B'
@@ -395,7 +435,7 @@ WHERE lower(trim(coalesce(p.status, ''))) IN ('finalizada', 'fechada');
 
 INSERT INTO public.eventos_partida_publicos (
     evento_id, partida_id, tipo_evento_id, tipo_evento_codigo, tipo_evento_nome, impacta_placar,
-    equipe_id, equipe_nome, equipe_cor, atleta_id, atleta_nome_exibicao, atleta_foto_url,
+    equipe_id, equipe_nome, atleta_id, atleta_nome_exibicao, atleta_foto_url,
     atleta_sai_id, atleta_sai_nome, arbitro_user_id, periodo, minuto, segundo, tempo_cronometro,
     descricao_detalhada, payload_json, is_substitution, ordem_evento, criado_em
 )
@@ -408,7 +448,6 @@ SELECT
     coalesce(te.impacta_placar, false),
     ct.id,
     COALESCE(tt.nome, atl.nome),
-    atl.cor_principal,
     ap.id,
     COALESCE(NULLIF(ap.nome_exibicao, ''), ap.nome_completo),
     ap.avatar_url,
@@ -431,3 +470,43 @@ LEFT JOIN operational.times_atletica tt ON tt.id = ct.time_atletica_id
 LEFT JOIN operational.atleticas atl ON atl.id = tt.atletica_id
 LEFT JOIN operational.profiles ap ON ap.id = ev.atleta_id
 LEFT JOIN operational.profiles ap_sai ON ap_sai.id = ev.atleta_sai_id;
+
+INSERT INTO public.atletica_membros_publicos (
+    atletica_membro_id, atletica_id, user_id, papel_codigo, status, criado_por, criado_em
+)
+SELECT
+    am.id,
+    am.atletica_id,
+    am.user_id,
+    am.papel_codigo,
+    am.status,
+    am.criado_por,
+    am.criado_em
+FROM operational.atletica_membros am;
+
+INSERT INTO public.campeonato_atleticas_publicos (
+    campeonato_atletica_id, campeonato_id, atletica_id, criado_em
+)
+SELECT
+    ca.id,
+    ca.campeonato_id,
+    ca.atletica_id,
+    ca.criado_em
+FROM operational.campeonato_atleticas ca;
+
+INSERT INTO public.campeonato_atletas_publicos (
+    campeonato_atleta_id, campeonato_id, atletica_id, campeonato_time_id, atleta_id,
+    status, numero_camisa, is_capitao, is_goleiro, inscrito_em
+)
+SELECT
+    ca.id,
+    ca.campeonato_id,
+    ca.atletica_id,
+    ca.campeonato_time_id,
+    ca.atleta_id,
+    ca.status,
+    ca.numero_camisa,
+    ca.is_capitao,
+    ca.is_goleiro,
+    ca.inscrito_em
+FROM operational.campeonato_atletas ca;

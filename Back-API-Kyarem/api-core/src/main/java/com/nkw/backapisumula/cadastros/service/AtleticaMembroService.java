@@ -2,6 +2,7 @@ package com.nkw.backapisumula.cadastros.service;
 
 import com.nkw.backapisumula.cadastros.Atletica;
 import com.nkw.backapisumula.cadastros.AtleticaMembro;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.cadastros.repo.AtleticaMembroRepository;
 import com.nkw.backapisumula.cadastros.repo.AtleticaRepository;
 import com.nkw.backapisumula.identity.Profile;
@@ -27,19 +28,22 @@ public class AtleticaMembroService {
     private final ProfileRepository profileRepository;
     private final SupabaseAdminUserService adminUserService;
     private final UsuarioRoleGlobalRepository usuarioRoleGlobalRepository;
+    private final EventPublisherService eventPublisherService;
 
     public AtleticaMembroService(
             AtleticaMembroRepository membroRepository,
             AtleticaRepository atleticaRepository,
             ProfileRepository profileRepository,
             SupabaseAdminUserService adminUserService,
-            UsuarioRoleGlobalRepository usuarioRoleGlobalRepository
+            UsuarioRoleGlobalRepository usuarioRoleGlobalRepository,
+            EventPublisherService eventPublisherService
     ) {
         this.membroRepository = membroRepository;
         this.atleticaRepository = atleticaRepository;
         this.profileRepository = profileRepository;
         this.adminUserService = adminUserService;
         this.usuarioRoleGlobalRepository = usuarioRoleGlobalRepository;
+        this.eventPublisherService = eventPublisherService;
     }
 
     public List<AtleticaMembro> list(UUID atleticaId) {
@@ -108,12 +112,14 @@ public class AtleticaMembroService {
             profile.setCriadoEm(OffsetDateTime.now());
             profile.setAtualizadoEm(OffsetDateTime.now());
             profileRepository.save(profile);
+            publishProfileProjection(profile, "ProfileCriado");
         } else {
             profile.setNomeExibicao(nomeExibicao);
             profile.setEmail(email);
             profile.setStatus("ATIVO");
             profile.setAtualizadoEm(OffsetDateTime.now());
             profileRepository.save(profile);
+            publishProfileProjection(profile, "ProfileAtualizado");
         }
 
         ensureUserGlobalRole(userId);
@@ -129,7 +135,9 @@ public class AtleticaMembroService {
         membro.setStatus(STATUS_ATIVO);
         membro.setCriadoPor(actorUserId);
         membro.setCriadoEm(OffsetDateTime.now());
-        return membroRepository.save(membro);
+        AtleticaMembro saved = membroRepository.save(membro);
+        publishAtleticaMembroProjection(saved, "AtleticaMembroCriado");
+        return saved;
     }
 
     private void ensureUserGlobalRole(UUID userId) {
@@ -161,5 +169,22 @@ public class AtleticaMembroService {
                 && membroRepository.existsByAtletica_IdAndPapelCodigoAndStatus(atleticaId, "PRESIDENT", STATUS_ATIVO)) {
             throw new IllegalStateException("Essa atlética já possui um presidente ativo.");
         }
+    }
+
+    private void publishProfileProjection(Profile profile, String eventType) {
+        eventPublisherService.publish("Profile", profile.getId().toString(), eventType, java.util.Map.of(
+                "profileId", profile.getId().toString(),
+                "status", profile.getStatus() == null ? "" : profile.getStatus()
+        ));
+    }
+
+    private void publishAtleticaMembroProjection(AtleticaMembro membro, String eventType) {
+        eventPublisherService.publish("AtleticaMembro", membro.getId().toString(), eventType, java.util.Map.of(
+                "atleticaMembroId", membro.getId().toString(),
+                "atleticaId", membro.getAtletica() != null ? membro.getAtletica().getId().toString() : "",
+                "userId", membro.getUser() != null ? membro.getUser().getId().toString() : "",
+                "papelCodigo", membro.getPapelCodigo() == null ? "" : membro.getPapelCodigo(),
+                "status", membro.getStatus() == null ? "" : membro.getStatus()
+        ));
     }
 }

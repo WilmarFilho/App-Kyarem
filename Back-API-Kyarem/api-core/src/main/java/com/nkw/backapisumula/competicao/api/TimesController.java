@@ -1,6 +1,7 @@
 package com.nkw.backapisumula.competicao.api;
 
 import com.nkw.backapisumula.cadastros.Atletica;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.nkw.backapisumula.competicao.ModalidadeCatalogo;
@@ -33,6 +34,7 @@ public class TimesController {
         private final CampeonatoTimeRepository campeonatoTimeRepository;
         private final ModalidadeCatalogoRepository modalidadeCatalogoRepository;
         private final CampeonatoModalidadeRepository campeonatoModalidadeRepository;
+        private final EventPublisherService eventPublisherService;
 
         @PersistenceContext
         private EntityManager entityManager;
@@ -40,11 +42,13 @@ public class TimesController {
         public TimesController(TimeAtleticaRepository timeAtleticaRepository,
                         CampeonatoTimeRepository campeonatoTimeRepository,
                         ModalidadeCatalogoRepository modalidadeCatalogoRepository,
-                        CampeonatoModalidadeRepository campeonatoModalidadeRepository) {
+                        CampeonatoModalidadeRepository campeonatoModalidadeRepository,
+                        EventPublisherService eventPublisherService) {
                 this.timeAtleticaRepository = timeAtleticaRepository;
                 this.campeonatoTimeRepository = campeonatoTimeRepository;
                 this.modalidadeCatalogoRepository = modalidadeCatalogoRepository;
                 this.campeonatoModalidadeRepository = campeonatoModalidadeRepository;
+                this.eventPublisherService = eventPublisherService;
         }
 
         @GetMapping("/atletica/{atleticaId}")
@@ -173,6 +177,22 @@ public class TimesController {
                                 .executeUpdate();
                 if (updated == 0)
                         throw new IllegalStateException("Atleta não encontrado neste time.");
+
+                UUID campeonatoAtletaId = (UUID) entityManager.createNativeQuery("""
+                                SELECT id
+                                FROM operational.campeonato_atletas
+                                WHERE campeonato_time_id = :campeonatoTimeId
+                                  AND atleta_id = :atletaId
+                                """)
+                                .setParameter("campeonatoTimeId", campeonatoTimeId)
+                                .setParameter("atletaId", atletaId)
+                                .getSingleResult();
+
+                eventPublisherService.publish("CampeonatoAtleta", campeonatoAtletaId.toString(), "CampeonatoAtletaAtualizado", java.util.Map.of(
+                                "campeonatoAtletaId", campeonatoAtletaId.toString(),
+                                "campeonatoTimeId", campeonatoTimeId.toString(),
+                                "atletaId", atletaId.toString()
+                ));
         }
 
         @GetMapping("/campeonato/{campeonatoTimeId}/atletas")
