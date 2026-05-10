@@ -67,7 +67,6 @@ CREATE TABLE public.partidas_ao_vivo (
     periodo_atual            VARCHAR(30),
     categoria                VARCHAR(50),
     fase                     VARCHAR(50),
-    rodada                   VARCHAR(50),
     agendado_para            TIMESTAMPTZ,
     iniciada_em              TIMESTAMPTZ,
     local                    VARCHAR(300),
@@ -103,7 +102,6 @@ CREATE TABLE public.partidas_historico (
     periodo_atual            VARCHAR(30),
     categoria                VARCHAR(50),
     fase                     VARCHAR(50),
-    rodada                   VARCHAR(50),
     agendado_para            TIMESTAMPTZ,
     iniciada_em              TIMESTAMPTZ,
     encerrada_em             TIMESTAMPTZ,
@@ -262,7 +260,7 @@ FROM operational.atleticas a;
 
 INSERT INTO public.partidas_ao_vivo (
     partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
-    status, periodo_atual, categoria, fase, rodada, agendado_para, iniciada_em, local,
+    status, periodo_atual, categoria, fase, agendado_para, iniciada_em, local,
     placar_a, placar_b, versao_estado, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla,
     time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id,
     time_a_cor_principal, time_b_cor_principal, cronometro, atualizado_em
@@ -277,7 +275,6 @@ SELECT
     p.periodo_atual,
     p.categoria,
     p.fase,
-    p.rodada,
     p.agendado_para,
     p.iniciada_em,
     p.local,
@@ -314,7 +311,7 @@ WHERE lower(trim(coalesce(p.status, ''))) NOT IN ('agendada', 'finalizada', 'fec
 
 INSERT INTO public.partidas_historico (
     partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
-    status, periodo_atual, categoria, fase, rodada, agendado_para, iniciada_em, encerrada_em, local,
+    status, periodo_atual, categoria, fase, agendado_para, iniciada_em, encerrada_em, local,
     placar_a, placar_b, versao_estado, campeonato_nome, campeonato_slug, esporte_nome, modalidade_nome,
     modalidade_codigo, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla, time_a_escudo_url, time_b_escudo_url,
     time_a_atletica_id, time_b_atletica_id, time_a_atletica_nome, time_b_atletica_nome,
@@ -331,7 +328,6 @@ SELECT
     p.periodo_atual,
     p.categoria,
     p.fase,
-    p.rodada,
     p.agendado_para,
     p.iniciada_em,
     p.encerrada_em,

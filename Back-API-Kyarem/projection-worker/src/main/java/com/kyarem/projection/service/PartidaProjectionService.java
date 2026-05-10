@@ -286,7 +286,7 @@ public class PartidaProjectionService {
         String sql = """
                 INSERT INTO public.partidas_ao_vivo (
                     partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
-                    status, periodo_atual, categoria, fase, rodada, agendado_para, iniciada_em, local,
+                    status, periodo_atual, categoria, fase, agendado_para, iniciada_em, local,
                     placar_a, placar_b, versao_estado, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla,
                     time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id,
                     time_a_cor_principal, time_b_cor_principal, cronometro, atualizado_em
@@ -301,7 +301,6 @@ public class PartidaProjectionService {
                     p.periodo_atual,
                     p.categoria,
                     p.fase,
-                    p.rodada,
                     p.agendado_para,
                     p.iniciada_em,
                     p.local,
@@ -344,7 +343,6 @@ public class PartidaProjectionService {
                     periodo_atual = EXCLUDED.periodo_atual,
                     categoria = EXCLUDED.categoria,
                     fase = EXCLUDED.fase,
-                    rodada = EXCLUDED.rodada,
                     agendado_para = EXCLUDED.agendado_para,
                     iniciada_em = EXCLUDED.iniciada_em,
                     local = EXCLUDED.local,
@@ -373,7 +371,7 @@ public class PartidaProjectionService {
         String sql = """
                 INSERT INTO public.partidas_historico (
                     partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
-                    status, periodo_atual, categoria, fase, rodada, agendado_para, iniciada_em, encerrada_em, local,
+                    status, periodo_atual, categoria, fase, agendado_para, iniciada_em, encerrada_em, local,
                     placar_a, placar_b, versao_estado, campeonato_nome, campeonato_slug, esporte_nome, modalidade_nome,
                     modalidade_codigo, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla, time_a_escudo_url, time_b_escudo_url,
                     time_a_atletica_id, time_b_atletica_id, time_a_atletica_nome, time_b_atletica_nome, time_a_cor_principal,
@@ -390,7 +388,6 @@ public class PartidaProjectionService {
                     p.periodo_atual,
                     p.categoria,
                     p.fase,
-                    p.rodada,
                     p.agendado_para,
                     p.iniciada_em,
                     p.encerrada_em,
@@ -464,7 +461,6 @@ public class PartidaProjectionService {
                     periodo_atual = EXCLUDED.periodo_atual,
                     categoria = EXCLUDED.categoria,
                     fase = EXCLUDED.fase,
-                    rodada = EXCLUDED.rodada,
                     agendado_para = EXCLUDED.agendado_para,
                     iniciada_em = EXCLUDED.iniciada_em,
                     encerrada_em = EXCLUDED.encerrada_em,
