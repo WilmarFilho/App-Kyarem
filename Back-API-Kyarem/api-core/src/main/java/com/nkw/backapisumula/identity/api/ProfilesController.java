@@ -1,5 +1,6 @@
 package com.nkw.backapisumula.identity.api;
 
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.identity.Profile;
 import com.nkw.backapisumula.identity.UsuarioRoleGlobal;
 import com.nkw.backapisumula.identity.repo.ProfileRepository;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -33,17 +35,20 @@ public class ProfilesController {
     private final SupabaseAdminUserService adminUserService;
     private final ProfileRepository profileRepository;
     private final UsuarioRoleGlobalRepository usuarioRoleGlobalRepository;
+    private final EventPublisherService eventPublisherService;
 
     public ProfilesController(
             ProfileService profileService,
             SupabaseAdminUserService adminUserService,
             ProfileRepository profileRepository,
-            UsuarioRoleGlobalRepository usuarioRoleGlobalRepository
+            UsuarioRoleGlobalRepository usuarioRoleGlobalRepository,
+            EventPublisherService eventPublisherService
     ) {
         this.profileService = profileService;
         this.adminUserService = adminUserService;
         this.profileRepository = profileRepository;
         this.usuarioRoleGlobalRepository = usuarioRoleGlobalRepository;
+        this.eventPublisherService = eventPublisherService;
     }
 
     @GetMapping("/me/access")
@@ -54,9 +59,23 @@ public class ProfilesController {
         return AccessResponse.from(access);
     }
 
+    /**
+     * Verifica se um e-mail pertence a um usuário com acesso ao app admin.
+     * Endpoint público (sem autenticação) — retorna apenas true/false.
+     * GET /api/v1/profiles/check-admin-access?email=...
+     */
+    @GetMapping("/check-admin-access")
+    public AdminAccessCheckResponse checkAdminAccess(@RequestParam @Email String email) {
+        boolean allowed = profileService.isEmailAllowedAdminApp(email);
+        return new AdminAccessCheckResponse(allowed);
+    }
+
+    public record AdminAccessCheckResponse(boolean allowed) {}
+
     /** Atualiza nome de exibição e telefone do usuário autenticado. */
     @PutMapping("/me")
     @PreAuthorize("isAuthenticated()")
+    @Transactional
     public AccessResponse updateMe(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateMeRequest req
@@ -83,6 +102,7 @@ public class ProfilesController {
         }
         profile.setAtualizadoEm(OffsetDateTime.now());
         profileRepository.save(profile);
+        publishProfileProjection(profile, "ProfileAtualizado");
 
         var access = profileService.resolveAccess(userId);
         return AccessResponse.from(access);
@@ -93,6 +113,7 @@ public class ProfilesController {
     /** Atualiza apenas o avatar do usuário autenticado. */
     @PatchMapping("/me/avatar")
     @PreAuthorize("isAuthenticated()")
+    @Transactional
     public AccessResponse updateAvatar(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateAvatarRequest req
@@ -104,6 +125,7 @@ public class ProfilesController {
         profile.setFotoUrl(req.avatarUrl());
         profile.setAtualizadoEm(OffsetDateTime.now());
         profileRepository.save(profile);
+        publishProfileProjection(profile, "ProfileAtualizado");
 
         var access = profileService.resolveAccess(userId);
         return AccessResponse.from(access);
@@ -129,6 +151,7 @@ public class ProfilesController {
     /** Atualiza as preferências de notificação. */
     @PatchMapping("/me/notifications/prefs")
     @PreAuthorize("isAuthenticated()")
+    @Transactional
     public NotificationPrefsResponse updateNotifPrefs(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateNotifPrefsRequest req
@@ -153,6 +176,7 @@ public class ProfilesController {
     /** Atualiza o token FCM (pode ser null para limpar ao fazer logout). */
     @PatchMapping("/me/notifications/token")
     @PreAuthorize("isAuthenticated()")
+    @Transactional
     public void updateFcmToken(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateFcmTokenRequest req
@@ -193,6 +217,7 @@ public class ProfilesController {
     @PostMapping("/criar-presidente")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
+    @Transactional
     public ProfileResponse criarPresidente(@Valid @RequestBody CriarPresidenteRequest req) {
         // 1. Cria o auth user via Supabase Admin API
         UUID userId = adminUserService.createAuthUser(
@@ -237,8 +262,16 @@ public class ProfilesController {
         }
 
         profile.setRole("user");
+        publishProfileProjection(profile, "ProfileCriado");
 
         return ProfileResponse.from(profile);
+    }
+
+    private void publishProfileProjection(Profile profile, String eventType) {
+        eventPublisherService.publish("Profile", profile.getId().toString(), eventType, java.util.Map.of(
+                "profileId", profile.getId().toString(),
+                "status", profile.getStatus() == null ? "" : profile.getStatus()
+        ));
     }
 
     public record CriarPresidenteRequest(

@@ -31,7 +31,7 @@ class NotificationService {
 
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.0.2.2:8080/api/v1',
+      baseUrl: 'https://kyarem.nkwflow.com/api/v1',
       connectTimeout: const Duration(seconds: 10),
     ),
   );
@@ -121,7 +121,9 @@ class NotificationService {
           await _dio.patch(
             '/profiles/me/notifications/token',
             data: {'fcmToken': newToken},
-            options: Options(headers: {'Authorization': 'Bearer $currentToken'}),
+            options: Options(
+              headers: {'Authorization': 'Bearer $currentToken'},
+            ),
           );
         }
       });

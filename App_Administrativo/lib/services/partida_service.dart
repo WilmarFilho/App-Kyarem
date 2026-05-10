@@ -34,7 +34,7 @@ class PartidaService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'http://10.0.2.2:8080/api/v1',
+              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
               connectTimeout: const Duration(seconds: 5),
             ),
           ),
@@ -356,17 +356,25 @@ class PartidaService {
   ) async {
     try {
       final eventos = await buscarEventosDaPartida(partidaId);
+
+      // Sort defensivo: eventos sem criadoEm vão para o fim
       eventos.sort((a, b) {
         final dateA = a['criadoEm']?.toString() ?? '';
         final dateB = b['criadoEm']?.toString() ?? '';
-        return dateB.compareTo(dateA); // Descending order
+        if (dateA.isEmpty && dateB.isEmpty) return 0;
+        if (dateA.isEmpty) return 1; // a vai para o fim
+        if (dateB.isEmpty) return -1; // b vai para o fim
+        return dateB.compareTo(dateA); // mais recente primeiro
       });
+
       for (var ev in eventos) {
-        if (ev['tempoCronometro'] != null && ev['atletaId'] == null) {
+        final tempo = ev['tempoCronometro']?.toString() ?? '';
+        if (tempo.isNotEmpty && ev['atletaId'] == null) {
           return {
-            'tempo_cronometro': ev['tempoCronometro'],
+            'tempo_cronometro': tempo,
             'criado_em': ev['criadoEm'],
             'tipo_evento_id': ev['tipoEventoId'],
+            'tipo_evento_codigo': ev['tipoEventoCodigo'] ?? ev['codigo'] ?? '',
           };
         }
       }
@@ -448,8 +456,11 @@ class PartidaService {
     String modalidadeId,
   ) async {
     try {
-      final modalidade = await buscarConfiguracaoModalidadeDaPartida(modalidadeId);
-      final modalidadeCatalogoId = modalidade?['modalidadeCatalogoId']?.toString();
+      final modalidade = await buscarConfiguracaoModalidadeDaPartida(
+        modalidadeId,
+      );
+      final modalidadeCatalogoId = modalidade?['modalidadeCatalogoId']
+          ?.toString();
       if (modalidadeCatalogoId != null && modalidadeCatalogoId.isNotEmpty) {
         // O backend ainda expõe essa rota sob /esportes/{id}/tipos-eventos,
         // mas o parâmetro esperado é o ID da modalidade catálogo.

@@ -1114,3 +1114,54 @@ O novo desenho passa a ter:
 - perfis publicos ricos de atletas e atleticas
 - historico completo de partidas e eventos acessivel pelo app geral
 - timeline ao vivo do campeonato com eventos relevantes agregados
+
+
+## 12. REVISAO BANCO PUBLICO 2026-05-10
+Revisao aplicada para alinhar o `schema public` ao `schema operational` validado.
+
+### 12.1 Tabelas removidas do schema public por enquanto
+- public.artilharia
+- public.classificacoes
+- public.comentarios_publicos
+- public.contadores_sociais
+- public.estatisticas_partida
+- public.feed_posts
+- public.metricas_atletas
+- public.ranking_assistencias
+- public.ranking_geral_campeonato
+- public.snapshot_comparacao_atletas
+- public.snapshot_comparacao_times
+- public.timeline_campeonato
+
+### 12.2 Tabelas que continuam como espelho publico
+- `public.campeonatos_vitrine` espelha `operational.campeonatos`
+- `public.modalidades_vitrine` espelha `operational.campeonato_modalidades`
+- `public.partidas_ao_vivo` espelha `operational.partidas` somente para partidas em andamento
+- `public.partidas_historico` espelha `operational.partidas` somente para partidas com status `finalizada` ou `fechada`
+- `public.eventos_partida_publicos` espelha `operational.eventos_partida`
+- `public.perfis_atletas` espelha os campos publicos de `operational.profiles`
+- `public.perfis_atleticas` espelha os campos publicos de `operational.atleticas`
+
+### 12.3 Regra obrigatoria de projeção
+Fluxo oficial para qualquer espelho novo ou alterado:
+1. backend grava no `schema operational`
+2. backend registra evento em `operational.outbox_events`
+3. `outbox-publisher` publica no broker
+4. `projection-worker` projeta no `schema public`
+
+Aplicado nesta revisao para:
+- campeonatos
+- modalidades de campeonato
+- atleticas
+- perfis publicos
+- partidas
+- eventos de partida
+
+### 12.4 Regra de status das partidas publicas
+- `public.partidas_ao_vivo` nao recebe mais partidas `agendada`, `finalizada`, `fechada`, `cancelada` ou `wo`
+- `public.partidas_historico` recebe apenas partidas `finalizada` ou `fechada`
+- a troca entre `ao_vivo` e `historico` e feita no `projection-worker` lendo o status efetivo salvo em `operational.partidas`
+
+### 12.5 Observacao de implementacao
+- backend nao deve mais fazer escrita direta no `schema public` para entidades espelhadas
+- qualquer nova tabela publica espelhada deve seguir o mesmo molde event-driven

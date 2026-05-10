@@ -18,7 +18,7 @@ class AuthService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'http://10.0.2.2:8080/api/v1',
+              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
               connectTimeout: const Duration(seconds: 10),
             ),
           );
@@ -106,6 +106,44 @@ class AuthService {
   }
 
   // --- RECUPERAÇÃO DE SENHA ---
+
+  /// Verifica via backend se o [email] pertence a um usuário
+  /// com acesso ao app administrativo (role admin ou árbitro).
+  ///
+  /// Chama [GET /profiles/check-admin-access?email=<email>].
+  /// Retorna `true` se permitido, `false` se negado.
+  /// Em caso de erro de rede ou endpoint inexistente → lança exceção.
+  Future<bool> verificarEmailPermitido(String email) async {
+    try {
+      final res = await _dio.get(
+        '/profiles/check-admin-access',
+        queryParameters: {'email': email.trim().toLowerCase()},
+      );
+      final data = res.data;
+      if (data is Map) {
+        // Novo endpoint retorna { "allowed": true/false }
+        // Campos legados mantidos por compatibilidade
+        return data['allowed'] == true ||
+            data['allowedAdminApp'] == true ||
+            data['isAdmin'] == true ||
+            data['isReferee'] == true;
+      }
+      return false;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 403) {
+        // Endpoint não existe ainda no backend ou acesso negado
+        return false;
+      }
+      // Erro de rede ou outro → deixa passar (fail-open para não bloquear admins)
+      debugPrint('verificarEmailPermitido: erro de rede ($e) — permitindo por cautela');
+      return true;
+    } catch (e) {
+      debugPrint('verificarEmailPermitido: erro inesperado ($e) — permitindo por cautela');
+      return true;
+    }
+  }
+
   Future<void> resetPassword(String email) async {
     await _supabase.auth.resetPasswordForEmail(
       email.trim().toLowerCase(),

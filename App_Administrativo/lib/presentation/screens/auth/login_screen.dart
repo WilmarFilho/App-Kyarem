@@ -279,18 +279,42 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _resetPassword() async {
-    if (_emailController.text.isEmpty) {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
       setState(() => _error = "Digite seu e-mail primeiro");
       return;
     }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+      _success = null;
+    });
+
     try {
-      await _authService.resetPassword(_emailController.text);
+      // 1º — Verifica se o email é de um usuário com acesso ao app admin
+      final permitido = await _authService.verificarEmailPermitido(email);
+      if (!mounted) return;
+
+      if (!permitido) {
+        setState(() {
+          _error = 'E-mail não encontrado ou sem permissão de acesso.';
+          _loading = false;
+        });
+        return;
+      }
+
+      // 2º — Email autorizado: dispara o reset
+      await _authService.resetPassword(email);
+      if (!mounted) return;
       setState(() {
-        _success = "E-mail enviado!";
+        _success = "E-mail de recuperação enviado!";
         _error = null;
       });
     } catch (e) {
-      setState(() => _error = "Erro ao enviar e-mail");
+      if (mounted) setState(() => _error = "Erro ao enviar e-mail. Tente novamente.");
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 }

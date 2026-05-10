@@ -31,30 +31,34 @@ public class PartidaProjectionService {
         UUID eventoId = resolveEventoId(payload);
 
         log.info("Processando evento: eventType={}, routingKey={}, partidaId={}, eventoId={}, payload={}",
-                eventType,
-                routingKey,
-                partidaId,
-                eventoId,
-                payload);
+                eventType, routingKey, partidaId, eventoId, payload);
 
         switch (eventType) {
-            case "PartidaCriada", "PartidaIniciada", "StatusAlterado", "PartidaAtualizada" -> upsertPartidaAoVivo(partidaId);
+            case "CampeonatoCriado", "CampeonatoAtualizado" -> syncCampeonato(resolveAggregateId(payload, "campeonatoId"));
+            case "CampeonatoExcluido" -> deleteCampeonato(resolveAggregateId(payload, "campeonatoId"));
+            case "CampeonatoModalidadeCriada", "CampeonatoModalidadeAtualizada" ->
+                    syncCampeonatoModalidade(resolveAggregateId(payload, "campeonatoModalidadeId"));
+            case "CampeonatoModalidadeExcluida" ->
+                    deleteCampeonatoModalidade(resolveAggregateId(payload, "campeonatoModalidadeId"));
+            case "AtleticaCriada", "AtleticaAtualizada" -> syncAtletica(resolveAggregateId(payload, "atleticaId"));
+            case "AtleticaExcluida" -> deleteAtletica(resolveAggregateId(payload, "atleticaId"));
+            case "ProfileCriado", "ProfileAtualizado" -> syncProfile(resolveAggregateId(payload, "profileId"));
+            case "PartidaCriada", "PartidaIniciada", "StatusAlterado", "PartidaAtualizada" -> syncPartidaProjection(partidaId);
             case "EventoRegistrado", "EventoAtualizado" -> {
-                upsertPartidaAoVivo(partidaId);
+                syncPartidaProjection(partidaId);
                 if (eventoId != null) {
                     upsertEventoPublico(eventoId);
                 }
             }
             case "EventoExcluido" -> {
-                upsertPartidaAoVivo(partidaId);
+                syncPartidaProjection(partidaId);
                 if (eventoId != null) {
                     deleteEventoPublico(eventoId);
                 }
             }
             case "SumulaFechada" -> {
-                upsertPartidaHistorico(partidaId);
+                syncPartidaProjection(partidaId);
                 syncEventosPublicosDaPartida(partidaId);
-                jdbcTemplate.update("DELETE FROM public.partidas_ao_vivo WHERE partida_id = ?", partidaId);
             }
             case "PartidaExcluida" -> deletePartidaPublic(partidaId);
             default -> log.info("Evento {} não possui projeção configurada. Payload: {}", eventType, payload);
@@ -72,7 +76,7 @@ public class PartidaProjectionService {
             return UUID.fromString(text(payload, "aggregateId"));
         }
 
-        throw new IllegalStateException("Não foi possível determinar a partida do payload: " + payload);
+        return null;
     }
 
     private UUID resolveEventoId(JsonNode payload) {
@@ -85,33 +89,237 @@ public class PartidaProjectionService {
         return eventoId.isBlank() ? null : UUID.fromString(eventoId);
     }
 
+    private UUID resolveAggregateId(JsonNode payload, String explicitField) {
+        String explicitId = text(payload, explicitField);
+        if (!explicitId.isBlank()) {
+            return UUID.fromString(explicitId);
+        }
+        String aggregateId = text(payload, "aggregateId");
+        return aggregateId.isBlank() ? null : UUID.fromString(aggregateId);
+    }
+
     private String text(JsonNode payload, String field) {
         return payload.hasNonNull(field) ? payload.get(field).asText() : "";
     }
 
+    private void syncPartidaProjection(UUID partidaId) {
+        if (partidaId == null) {
+            return;
+        }
+
+        String status = jdbcTemplate.query(
+                "SELECT status FROM operational.partidas WHERE id = ?",
+                rs -> rs.next() ? rs.getString("status") : null,
+                partidaId
+        );
+        if (status == null) {
+            deletePartidaPublic(partidaId);
+            return;
+        }
+
+        String normalized = status.trim().toLowerCase();
+        if (isHistoricalStatus(normalized)) {
+            upsertPartidaHistorico(partidaId);
+            jdbcTemplate.update("DELETE FROM public.partidas_ao_vivo WHERE partida_id = ?", partidaId);
+            return;
+        }
+
+        if (isLiveStatus(normalized)) {
+            upsertPartidaAoVivo(partidaId);
+            jdbcTemplate.update("DELETE FROM public.partidas_historico WHERE partida_id = ?", partidaId);
+            return;
+        }
+
+        jdbcTemplate.update("DELETE FROM public.partidas_ao_vivo WHERE partida_id = ?", partidaId);
+        jdbcTemplate.update("DELETE FROM public.partidas_historico WHERE partida_id = ?", partidaId);
+    }
+
+    private boolean isHistoricalStatus(String status) {
+        return "finalizada".equals(status) || "fechada".equals(status);
+    }
+
+    private boolean isLiveStatus(String status) {
+        return !status.isBlank()
+                && !isHistoricalStatus(status)
+                && !"agendada".equals(status)
+                && !"cancelada".equals(status)
+                && !"wo".equals(status);
+    }
+
+    private void syncCampeonato(UUID campeonatoId) {
+        if (campeonatoId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.campeonatos_vitrine (
+                    campeonato_id, nome, slug, nivel, data_inicio, data_fim, status, escudo_url, criado_em, atualizado_em
+                )
+                SELECT id, nome, slug, nivel, data_inicio, data_fim, status, escudo_url, criado_em, now()
+                FROM operational.campeonatos
+                WHERE id = ?
+                ON CONFLICT (campeonato_id) DO UPDATE SET
+                    nome = EXCLUDED.nome,
+                    slug = EXCLUDED.slug,
+                    nivel = EXCLUDED.nivel,
+                    data_inicio = EXCLUDED.data_inicio,
+                    data_fim = EXCLUDED.data_fim,
+                    status = EXCLUDED.status,
+                    escudo_url = EXCLUDED.escudo_url,
+                    criado_em = EXCLUDED.criado_em,
+                    atualizado_em = now()
+                """, campeonatoId);
+    }
+
+    private void deleteCampeonato(UUID campeonatoId) {
+        if (campeonatoId != null) {
+            jdbcTemplate.update("DELETE FROM public.campeonatos_vitrine WHERE campeonato_id = ?", campeonatoId);
+        }
+    }
+
+    private void syncCampeonatoModalidade(UUID campeonatoModalidadeId) {
+        if (campeonatoModalidadeId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.modalidades_vitrine (
+                    campeonato_modalidade_id, campeonato_id, modalidade_catalogo_id, esporte_id, esporte_nome,
+                    modalidade_nome, modalidade_codigo, nome_exibicao, categoria, genero, regras_json,
+                    formato_fases_json, status, atualizado_em
+                )
+                SELECT
+                    cm.id,
+                    cm.campeonato_id,
+                    cm.modalidade_catalogo_id,
+                    e.id,
+                    e.nome,
+                    mc.nome,
+                    mc.codigo,
+                    cm.nome_exibicao,
+                    cm.categoria,
+                    cm.genero,
+                    cm.regras_json,
+                    cm.formato_fases_json,
+                    cm.status,
+                    now()
+                FROM operational.campeonato_modalidades cm
+                JOIN operational.modalidades_catalogo mc ON mc.id = cm.modalidade_catalogo_id
+                LEFT JOIN operational.esportes e ON e.id = mc.esporte_id
+                WHERE cm.id = ?
+                ON CONFLICT (campeonato_modalidade_id) DO UPDATE SET
+                    campeonato_id = EXCLUDED.campeonato_id,
+                    modalidade_catalogo_id = EXCLUDED.modalidade_catalogo_id,
+                    esporte_id = EXCLUDED.esporte_id,
+                    esporte_nome = EXCLUDED.esporte_nome,
+                    modalidade_nome = EXCLUDED.modalidade_nome,
+                    modalidade_codigo = EXCLUDED.modalidade_codigo,
+                    nome_exibicao = EXCLUDED.nome_exibicao,
+                    categoria = EXCLUDED.categoria,
+                    genero = EXCLUDED.genero,
+                    regras_json = EXCLUDED.regras_json,
+                    formato_fases_json = EXCLUDED.formato_fases_json,
+                    status = EXCLUDED.status,
+                    atualizado_em = now()
+                """, campeonatoModalidadeId);
+    }
+
+    private void deleteCampeonatoModalidade(UUID campeonatoModalidadeId) {
+        if (campeonatoModalidadeId != null) {
+            jdbcTemplate.update("DELETE FROM public.modalidades_vitrine WHERE campeonato_modalidade_id = ?", campeonatoModalidadeId);
+        }
+    }
+
+    private void syncAtletica(UUID atleticaId) {
+        if (atleticaId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.perfis_atleticas (
+                    atletica_id, nome, sigla, slug, cor_principal, escudo_url, criado_por, status, criado_em, atualizado_em
+                )
+                SELECT id, nome, sigla, slug, cor_principal, escudo_url, criado_por, status, criado_em, now()
+                FROM operational.atleticas
+                WHERE id = ?
+                ON CONFLICT (atletica_id) DO UPDATE SET
+                    nome = EXCLUDED.nome,
+                    sigla = EXCLUDED.sigla,
+                    slug = EXCLUDED.slug,
+                    cor_principal = EXCLUDED.cor_principal,
+                    escudo_url = EXCLUDED.escudo_url,
+                    criado_por = EXCLUDED.criado_por,
+                    status = EXCLUDED.status,
+                    criado_em = EXCLUDED.criado_em,
+                    atualizado_em = now()
+                """, atleticaId);
+    }
+
+    private void deleteAtletica(UUID atleticaId) {
+        if (atleticaId != null) {
+            jdbcTemplate.update("DELETE FROM public.perfis_atleticas WHERE atletica_id = ?", atleticaId);
+        }
+    }
+
+    private void syncProfile(UUID profileId) {
+        if (profileId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.perfis_atletas (
+                    atleta_id, nome_exibicao, nome_completo, avatar_url, data_nascimento, genero, status, criado_em, atualizado_em
+                )
+                SELECT id, nome_exibicao, nome_completo, avatar_url, data_nascimento, genero, status, criado_em, atualizado_em
+                FROM operational.profiles
+                WHERE id = ?
+                ON CONFLICT (atleta_id) DO UPDATE SET
+                    nome_exibicao = EXCLUDED.nome_exibicao,
+                    nome_completo = EXCLUDED.nome_completo,
+                    avatar_url = EXCLUDED.avatar_url,
+                    data_nascimento = EXCLUDED.data_nascimento,
+                    genero = EXCLUDED.genero,
+                    status = EXCLUDED.status,
+                    criado_em = EXCLUDED.criado_em,
+                    atualizado_em = EXCLUDED.atualizado_em
+                """, profileId);
+    }
+
     private void upsertPartidaAoVivo(UUID partidaId) {
         log.info("Atualizando projeção partidas_ao_vivo para partida {}", partidaId);
-        String selectSql = """
+        String sql = """
+                INSERT INTO public.partidas_ao_vivo (
+                    partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
+                    status, periodo_atual, categoria, fase, rodada, agendado_para, iniciada_em, local,
+                    placar_a, placar_b, versao_estado, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla,
+                    time_a_escudo_url, time_b_escudo_url, time_a_atletica_id, time_b_atletica_id,
+                    time_a_cor_principal, time_b_cor_principal, cronometro, atualizado_em
+                )
                 SELECT
-                    p.id AS partida_id,
+                    p.id,
                     p.campeonato_id,
                     p.campeonato_modalidade_id,
-                    COALESCE(team_a.nome, atl_a.nome) AS time_a_nome,
-                    COALESCE(team_b.nome, atl_b.nome) AS time_b_nome,
-                    atl_a.escudo_url AS time_a_escudo_url,
-                    atl_b.escudo_url AS time_b_escudo_url,
-                    atl_a.id AS time_a_atletica_id,
-                    atl_b.id AS time_b_atletica_id,
-                    atl_a.cor_principal AS time_a_cor_principal,
-                    atl_b.cor_principal AS time_b_cor_principal,
-                    p.placar_a,
-                    p.placar_b,
+                    p.campeonato_time_a_id,
+                    p.campeonato_time_b_id,
                     p.status,
                     p.periodo_atual,
-                    last_event.tempo_cronometro AS cronometro,
-                    p.local,
+                    p.categoria,
+                    p.fase,
+                    p.rodada,
                     p.agendado_para,
-                    p.versao_estado
+                    p.iniciada_em,
+                    p.local,
+                    p.placar_a,
+                    p.placar_b,
+                    p.versao_estado,
+                    COALESCE(team_a.nome, atl_a.nome),
+                    COALESCE(team_b.nome, atl_b.nome),
+                    atl_a.sigla,
+                    atl_b.sigla,
+                    atl_a.escudo_url,
+                    atl_b.escudo_url,
+                    atl_a.id,
+                    atl_b.id,
+                    atl_a.cor_principal,
+                    atl_b.cor_principal,
+                    last_event.tempo_cronometro,
+                    now()
                 FROM operational.partidas p
                 LEFT JOIN operational.campeonato_times ta ON p.campeonato_time_a_id = ta.id
                 LEFT JOIN operational.times_atletica team_a ON ta.time_atletica_id = team_a.id
@@ -127,105 +335,86 @@ public class PartidaProjectionService {
                     LIMIT 1
                 ) last_event ON TRUE
                 WHERE p.id = ?
+                ON CONFLICT (partida_id) DO UPDATE SET
+                    campeonato_id = EXCLUDED.campeonato_id,
+                    campeonato_modalidade_id = EXCLUDED.campeonato_modalidade_id,
+                    campeonato_time_a_id = EXCLUDED.campeonato_time_a_id,
+                    campeonato_time_b_id = EXCLUDED.campeonato_time_b_id,
+                    status = EXCLUDED.status,
+                    periodo_atual = EXCLUDED.periodo_atual,
+                    categoria = EXCLUDED.categoria,
+                    fase = EXCLUDED.fase,
+                    rodada = EXCLUDED.rodada,
+                    agendado_para = EXCLUDED.agendado_para,
+                    iniciada_em = EXCLUDED.iniciada_em,
+                    local = EXCLUDED.local,
+                    placar_a = EXCLUDED.placar_a,
+                    placar_b = EXCLUDED.placar_b,
+                    versao_estado = EXCLUDED.versao_estado,
+                    time_a_nome = EXCLUDED.time_a_nome,
+                    time_b_nome = EXCLUDED.time_b_nome,
+                    time_a_sigla = EXCLUDED.time_a_sigla,
+                    time_b_sigla = EXCLUDED.time_b_sigla,
+                    time_a_escudo_url = EXCLUDED.time_a_escudo_url,
+                    time_b_escudo_url = EXCLUDED.time_b_escudo_url,
+                    time_a_atletica_id = EXCLUDED.time_a_atletica_id,
+                    time_b_atletica_id = EXCLUDED.time_b_atletica_id,
+                    time_a_cor_principal = EXCLUDED.time_a_cor_principal,
+                    time_b_cor_principal = EXCLUDED.time_b_cor_principal,
+                    cronometro = EXCLUDED.cronometro,
+                    atualizado_em = now()
                 """;
-
-        final int[] affected = {0};
-        jdbcTemplate.query(selectSql, rs -> {
-            String upsertSql = """
-                    INSERT INTO public.partidas_ao_vivo (
-                        partida_id, campeonato_id, campeonato_modalidade_id,
-                        time_a_nome, time_b_nome, time_a_escudo_url, time_b_escudo_url,
-                        time_a_atletica_id, time_b_atletica_id,
-                        time_a_cor_principal, time_b_cor_principal,
-                        placar_a, placar_b, status, periodo_atual, cronometro, local, agendado_para, versao_estado, atualizado_em
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-                    ON CONFLICT (partida_id) DO UPDATE SET
-                        campeonato_id = EXCLUDED.campeonato_id,
-                        campeonato_modalidade_id = EXCLUDED.campeonato_modalidade_id,
-                        time_a_nome = EXCLUDED.time_a_nome,
-                        time_b_nome = EXCLUDED.time_b_nome,
-                        time_a_escudo_url = EXCLUDED.time_a_escudo_url,
-                        time_b_escudo_url = EXCLUDED.time_b_escudo_url,
-                        time_a_atletica_id = EXCLUDED.time_a_atletica_id,
-                        time_b_atletica_id = EXCLUDED.time_b_atletica_id,
-                        time_a_cor_principal = EXCLUDED.time_a_cor_principal,
-                        time_b_cor_principal = EXCLUDED.time_b_cor_principal,
-                        placar_a = EXCLUDED.placar_a,
-                        placar_b = EXCLUDED.placar_b,
-                        status = EXCLUDED.status,
-                        periodo_atual = EXCLUDED.periodo_atual,
-                        cronometro = EXCLUDED.cronometro,
-                        local = EXCLUDED.local,
-                        agendado_para = EXCLUDED.agendado_para,
-                        versao_estado = EXCLUDED.versao_estado,
-                        atualizado_em = NOW()
-                    """;
-
-            affected[0] += jdbcTemplate.update(upsertSql,
-                rs.getObject("partida_id"),
-                rs.getObject("campeonato_id"),
-                rs.getObject("campeonato_modalidade_id"),
-                rs.getString("time_a_nome"),
-                rs.getString("time_b_nome"),
-                rs.getString("time_a_escudo_url"),
-                rs.getString("time_b_escudo_url"),
-                rs.getObject("time_a_atletica_id"),
-                rs.getObject("time_b_atletica_id"),
-                rs.getString("time_a_cor_principal"),
-                rs.getString("time_b_cor_principal"),
-                rs.getInt("placar_a"),
-                rs.getInt("placar_b"),
-                rs.getString("status"),
-                rs.getString("periodo_atual"),
-                rs.getString("cronometro"),
-                rs.getString("local"),
-                rs.getObject("agendado_para"),
-                rs.getLong("versao_estado"));
-        }, partidaId);
-        log.info("Projeção partidas_ao_vivo para partida {} afetou {} linha(s)", partidaId, affected[0]);
+        int affected = jdbcTemplate.update(sql, partidaId);
+        log.info("Projeção partidas_ao_vivo para partida {} afetou {} linha(s)", partidaId, affected);
     }
 
     private void upsertPartidaHistorico(UUID partidaId) {
         log.info("Atualizando projeção partidas_historico para partida {}", partidaId);
         String sql = """
                 INSERT INTO public.partidas_historico (
-                    partida_id, campeonato_id, campeonato_slug, campeonato_nome,
-                    campeonato_modalidade_id, esporte_nome, modalidade_nome,
-                    fase, rodada, categoria, genero,
-                    time_a_id, time_a_nome, time_a_sigla, time_a_escudo_url, time_a_atletica_id, time_a_atletica_nome, time_a_cor_principal,
-                    time_b_id, time_b_nome, time_b_sigla, time_b_escudo_url, time_b_atletica_id, time_b_atletica_nome, time_b_cor_principal,
-                    placar_a, placar_b, resultado, houve_prorrogacao, houve_penaltis,
-                    placar_penaltis_a, placar_penaltis_b, local, agendado_para, iniciada_em, encerrada_em,
+                    partida_id, campeonato_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id,
+                    status, periodo_atual, categoria, fase, rodada, agendado_para, iniciada_em, encerrada_em, local,
+                    placar_a, placar_b, versao_estado, campeonato_nome, campeonato_slug, esporte_nome, modalidade_nome,
+                    modalidade_codigo, time_a_nome, time_b_nome, time_a_sigla, time_b_sigla, time_a_escudo_url, time_b_escudo_url,
+                    time_a_atletica_id, time_b_atletica_id, time_a_atletica_nome, time_b_atletica_nome, time_a_cor_principal,
+                    time_b_cor_principal, resultado, houve_prorrogacao, houve_penaltis, placar_penaltis_a, placar_penaltis_b,
                     duracao_minutos, sumula_pdf_url, atualizado_em
                 )
                 SELECT
                     p.id,
                     c.id,
-                    NULL,
-                    c.nome,
                     cm.id,
-                    esp.nome,
-                    mc.nome,
+                    p.campeonato_time_a_id,
+                    p.campeonato_time_b_id,
+                    p.status,
+                    p.periodo_atual,
+                    p.categoria,
                     p.fase,
                     p.rodada,
-                    p.categoria,
-                    cm.genero,
-                    ta.id,
-                    COALESCE(tta.nome, atl_a.nome),
-                    atl_a.sigla,
-                    atl_a.escudo_url,
-                    atl_a.id,
-                    atl_a.nome,
-                    atl_a.cor_principal,
-                    tb.id,
-                    COALESCE(ttb.nome, atl_b.nome),
-                    atl_b.sigla,
-                    atl_b.escudo_url,
-                    atl_b.id,
-                    atl_b.nome,
-                    atl_b.cor_principal,
+                    p.agendado_para,
+                    p.iniciada_em,
+                    p.encerrada_em,
+                    p.local,
                     p.placar_a,
                     p.placar_b,
+                    p.versao_estado,
+                    c.nome,
+                    c.slug,
+                    esp.nome,
+                    mc.nome,
+                    mc.codigo,
+                    COALESCE(tta.nome, atl_a.nome),
+                    COALESCE(ttb.nome, atl_b.nome),
+                    atl_a.sigla,
+                    atl_b.sigla,
+                    atl_a.escudo_url,
+                    atl_b.escudo_url,
+                    atl_a.id,
+                    atl_b.id,
+                    atl_a.nome,
+                    atl_b.nome,
+                    atl_a.cor_principal,
+                    atl_b.cor_principal,
                     CASE
                         WHEN COALESCE(p.placar_a, 0) > COALESCE(p.placar_b, 0) THEN 'VITORIA_A'
                         WHEN COALESCE(p.placar_b, 0) > COALESCE(p.placar_a, 0) THEN 'VITORIA_B'
@@ -247,22 +436,18 @@ public class PartidaProjectionService {
                     ),
                     NULL,
                     NULL,
-                    p.local,
-                    p.agendado_para,
-                    p.iniciada_em,
-                    p.encerrada_em,
                     CASE
                         WHEN p.iniciada_em IS NOT NULL AND p.encerrada_em IS NOT NULL
                             THEN GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (p.encerrada_em - p.iniciada_em)) / 60))::INTEGER
                         ELSE NULL
                     END,
                     p.sumula_pdf_url,
-                    NOW()
+                    now()
                 FROM operational.partidas p
                 JOIN operational.campeonatos c ON c.id = p.campeonato_id
                 JOIN operational.campeonato_modalidades cm ON cm.id = p.campeonato_modalidade_id
                 JOIN operational.modalidades_catalogo mc ON mc.id = cm.modalidade_catalogo_id
-                JOIN operational.esportes esp ON esp.id = mc.esporte_id
+                LEFT JOIN operational.esportes esp ON esp.id = mc.esporte_id
                 LEFT JOIN operational.campeonato_times ta ON ta.id = p.campeonato_time_a_id
                 LEFT JOIN operational.times_atletica tta ON tta.id = ta.time_atletica_id
                 LEFT JOIN operational.atleticas atl_a ON atl_a.id = tta.atletica_id
@@ -272,43 +457,46 @@ public class PartidaProjectionService {
                 WHERE p.id = ?
                 ON CONFLICT (partida_id) DO UPDATE SET
                     campeonato_id = EXCLUDED.campeonato_id,
-                    campeonato_slug = EXCLUDED.campeonato_slug,
-                    campeonato_nome = EXCLUDED.campeonato_nome,
                     campeonato_modalidade_id = EXCLUDED.campeonato_modalidade_id,
-                    esporte_nome = EXCLUDED.esporte_nome,
-                    modalidade_nome = EXCLUDED.modalidade_nome,
+                    campeonato_time_a_id = EXCLUDED.campeonato_time_a_id,
+                    campeonato_time_b_id = EXCLUDED.campeonato_time_b_id,
+                    status = EXCLUDED.status,
+                    periodo_atual = EXCLUDED.periodo_atual,
+                    categoria = EXCLUDED.categoria,
                     fase = EXCLUDED.fase,
                     rodada = EXCLUDED.rodada,
-                    categoria = EXCLUDED.categoria,
-                    genero = EXCLUDED.genero,
-                    time_a_id = EXCLUDED.time_a_id,
-                    time_a_nome = EXCLUDED.time_a_nome,
-                    time_a_sigla = EXCLUDED.time_a_sigla,
-                    time_a_escudo_url = EXCLUDED.time_a_escudo_url,
-                    time_a_atletica_id = EXCLUDED.time_a_atletica_id,
-                    time_a_atletica_nome = EXCLUDED.time_a_atletica_nome,
-                    time_a_cor_principal = EXCLUDED.time_a_cor_principal,
-                    time_b_id = EXCLUDED.time_b_id,
-                    time_b_nome = EXCLUDED.time_b_nome,
-                    time_b_sigla = EXCLUDED.time_b_sigla,
-                    time_b_escudo_url = EXCLUDED.time_b_escudo_url,
-                    time_b_atletica_id = EXCLUDED.time_b_atletica_id,
-                    time_b_atletica_nome = EXCLUDED.time_b_atletica_nome,
-                    time_b_cor_principal = EXCLUDED.time_b_cor_principal,
+                    agendado_para = EXCLUDED.agendado_para,
+                    iniciada_em = EXCLUDED.iniciada_em,
+                    encerrada_em = EXCLUDED.encerrada_em,
+                    local = EXCLUDED.local,
                     placar_a = EXCLUDED.placar_a,
                     placar_b = EXCLUDED.placar_b,
+                    versao_estado = EXCLUDED.versao_estado,
+                    campeonato_nome = EXCLUDED.campeonato_nome,
+                    campeonato_slug = EXCLUDED.campeonato_slug,
+                    esporte_nome = EXCLUDED.esporte_nome,
+                    modalidade_nome = EXCLUDED.modalidade_nome,
+                    modalidade_codigo = EXCLUDED.modalidade_codigo,
+                    time_a_nome = EXCLUDED.time_a_nome,
+                    time_b_nome = EXCLUDED.time_b_nome,
+                    time_a_sigla = EXCLUDED.time_a_sigla,
+                    time_b_sigla = EXCLUDED.time_b_sigla,
+                    time_a_escudo_url = EXCLUDED.time_a_escudo_url,
+                    time_b_escudo_url = EXCLUDED.time_b_escudo_url,
+                    time_a_atletica_id = EXCLUDED.time_a_atletica_id,
+                    time_b_atletica_id = EXCLUDED.time_b_atletica_id,
+                    time_a_atletica_nome = EXCLUDED.time_a_atletica_nome,
+                    time_b_atletica_nome = EXCLUDED.time_b_atletica_nome,
+                    time_a_cor_principal = EXCLUDED.time_a_cor_principal,
+                    time_b_cor_principal = EXCLUDED.time_b_cor_principal,
                     resultado = EXCLUDED.resultado,
                     houve_prorrogacao = EXCLUDED.houve_prorrogacao,
                     houve_penaltis = EXCLUDED.houve_penaltis,
                     placar_penaltis_a = EXCLUDED.placar_penaltis_a,
                     placar_penaltis_b = EXCLUDED.placar_penaltis_b,
-                    local = EXCLUDED.local,
-                    agendado_para = EXCLUDED.agendado_para,
-                    iniciada_em = EXCLUDED.iniciada_em,
-                    encerrada_em = EXCLUDED.encerrada_em,
                     duracao_minutos = EXCLUDED.duracao_minutos,
                     sumula_pdf_url = EXCLUDED.sumula_pdf_url,
-                    atualizado_em = NOW()
+                    atualizado_em = now()
                 """;
 
         int affected = jdbcTemplate.update(sql, partidaId);
@@ -317,63 +505,7 @@ public class PartidaProjectionService {
 
     private void upsertEventoPublico(UUID eventoId) {
         log.info("Atualizando projeção eventos_partida_publicos para evento {}", eventoId);
-        String sql = """
-                INSERT INTO public.eventos_partida_publicos (
-                    evento_id, partida_id, tipo_evento_codigo, tipo_evento_nome, impacta_placar,
-                    equipe_id, equipe_nome, equipe_cor,
-                    atleta_id, atleta_nome_exibicao, atleta_foto_url,
-                    atleta_sai_id, atleta_sai_nome,
-                    periodo, minuto, segundo, descricao, payload_json, criado_em
-                )
-                SELECT
-                    ev.id AS evento_id,
-                    ev.partida_id,
-                    te.codigo AS tipo_evento_codigo,
-                    te.nome AS tipo_evento_nome,
-                    te.impacta_placar AS impacta_placar,
-                    ta.id AS equipe_id,
-                    COALESCE(t_atl.nome, atl_ta.nome) AS equipe_nome,
-                    atl_ta.cor_principal AS equipe_cor,
-                    p.id AS atleta_id,
-                    COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS atleta_nome_exibicao,
-                    p.avatar_url AS atleta_foto_url,
-                    p_sai.id AS atleta_sai_id,
-                    COALESCE(NULLIF(p_sai.nome_exibicao, ''), p_sai.nome_completo) AS atleta_sai_nome,
-                    ev.periodo,
-                    ev.minuto,
-                    ev.segundo,
-                    ev.descricao_detalhada AS descricao,
-                    ev.payload_json AS payload_json,
-                    ev.criado_em
-                FROM operational.eventos_partida ev
-                LEFT JOIN operational.tipos_eventos te ON ev.tipo_evento_id = te.id
-                LEFT JOIN operational.campeonato_times ta ON ev.equipe_id = ta.id
-                LEFT JOIN operational.times_atletica t_atl ON ta.time_atletica_id = t_atl.id
-                LEFT JOIN operational.atleticas atl_ta ON t_atl.atletica_id = atl_ta.id
-                LEFT JOIN operational.profiles p ON ev.atleta_id = p.id
-                LEFT JOIN operational.profiles p_sai ON ev.atleta_sai_id = p_sai.id
-                WHERE ev.id = ?
-                ON CONFLICT (evento_id) DO UPDATE SET
-                    partida_id = EXCLUDED.partida_id,
-                    tipo_evento_codigo = EXCLUDED.tipo_evento_codigo,
-                    tipo_evento_nome = EXCLUDED.tipo_evento_nome,
-                    impacta_placar = EXCLUDED.impacta_placar,
-                    equipe_id = EXCLUDED.equipe_id,
-                    equipe_nome = EXCLUDED.equipe_nome,
-                    equipe_cor = EXCLUDED.equipe_cor,
-                    atleta_id = EXCLUDED.atleta_id,
-                    atleta_nome_exibicao = EXCLUDED.atleta_nome_exibicao,
-                    atleta_foto_url = EXCLUDED.atleta_foto_url,
-                    atleta_sai_id = EXCLUDED.atleta_sai_id,
-                    atleta_sai_nome = EXCLUDED.atleta_sai_nome,
-                    periodo = EXCLUDED.periodo,
-                    minuto = EXCLUDED.minuto,
-                    segundo = EXCLUDED.segundo,
-                    descricao = EXCLUDED.descricao,
-                    payload_json = EXCLUDED.payload_json,
-                    criado_em = EXCLUDED.criado_em
-                """;
-
+        String sql = buildEventosPublicosUpsertSql("WHERE ev.id = ?");
         int affected = jdbcTemplate.update(sql, eventoId);
         log.info("Projeção eventos_partida_publicos para evento {} afetou {} linha(s)", eventoId, affected);
         if (affected == 0) {
@@ -387,20 +519,26 @@ public class PartidaProjectionService {
 
     private void syncEventosPublicosDaPartida(UUID partidaId) {
         log.info("Sincronizando eventos públicos da partida {}", partidaId);
-        String sql = """
+        String sql = buildEventosPublicosUpsertSql("WHERE ev.partida_id = ?");
+        int affected = jdbcTemplate.update(sql, partidaId);
+        log.info("Sincronização de eventos públicos da partida {} afetou {} linha(s)", partidaId, affected);
+    }
+
+    private String buildEventosPublicosUpsertSql(String whereClause) {
+        return """
                 INSERT INTO public.eventos_partida_publicos (
-                    evento_id, partida_id, tipo_evento_codigo, tipo_evento_nome, impacta_placar,
-                    equipe_id, equipe_nome, equipe_cor,
-                    atleta_id, atleta_nome_exibicao, atleta_foto_url,
-                    atleta_sai_id, atleta_sai_nome,
-                    periodo, minuto, segundo, descricao, payload_json, criado_em
+                    evento_id, partida_id, tipo_evento_id, tipo_evento_codigo, tipo_evento_nome, impacta_placar,
+                    equipe_id, equipe_nome, equipe_cor, atleta_id, atleta_nome_exibicao, atleta_foto_url,
+                    atleta_sai_id, atleta_sai_nome, arbitro_user_id, periodo, minuto, segundo, tempo_cronometro,
+                    descricao_detalhada, payload_json, is_substitution, ordem_evento, criado_em
                 )
                 SELECT
                     ev.id AS evento_id,
                     ev.partida_id,
+                    te.id AS tipo_evento_id,
                     te.codigo AS tipo_evento_codigo,
                     te.nome AS tipo_evento_nome,
-                    te.impacta_placar AS impacta_placar,
+                    coalesce(te.impacta_placar, false) AS impacta_placar,
                     ta.id AS equipe_id,
                     COALESCE(t_atl.nome, atl_ta.nome) AS equipe_nome,
                     atl_ta.cor_principal AS equipe_cor,
@@ -409,11 +547,15 @@ public class PartidaProjectionService {
                     p.avatar_url AS atleta_foto_url,
                     p_sai.id AS atleta_sai_id,
                     COALESCE(NULLIF(p_sai.nome_exibicao, ''), p_sai.nome_completo) AS atleta_sai_nome,
+                    ev.arbitro_user_id,
                     ev.periodo,
                     ev.minuto,
                     ev.segundo,
-                    ev.descricao_detalhada AS descricao,
-                    ev.payload_json AS payload_json,
+                    ev.tempo_cronometro,
+                    ev.descricao_detalhada,
+                    ev.payload_json,
+                    ev.is_substitution,
+                    ev.ordem_evento,
                     ev.criado_em
                 FROM operational.eventos_partida ev
                 LEFT JOIN operational.tipos_eventos te ON ev.tipo_evento_id = te.id
@@ -422,9 +564,10 @@ public class PartidaProjectionService {
                 LEFT JOIN operational.atleticas atl_ta ON t_atl.atletica_id = atl_ta.id
                 LEFT JOIN operational.profiles p ON ev.atleta_id = p.id
                 LEFT JOIN operational.profiles p_sai ON ev.atleta_sai_id = p_sai.id
-                WHERE ev.partida_id = ?
+                """ + whereClause + """
                 ON CONFLICT (evento_id) DO UPDATE SET
                     partida_id = EXCLUDED.partida_id,
+                    tipo_evento_id = EXCLUDED.tipo_evento_id,
                     tipo_evento_codigo = EXCLUDED.tipo_evento_codigo,
                     tipo_evento_nome = EXCLUDED.tipo_evento_nome,
                     impacta_placar = EXCLUDED.impacta_placar,
@@ -436,16 +579,17 @@ public class PartidaProjectionService {
                     atleta_foto_url = EXCLUDED.atleta_foto_url,
                     atleta_sai_id = EXCLUDED.atleta_sai_id,
                     atleta_sai_nome = EXCLUDED.atleta_sai_nome,
+                    arbitro_user_id = EXCLUDED.arbitro_user_id,
                     periodo = EXCLUDED.periodo,
                     minuto = EXCLUDED.minuto,
                     segundo = EXCLUDED.segundo,
-                    descricao = EXCLUDED.descricao,
+                    tempo_cronometro = EXCLUDED.tempo_cronometro,
+                    descricao_detalhada = EXCLUDED.descricao_detalhada,
                     payload_json = EXCLUDED.payload_json,
+                    is_substitution = EXCLUDED.is_substitution,
+                    ordem_evento = EXCLUDED.ordem_evento,
                     criado_em = EXCLUDED.criado_em
                 """;
-
-        int affected = jdbcTemplate.update(sql, partidaId);
-        log.info("Sincronização de eventos públicos da partida {} afetou {} linha(s)", partidaId, affected);
     }
 
     private void deleteEventoPublico(UUID eventoId) {

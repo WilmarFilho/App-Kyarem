@@ -3,6 +3,7 @@ package com.nkw.backapisumula.competicao.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nkw.backapisumula.cadastros.Esporte;
 import com.nkw.backapisumula.cadastros.repo.EsporteRepository;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.competicao.Campeonato;
 import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.ModalidadeCatalogo;
@@ -29,15 +30,18 @@ public class ModalidadesController {
         private final CampeonatoRepository campeonatoRepository;
         private final ModalidadeCatalogoRepository modalidadeCatalogoRepository;
         private final EsporteRepository esporteRepository;
+        private final EventPublisherService eventPublisherService;
 
         public ModalidadesController(CampeonatoModalidadeRepository campeonatoModalidadeRepository,
                         CampeonatoRepository campeonatoRepository,
                         ModalidadeCatalogoRepository modalidadeCatalogoRepository,
-                        EsporteRepository esporteRepository) {
+                        EsporteRepository esporteRepository,
+                        EventPublisherService eventPublisherService) {
                 this.campeonatoModalidadeRepository = campeonatoModalidadeRepository;
                 this.campeonatoRepository = campeonatoRepository;
                 this.modalidadeCatalogoRepository = modalidadeCatalogoRepository;
                 this.esporteRepository = esporteRepository;
+                this.eventPublisherService = eventPublisherService;
         }
 
         @GetMapping("/api/v1/modalidades-catalogo")
@@ -177,21 +181,28 @@ public class ModalidadesController {
                 if (request.status() != null)
                         modalidade.setStatus(request.status());
 
-                return ModalidadeResponse.from(campeonatoModalidadeRepository.save(modalidade));
+                CampeonatoModalidade saved = campeonatoModalidadeRepository.save(modalidade);
+                publishCampeonatoModalidadeEvent(saved, "CampeonatoModalidadeCriada");
+                return ModalidadeResponse.from(saved);
         }
 
         @DeleteMapping("/api/v1/modalidades/{id}")
         @ResponseStatus(HttpStatus.NO_CONTENT)
         @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional
         public void delete(@PathVariable UUID id) {
                 CampeonatoModalidade modalidade = campeonatoModalidadeRepository.findById(id)
                                 .orElseThrow(() -> new IllegalStateException(
                                                 "Modalidade do campeonato não encontrada."));
                 campeonatoModalidadeRepository.delete(modalidade);
+                eventPublisherService.publish("CampeonatoModalidade", id.toString(), "CampeonatoModalidadeExcluida", java.util.Map.of(
+                                "campeonatoModalidadeId", id.toString()
+                ));
         }
 
         @PutMapping("/api/v1/modalidades/{id}")
         @PreAuthorize("hasAuthority('ROLE_admin')")
+        @Transactional
         public ModalidadeResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateModalidadeRequest request) {
                 CampeonatoModalidade modalidade = campeonatoModalidadeRepository.findById(id)
                                 .orElseThrow(() -> new IllegalStateException(
@@ -224,7 +235,17 @@ public class ModalidadesController {
                 if (request.status() != null)
                         modalidade.setStatus(request.status());
 
-                return ModalidadeResponse.from(campeonatoModalidadeRepository.save(modalidade));
+                CampeonatoModalidade saved = campeonatoModalidadeRepository.save(modalidade);
+                publishCampeonatoModalidadeEvent(saved, "CampeonatoModalidadeAtualizada");
+                return ModalidadeResponse.from(saved);
+        }
+
+        private void publishCampeonatoModalidadeEvent(CampeonatoModalidade modalidade, String eventType) {
+                eventPublisherService.publish("CampeonatoModalidade", modalidade.getId().toString(), eventType, java.util.Map.of(
+                                "campeonatoModalidadeId", modalidade.getId().toString(),
+                                "campeonatoId", modalidade.getCampeonato() != null ? modalidade.getCampeonato().getId().toString() : "",
+                                "status", modalidade.getStatus() == null ? "" : modalidade.getStatus()
+                ));
         }
 
         public record CreateModalidadeRequest(

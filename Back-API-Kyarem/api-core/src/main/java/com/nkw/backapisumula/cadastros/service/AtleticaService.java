@@ -1,8 +1,10 @@
 package com.nkw.backapisumula.cadastros.service;
 
 import com.nkw.backapisumula.cadastros.Atletica;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.cadastros.repo.AtleticaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.List;
@@ -13,9 +15,11 @@ import java.util.UUID;
 public class AtleticaService {
 
     private final AtleticaRepository repo;
+    private final EventPublisherService eventPublisherService;
 
-    public AtleticaService(AtleticaRepository repo) {
+    public AtleticaService(AtleticaRepository repo, EventPublisherService eventPublisherService) {
         this.repo = repo;
+        this.eventPublisherService = eventPublisherService;
     }
 
     public List<Atletica> list() {
@@ -26,14 +30,18 @@ public class AtleticaService {
         return repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Atlética não encontrada."));
     }
 
+    @Transactional
     public Atletica create(Atletica atletica) {
         atletica.setNome(atletica.getNome().trim());
         if (atletica.getSigla() != null) atletica.setSigla(atletica.getSigla().trim());
         atletica.setSlug(slugify(atletica.getNome()));
         atletica.setCriadoEm(java.time.OffsetDateTime.now());
-        return repo.save(atletica);
+        Atletica saved = repo.save(atletica);
+        publishAtleticaEvent(saved, "AtleticaCriada");
+        return saved;
     }
 
+    @Transactional
     public Atletica update(UUID id, Atletica patch) {
         Atletica a = getOrThrow(id);
         if (patch.getNome() != null) {
@@ -44,12 +52,18 @@ public class AtleticaService {
         if (patch.getCorPrincipal() != null) a.setCorPrincipal(patch.getCorPrincipal());
         if (patch.getEscudoUrl() != null) a.setEscudoUrl(patch.getEscudoUrl());
         if (patch.getStatus() != null) a.setStatus(patch.getStatus().trim());
-        return repo.save(a);
+        Atletica saved = repo.save(a);
+        publishAtleticaEvent(saved, "AtleticaAtualizada");
+        return saved;
     }
 
+    @Transactional
     public void delete(UUID id) {
         Atletica a = getOrThrow(id);
         repo.delete(a);
+        eventPublisherService.publish("Atletica", id.toString(), "AtleticaExcluida", java.util.Map.of(
+                "atleticaId", id.toString()
+        ));
     }
 
     private String slugify(String value) {
@@ -65,5 +79,12 @@ public class AtleticaService {
         }
 
         return normalized;
+    }
+
+    private void publishAtleticaEvent(Atletica atletica, String eventType) {
+        eventPublisherService.publish("Atletica", atletica.getId().toString(), eventType, java.util.Map.of(
+                "atleticaId", atletica.getId().toString(),
+                "status", atletica.getStatus() == null ? "" : atletica.getStatus()
+        ));
     }
 }

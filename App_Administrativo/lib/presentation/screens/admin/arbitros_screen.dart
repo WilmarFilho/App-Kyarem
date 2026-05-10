@@ -122,12 +122,19 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
         return val == role && matchesQuery;
       }).length;
 
+      final roleLabel = switch (role) {
+        'USER' || 'REFEREE' => 'Árbitro',
+        'ADMIN' => 'Admin',
+        'INDEFINIDO' => 'Indefinido',
+        _ => role[0].toUpperCase() + role.substring(1).toLowerCase(),
+      };
+
       options.add(
         _StatusOption(
           value: role,
-          label: role == 'USER' || role == 'REFEREE' ? 'ÁRBITRO' : role,
+          label: roleLabel,
           count: count,
-          color: Colors.blueGrey,
+          color: const Color(0xFFF85C39),
         ),
       );
     }
@@ -237,116 +244,118 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
       ),
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: Stack(
           children: [
-            // ── BARRA DE BUSCA ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
+            Column(
+              children: [
+                // ── BARRA DE BUSCA ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: TextField(
+                      controller: _searchCtrl,
+                      style: const TextStyle(color: Color(0xFF1a1a2e)),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar árbitro...',
+                        hintStyle: TextStyle(color: Colors.grey.shade400),
+                        prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: Colors.grey.shade400,
+                                ),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
                 ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  style: const TextStyle(color: Color(0xFF1a1a2e)),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar árbitro...',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              color: Colors.grey.shade400,
+
+                // ── LISTA ──
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFF85C39),
+                          ),
+                        )
+                      : _filtrados.isEmpty
+                      ? _buildEmpty()
+                      : Column(
+                          children: [
+                            _buildStatusFilterBar(),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: ListView.builder(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: _filtradosPaginados.length,
+                                itemBuilder: (context, index) {
+                                  final delay = index * 0.07;
+                                  final anim = CurvedAnimation(
+                                    parent: _animCtrl,
+                                    curve: Interval(
+                                      delay.clamp(0.0, 0.9),
+                                      (delay + 0.5).clamp(0.1, 1.0),
+                                      curve: Curves.easeOutCubic,
+                                    ),
+                                  );
+                                  return FadeTransition(
+                                    opacity: anim,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, 0.15),
+                                        end: Offset.zero,
+                                      ).animate(anim),
+                                      child: _buildCard(_filtradosPaginados[index]),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            if (_filtrados.isNotEmpty) _buildPaginationBar(),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+            if (_canEdit && !_isLoading)
+              Positioned(
+                right: 16,
+                bottom: 88,
+                child: FloatingActionButton.extended(
+                  onPressed: _showAddArbitroDialog,
+                  backgroundColor: const Color(0xFFF85C39),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    'Adicionar Árbitro',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-            _buildStatusFilterBar(),
-            const SizedBox(height: 12),
-
-            // ── LISTA ──
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFF85C39),
-                      ),
-                    )
-                  : _filtrados.isEmpty
-                  ? _buildEmpty()
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: _filtradosPaginados.length,
-                            itemBuilder: (context, index) {
-                              final delay = index * 0.07;
-                              final anim = CurvedAnimation(
-                                parent: _animCtrl,
-                                curve: Interval(
-                                  delay.clamp(0.0, 0.9),
-                                  (delay + 0.5).clamp(0.1, 1.0),
-                                  curve: Curves.easeOutCubic,
-                                ),
-                              );
-                              return FadeTransition(
-                                opacity: anim,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0, 0.15),
-                                    end: Offset.zero,
-                                  ).animate(anim),
-                                  child: _buildCard(_filtradosPaginados[index]),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        if (_filtrados.isNotEmpty) _buildPaginationBar(),
-                      ],
-                    ),
-            ),
           ],
         ),
       ),
-      floatingActionButton: _canEdit
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 72),
-              child: FloatingActionButton.extended(
-                onPressed: _showAddArbitroDialog,
-                backgroundColor: const Color(0xFFF85C39),
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  'Adicionar Árbitro',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            )
-          : null,
     );
   }
 

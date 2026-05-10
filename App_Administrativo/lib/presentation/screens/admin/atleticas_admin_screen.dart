@@ -58,9 +58,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
   Future<void> _abrirFormulario({Atletica? atletica}) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
-        builder: (_) => AtleticaFormScreen(atletica: atletica),
-      ),
+      MaterialPageRoute(builder: (_) => AtleticaFormScreen(atletica: atletica)),
     );
     if (result == true) {
       await _carregar();
@@ -117,14 +115,15 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
       ),
     ];
 
-    final statusUnicos = _atleticas
-        .map((a) {
-          final s = a.status?.trim() ?? '';
-          return s.isEmpty ? 'indefinido' : s.toLowerCase();
-        })
-        .toSet()
-        .toList()
-      ..sort();
+    final statusUnicos =
+        _atleticas
+            .map((a) {
+              final s = a.status?.trim() ?? '';
+              return s.isEmpty ? 'indefinido' : s.toLowerCase();
+            })
+            .toSet()
+            .toList()
+          ..sort();
 
     for (final status in statusUnicos) {
       final count = _atleticas.where((a) {
@@ -132,12 +131,23 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         final val = s.isEmpty ? 'indefinido' : s.toLowerCase();
         return val == status;
       }).length;
+      final label = status.isEmpty || status == 'indefinido'
+          ? 'Indefinido'
+          : status
+                .replaceAll('_', ' ')
+                .split(' ')
+                .map(
+                  (w) => w.isEmpty
+                      ? ''
+                      : w[0].toUpperCase() + w.substring(1).toLowerCase(),
+                )
+                .join(' ');
       options.add(
         _StatusOption(
           value: status,
-          label: status == 'indefinido' ? 'Indefinido' : status.toUpperCase(),
+          label: label,
           count: count,
-          color: Colors.blueGrey,
+          color: const Color(0xFFF85C39),
         ),
       );
     }
@@ -161,10 +171,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
 
   List<Atletica> get _atleticasPaginadas {
     final inicio = _paginaAtual * _itensPorPagina;
-    final fim = (inicio + _itensPorPagina).clamp(
-      0,
-      _atleticasFiltradas.length,
-    );
+    final fim = (inicio + _itensPorPagina).clamp(0, _atleticasFiltradas.length);
     if (inicio >= _atleticasFiltradas.length) {
       return const <Atletica>[];
     }
@@ -222,71 +229,88 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
           ],
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72),
-        child: FloatingActionButton.extended(
-          onPressed: () => _abrirFormulario(),
-          backgroundColor: const Color(0xFFF85C39),
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            'Nova atlética',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFF85C39)),
             )
           : _atleticas.isEmpty
-          ? const Center(
-              child: Text(
-                'Nenhuma atlética cadastrada',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            )
-          : Column(
+          ? Stack(
               children: [
-                _buildStatusFilterBar(),
-                Expanded(
-                  child: _atleticasFiltradas.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Nenhuma atlética neste filtro',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          itemCount: _atleticasPaginadas.length,
-                          itemBuilder: (context, index) {
-                            final animation = CurvedAnimation(
-                              parent: _animController,
-                              curve: Interval(
-                                (index * 0.08).clamp(0.0, 0.9),
-                                ((index * 0.08) + 0.5).clamp(0.1, 1.0),
-                                curve: Curves.easeOutCubic,
-                              ),
-                            );
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.15),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: _buildCard(_atleticasPaginadas[index]),
-                              ),
-                            );
-                          },
-                        ),
+                const Center(
+                  child: Text(
+                    'Nenhuma atlética cadastrada',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
                 ),
-                if (_atleticasFiltradas.isNotEmpty) _buildPaginationBar(),
+                Positioned(right: 16, bottom: 88, child: _buildFab()),
+              ],
+            )
+          : Stack(
+              children: [
+                Column(
+                  children: [
+                    _buildStatusFilterBar(),
+                    Expanded(
+                      child: _atleticasFiltradas.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Nenhuma atlética neste filtro',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                12,
+                              ),
+                              itemCount: _atleticasPaginadas.length,
+                              itemBuilder: (context, index) {
+                                final animation = CurvedAnimation(
+                                  parent: _animController,
+                                  curve: Interval(
+                                    (index * 0.08).clamp(0.0, 0.9),
+                                    ((index * 0.08) + 0.5).clamp(0.1, 1.0),
+                                    curve: Curves.easeOutCubic,
+                                  ),
+                                );
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.15),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: _buildCard(
+                                      _atleticasPaginadas[index],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    if (_atleticasFiltradas.isNotEmpty) _buildPaginationBar(),
+                  ],
+                ),
+                Positioned(right: 16, bottom: 88, child: _buildFab()),
               ],
             ),
+    );
+  }
+
+  Widget _buildFab() {
+    return FloatingActionButton.extended(
+      onPressed: () => _abrirFormulario(),
+      backgroundColor: const Color(0xFFF85C39),
+      icon: const Icon(Icons.add, color: Colors.white),
+      label: const Text(
+        'Nova atlética',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -301,7 +325,8 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: const Color(0xFFF85C39).withValues(alpha: 0.12),
-          backgroundImage: atletica.escudoUrl != null && atletica.escudoUrl!.isNotEmpty
+          backgroundImage:
+              atletica.escudoUrl != null && atletica.escudoUrl!.isNotEmpty
               ? NetworkImage(atletica.escudoUrl!)
               : null,
           child: atletica.escudoUrl == null || atletica.escudoUrl!.isEmpty
@@ -441,9 +466,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                 ? () => _mudarPagina(_paginaAtual - 1)
                 : null,
             icon: const Icon(Icons.chevron_left_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey.shade100,
-            ),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
           ),
           const SizedBox(width: 8),
           ...List.generate(_totalPaginas, (index) {
@@ -479,9 +502,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                 ? () => _mudarPagina(_paginaAtual + 1)
                 : null,
             icon: const Icon(Icons.chevron_right_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey.shade100,
-            ),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
           ),
         ],
       ),

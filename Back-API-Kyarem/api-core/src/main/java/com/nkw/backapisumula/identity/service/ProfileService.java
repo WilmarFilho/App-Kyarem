@@ -77,6 +77,18 @@ public class ProfileService {
         return new AccessInfo(profile, role, isAdmin, isReferee, allowedAdminApp);
     }
 
+    /**
+     * Verifica se o email tem permissão de acesso ao app administrativo.
+     * Retorna false se o email não existir no sistema.
+     */
+    public boolean isEmailAllowedAdminApp(String email) {
+        return repo.findByEmail(email.trim().toLowerCase()).map(profile -> {
+            List<String> roles = repo.findRolesByUserId(profile.getId());
+            String role = resolvePrimaryRole(roles);
+            return "admin".equalsIgnoreCase(role) || "referee".equalsIgnoreCase(role);
+        }).orElse(false);
+    }
+
     public record AccessInfo(
             Profile profile,
             String role,

@@ -20,6 +20,9 @@ import org.springframework.context.annotation.Configuration;
  *  PartidaExcluida  → partida.excluida
  *  EventoRegistrado → evento.registrado
  *
+ * O pattern "campeonato.#" captura campeonatos e campeonato_modalidades.
+ * O pattern "atletica.#" captura perfis públicos de atléticas.
+ * O pattern "profile.#" captura perfis públicos de atletas.
  * O pattern "partida.#" captura todos os eventos de partida.
  * O pattern "evento.#" captura eventos de jogo (gols, cartões, etc).
  * O pattern "sumula.#" captura o fechamento da súmula.
@@ -75,5 +78,19 @@ public class RabbitTopologyConfig {
     Binding bindProjectionSocial(Queue projectionSocialQueue, TopicExchange kyaremExchange) {
         return BindingBuilder.bind(projectionSocialQueue).to(kyaremExchange).with("social.#");
     }
-}
 
+    @Bean
+    Binding bindProjectionCampeonato(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("campeonato.#");
+    }
+
+    @Bean
+    Binding bindProjectionAtletica(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("atletica.#");
+    }
+
+    @Bean
+    Binding bindProjectionProfile(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("profile.#");
+    }
+}

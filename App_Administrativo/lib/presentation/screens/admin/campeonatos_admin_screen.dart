@@ -137,12 +137,23 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         final val = s.isEmpty ? 'indefinido' : s.toLowerCase();
         return val == status;
       }).length;
+      final label = status.isEmpty || status == 'indefinido'
+          ? 'Indefinido'
+          : status
+                .replaceAll('_', ' ')
+                .split(' ')
+                .map(
+                  (w) => w.isEmpty
+                      ? ''
+                      : w[0].toUpperCase() + w.substring(1).toLowerCase(),
+                )
+                .join(' ');
       options.add(
         _StatusOption(
           value: status,
-          label: status == 'indefinido' ? 'Indefinido' : status.toUpperCase(),
+          label: label,
           count: count,
-          color: Colors.blueGrey,
+          color: const Color(0xFFF85C39),
         ),
       );
     }
@@ -241,64 +252,80 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
           ),
         ],
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72),
-        child: FloatingActionButton.extended(
-          onPressed: () => _abrirFormulario(),
-          backgroundColor: const Color(0xFFF85C39),
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            'Novo Campeonato',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFF85C39)),
             )
           : _campeonatos.isEmpty
-          ? _buildEmptyState()
-          : Column(
+          ? Stack(
               children: [
-                _buildStatusFilterBar(),
-                Expanded(
-                  child: _campeonatosFiltrados.isEmpty
-                      ? _buildEmptyState(
-                          title: 'Nenhum campeonato neste status',
-                          subtitle: 'Tente outro filtro para ver resultados.',
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          itemCount: _campeonatosPaginados.length,
-                          itemBuilder: (context, index) {
-                            final delay = index * 0.08;
-                            final animation = CurvedAnimation(
-                              parent: _animController,
-                              curve: Interval(
-                                delay.clamp(0.0, 0.9),
-                                (delay + 0.5).clamp(0.1, 1.0),
-                                curve: Curves.easeOutCubic,
+                _buildEmptyState(),
+                Positioned(right: 16, bottom: 88, child: _buildFab()),
+              ],
+            )
+          : Stack(
+              children: [
+                Column(
+                  children: [
+                    _buildStatusFilterBar(),
+                    Expanded(
+                      child: _campeonatosFiltrados.isEmpty
+                          ? _buildEmptyState(
+                              title: 'Nenhum campeonato neste status',
+                              subtitle:
+                                  'Tente outro filtro para ver resultados.',
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                100,
                               ),
-                            );
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.2),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: _buildCampeonatoCard(
-                                  _campeonatosPaginados[index],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                              itemCount: _campeonatosPaginados.length,
+                              itemBuilder: (context, index) {
+                                final delay = index * 0.08;
+                                final animation = CurvedAnimation(
+                                  parent: _animController,
+                                  curve: Interval(
+                                    delay.clamp(0.0, 0.9),
+                                    (delay + 0.5).clamp(0.1, 1.0),
+                                    curve: Curves.easeOutCubic,
+                                  ),
+                                );
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.2),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: _buildCampeonatoCard(
+                                      _campeonatosPaginados[index],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    if (_campeonatosFiltrados.isNotEmpty) _buildPaginationBar(),
+                  ],
                 ),
-                if (_campeonatosFiltrados.isNotEmpty) _buildPaginationBar(),
+                Positioned(right: 16, bottom: 88, child: _buildFab()),
               ],
             ),
+    );
+  }
+
+  Widget _buildFab() {
+    return FloatingActionButton.extended(
+      onPressed: () => _abrirFormulario(),
+      backgroundColor: const Color(0xFFF85C39),
+      icon: const Icon(Icons.add, color: Colors.white),
+      label: const Text(
+        'Novo Campeonato',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -439,7 +466,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.emoji_events_outlined, size: 72, color: Colors.black26),
+          const Icon(Icons.emoji_events_outlined, size: 72, color: Colors.black26),
           const SizedBox(height: 16),
           Text(
             title ?? 'Nenhum campeonato',

@@ -12,6 +12,9 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
 
     List<Profile> findAllByOrderByNomeExibicaoAsc();
 
+    java.util.Optional<Profile> findByEmail(String email);
+
+
     @Query("""
             select p
             from Profile p

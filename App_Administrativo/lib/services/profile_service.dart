@@ -18,8 +18,7 @@ class ProfileService {
   final SupabaseClient? _supabaseOverride;
   final Dio _dio;
 
-  SupabaseClient get _supabase =>
-      _supabaseOverride ?? Supabase.instance.client;
+  SupabaseClient get _supabase => _supabaseOverride ?? Supabase.instance.client;
 
   ProfileService({SupabaseClient? supabase, Dio? dio})
     : _supabaseOverride = supabase,
@@ -27,7 +26,7 @@ class ProfileService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'http://10.0.2.2:8080/api/v1',
+              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
               connectTimeout: const Duration(seconds: 10),
             ),
           );
@@ -101,15 +100,18 @@ class ProfileService {
       final filePath = '${user.id}/avatar.$fileExt';
 
       // 1. Upload para o Supabase Storage
-      await _supabase.storage.from('avatars').upload(
-        filePath,
-        imageFile,
-        fileOptions: const FileOptions(upsert: true),
-      );
+      await _supabase.storage
+          .from('avatars')
+          .upload(
+            filePath,
+            imageFile,
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       // 2. Gera a URL pública com cache-bust
-      final publicUrl =
-          _supabase.storage.from('avatars').getPublicUrl(filePath);
+      final publicUrl = _supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
       final urlComTimestamp =
           '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 

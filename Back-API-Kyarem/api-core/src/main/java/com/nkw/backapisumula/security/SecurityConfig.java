@@ -33,6 +33,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/logs/**").hasRole("admin")
                         // leitura publica (se quiser permitir no MVP, pode ajustar depois)
                         .requestMatchers(HttpMethod.GET, "/api/v1/esportes/**").permitAll()
+                        // verificação pública de acesso admin (usada no login da tela admin)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profiles/check-admin-access").permitAll()
                         // resto precisa auth
                         .anyRequest().authenticated()
                 )

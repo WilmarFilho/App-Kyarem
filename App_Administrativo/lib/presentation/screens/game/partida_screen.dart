@@ -252,7 +252,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     _golsB = widget.partida.placarB;
     _nomeTimeA = widget.partida.equipeA?.nome ?? "Time A";
     _nomeTimeB = widget.partida.equipeB?.nome ?? "Time B";
-    
+
     _periodoAtual = _converterStatusParaPeriodo(widget.partida.status);
     if (_periodoAtual != PeriodoPartida.naoIniciada &&
         _periodoAtual != PeriodoPartida.aguardandoPenaltis) {
@@ -280,16 +280,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       }
     }
 
-    _carregarDadosIniciais().then((_) async {
-      if (_periodoAtual == PeriodoPartida.aguardandoPenaltis ||
-          (_periodoAtual == PeriodoPartida.pausada &&
-              _periodoAntesDoPausa == PeriodoPartida.aguardandoPenaltis)) {
-        await _abrirTelaPenaltis();
-        return;
-      }
-      await _sincronizarCronometro();
-      _initRealtimeListeners();
-    });
+    _carregarDadosIniciais();
   }
 
   void _initRealtimeListeners() {
@@ -299,17 +290,18 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         if (!mounted) return;
         final novoStatus = payload['status']?.toString() ?? '';
         if (novoStatus.isNotEmpty) {
-           final novoPeriodo = _converterStatusParaPeriodo(novoStatus);
-           if (novoPeriodo != _periodoAtual) {
-              setState(() {
-                _periodoAtual = novoPeriodo;
-                if (novoPeriodo == PeriodoPartida.finalizada || novoPeriodo == PeriodoPartida.fechada) {
-                   _rodando = false;
-                   _timer?.cancel();
-                   _timerPausa?.cancel();
-                }
-              });
-           }
+          final novoPeriodo = _converterStatusParaPeriodo(novoStatus);
+          if (novoPeriodo != _periodoAtual) {
+            setState(() {
+              _periodoAtual = novoPeriodo;
+              if (novoPeriodo == PeriodoPartida.finalizada ||
+                  novoPeriodo == PeriodoPartida.fechada) {
+                _rodando = false;
+                _timer?.cancel();
+                _timerPausa?.cancel();
+              }
+            });
+          }
         }
       },
     );
@@ -319,7 +311,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       onInsert: (payload) {
         if (!mounted) return;
         // Atualizar eventos - a lista principal é atualizada por websockets
-        _carregarEventosSalvos(); 
+        _carregarEventosSalvos();
       },
     );
   }
@@ -330,7 +322,6 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     try {
       // Fase 1: carregar tipos de eventos, atletas e nomes em paralelo.
-      // _carregarEventosSalvos depende dessas listas, por isso fica na fase 2.
       await Future.wait([
         _buscarConfiguracoesDeEventos(),
         _carregarAtletas(),
@@ -340,10 +331,24 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       // Fase 2: carregar eventos — agora _tiposDeEventosDisponiveis e
       // _jogadoresA/_jogadoresB já estão preenchidos.
       await _carregarEventosSalvos();
+
+      // Fase 3: Sincronizar cronômetro com os eventos ANTES de liberar a UI
+      if (_periodoAtual == PeriodoPartida.aguardandoPenaltis ||
+          (_periodoAtual == PeriodoPartida.pausada &&
+              _periodoAntesDoPausa == PeriodoPartida.aguardandoPenaltis)) {
+        if (mounted) {
+          await _abrirTelaPenaltis();
+        }
+      } else {
+        await _sincronizarCronometro();
+        _initRealtimeListeners();
+      }
     } catch (e) {
       debugPrint("Erro no carregamento inicial: $e");
     } finally {
-      setState(() => _carregandoDados = false);
+      if (mounted) {
+        setState(() => _carregandoDados = false);
+      }
     }
   }
 
@@ -706,7 +711,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       // Aqui carregamos configurações e regrasEfetivasJson simultaneamente
       final configModalidade = await _partidaService
           .buscarConfiguracaoModalidadeDaPartida(widget.partida.modalidadeId);
-      
+
       if (configModalidade != null) {
         final rules = MatchRules.fromRegras(configModalidade);
         setState(() {
@@ -872,30 +877,42 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       widget.partida.id,
     );
 
-    if (ultimoEvento == null || !mounted) return;
+    if (!mounted) return;
+
+    // Se não encontrou evento, mas a partida está pausada, mantém em 0
+    if (ultimoEvento == null) {
+      if (_periodoAtual == PeriodoPartida.pausada ||
+          _periodoAtual == PeriodoPartida.intervalo) {
+        _timer?.cancel();
+        setState(() => _rodando = false);
+      }
+      return;
+    }
 
     final int segundosAncora = _parseTempoCronometro(
       ultimoEvento['tempo_cronometro'].toString(),
     );
-    final DateTime? timestampAncora = DateTime.tryParse(
-      ultimoEvento['criado_em'].toString(),
-    );
 
-    if (timestampAncora == null) return;
+    final DateTime? timestampAncora = ultimoEvento['criado_em'] != null
+        ? DateTime.tryParse(ultimoEvento['criado_em'].toString())
+        : null;
 
-    // Descobre se o último evento indica pausa ou execução
+    // Identifica pausa usando código (mais confiável) ou nome do tipo de evento
     final tipoId = ultimoEvento['tipo_evento_id']?.toString() ?? '';
+    final tipoCodigo =
+        ultimoEvento['tipo_evento_codigo']?.toString().toUpperCase() ?? '';
     final tipoEvento = _tiposDeEventosDisponiveis.firstWhere(
       (e) => e.id == tipoId,
       orElse: () =>
           TipoEventoEsporte(id: '', nome: '', modalidadeCatalogoId: '', idx: 0),
     );
     final rawNome = tipoEvento.nome.toUpperCase();
-    final periodoEfetivo = _periodoAtual == PeriodoPartida.pausada
-        ? (_periodoAntesDoPausa ?? _periodoAtual)
-        : _periodoAtual;
 
     final eventoIndicaPausa =
+        tipoCodigo.contains('PAUSADA') ||
+        tipoCodigo.contains('PAUSA') ||
+        tipoCodigo.contains('INTERVALO') ||
+        tipoCodigo.contains('FIM_') ||
         rawNome.contains('PAUSADA') ||
         rawNome.contains('PAUSA_TECNICA') ||
         rawNome.contains('INTERVALO') ||
@@ -905,6 +922,10 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         _periodoAtual == PeriodoPartida.pausada ||
         _periodoAtual == PeriodoPartida.intervalo;
 
+    final periodoEfetivo = _periodoAtual == PeriodoPartida.pausada
+        ? (_periodoAntesDoPausa ?? _periodoAtual)
+        : _periodoAtual;
+
     if (partidaPausada || eventoIndicaPausa) {
       // Partida estava pausada: congela no tempo do evento
       _timer?.cancel();
@@ -912,33 +933,59 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         _rodando = false;
         _segundos = segundosAncora;
       });
+      debugPrint(
+        '[Cronômetro] Sincronizado PAUSADO em ${_formatarTempo(segundosAncora)}',
+      );
     } else {
-      // Partida estava rodando: recalcula o tempo considerando o tempo passado
+      // Partida estava rodando: recalcula considerando o tempo passado
+      // Só possível se temos o timestamp do último evento
+      if (timestampAncora == null) {
+        // Sem timestamp: congela no último tempo conhecido
+        _timer?.cancel();
+        setState(() {
+          _rodando = false;
+          _segundos = segundosAncora;
+        });
+        debugPrint(
+          '[Cronômetro] Sem timestamp — congelado em ${_formatarTempo(segundosAncora)}',
+        );
+        return;
+      }
+
       final segundosDecorridos = DateTime.now()
           .toUtc()
           .difference(timestampAncora.toUtc())
           .inSeconds;
 
       int segundosRecuperados = segundosAncora + segundosDecorridos;
+
+      // Não ultrapassa o limite do período se não há acréscimo
       if (periodoEfetivo == PeriodoPartida.primeiroTempo &&
           segundosRecuperados > _matchRules.duracaoPrimeiroTempoSegundos &&
           !_temAcrescimo) {
         segundosRecuperados = _matchRules.duracaoPrimeiroTempoSegundos;
+      } else if (periodoEfetivo == PeriodoPartida.segundoTempo &&
+          segundosRecuperados > _matchRules.duracaoSegundoTempoSegundos &&
+          !_temAcrescimo) {
+        segundosRecuperados = _matchRules.duracaoSegundoTempoSegundos;
       }
 
       _timer?.cancel();
-      _timerPausa?.cancel(); // ← novo
+      _timerPausa?.cancel();
       setState(() {
         _rodando = true;
         _segundos = segundosRecuperados;
-        _partidaJaIniciou = true; // ← novo
+        _partidaJaIniciou = true;
       });
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (mounted) {
-          setState(() => _segundos++); // só incrementa
-          _verificarFimPeriodo(); // fora do setState
+          setState(() => _segundos++);
+          _verificarFimPeriodo();
         }
       });
+      debugPrint(
+        '[Cronômetro] Sincronizado RODANDO em ${_formatarTempo(segundosRecuperados)}',
+      );
     }
   }
 
@@ -1423,13 +1470,15 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
 
     debugPrint("PAUSA TECNICA FINALIZADA");
 
-    unawaited(_partidaService.atualizarPartida(
-      widget.partida.id,
-      novoStatus: 'pausada',
-      periodoAntesPausa: _periodoAntesDoPausa == null
-          ? null
-          : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
-    ));
+    unawaited(
+      _partidaService.atualizarPartida(
+        widget.partida.id,
+        novoStatus: 'pausada',
+        periodoAntesPausa: _periodoAntesDoPausa == null
+            ? null
+            : _converterPeriodoParaStatus(_periodoAntesDoPausa!),
+      ),
+    );
 
     _registrarEventoComEquipe(
       'FIM_PAUSA_TECNICA',
@@ -1476,7 +1525,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           debugPrint('AA intervalo');
           if (_periodoAntesDoPausa == PeriodoPartida.primeiroTempo) {
             eventoParaRegistrar = 'INICIO_2_TEMPO';
-            tempoEvento = _formatarTempo(_matchRules.duracaoPrimeiroTempoSegundos);
+            tempoEvento = _formatarTempo(
+              _matchRules.duracaoPrimeiroTempoSegundos,
+            );
             atualizarServico = () => _partidaService.atualizarPartida(
               widget.partida.id,
               novoStatus: '2° tempo',

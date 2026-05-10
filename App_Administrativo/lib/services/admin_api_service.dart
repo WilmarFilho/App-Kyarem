@@ -25,7 +25,7 @@ class AdminApiService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'http://10.0.2.2:8080/api/v1',
+              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
               connectTimeout: const Duration(seconds: 10),
             ),
           ),
@@ -588,7 +588,9 @@ class AdminApiService {
     String modalidadeCatalogoId,
   ) async {
     try {
-      final res = await _dio.get('/esportes/$modalidadeCatalogoId/tipos-eventos');
+      final res = await _dio.get(
+        '/esportes/$modalidadeCatalogoId/tipos-eventos',
+      );
       return (res.data as List)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
@@ -619,9 +621,7 @@ class AdminApiService {
         '/modalidades-catalogo/$modalidadeCatalogoId/campeonatos',
       );
       return (res.data as List)
-          .map(
-            (e) => ModalidadeCampeonato.fromMap(e as Map<String, dynamic>),
-          )
+          .map((e) => ModalidadeCampeonato.fromMap(e as Map<String, dynamic>))
           .toList();
     } catch (e) {
       debugPrint("Erro listarAssociacoesModalidadeCatalogo: $e");
@@ -652,7 +652,9 @@ class AdminApiService {
     }
   }
 
-  Future<bool> removerAssociacaoModalidade(String modalidadeCampeonatoId) async {
+  Future<bool> removerAssociacaoModalidade(
+    String modalidadeCampeonatoId,
+  ) async {
     try {
       await _dio.delete('/modalidades/$modalidadeCampeonatoId');
       return true;
@@ -811,7 +813,9 @@ class AdminApiService {
 
   // ============== ATLETAS DO TIME ==============
   /// Retorna a lista de atletas de uma equipe inscrita no campeonato.
-  Future<List<Map<String, dynamic>>> listarAtletasDoTime(String campeonatoTimeId) async {
+  Future<List<Map<String, dynamic>>> listarAtletasDoTime(
+    String campeonatoTimeId,
+  ) async {
     try {
       final res = await _dio.get('/times/campeonato/$campeonatoTimeId/atletas');
       return (res.data as List).cast<Map<String, dynamic>>();

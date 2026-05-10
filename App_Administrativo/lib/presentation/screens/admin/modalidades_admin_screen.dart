@@ -146,12 +146,19 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         final val = g.isEmpty ? 'indefinido' : g.toLowerCase();
         return val == genero;
       }).length;
+      final label = genero == 'indefinido'
+          ? 'Indefinido'
+          : genero
+              .replaceAll('_', ' ')
+              .split(' ')
+              .map((w) => w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1).toLowerCase())
+              .join(' ');
       options.add(
         _StatusOption(
           value: genero,
-          label: genero == 'indefinido' ? 'Indefinido' : genero.toUpperCase(),
+          label: label,
           count: count,
-          color: Colors.blueGrey,
+          color: const Color(0xFFF85C39),
         ),
       );
     }
@@ -236,71 +243,89 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
           ],
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72),
-        child: FloatingActionButton.extended(
-          onPressed: () => _abrirFormulario(),
-          backgroundColor: const Color(0xFFF85C39),
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            'Nova modalidade',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFF85C39)),
             )
           : _modalidades.isEmpty
-          ? const Center(
-              child: Text(
-                'Nenhuma modalidade cadastrada',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            )
-          : Column(
+          ? Stack(
               children: [
-                _buildStatusFilterBar(),
-                Expanded(
-                  child: _modalidadesFiltradas.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Nenhuma modalidade neste filtro',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          itemCount: _modalidadesPaginadas.length,
-                          itemBuilder: (context, index) {
-                            final animation = CurvedAnimation(
-                              parent: _animController,
-                              curve: Interval(
-                                (index * 0.08).clamp(0.0, 0.9),
-                                ((index * 0.08) + 0.5).clamp(0.1, 1.0),
-                                curve: Curves.easeOutCubic,
-                              ),
-                            );
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.15),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: _buildCard(_modalidadesPaginadas[index]),
-                              ),
-                            );
-                          },
-                        ),
+                const Center(
+                  child: Text(
+                    'Nenhuma modalidade cadastrada',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
                 ),
-                if (_modalidadesFiltradas.isNotEmpty) _buildPaginationBar(),
+                Positioned(
+                  right: 16,
+                  bottom: 88,
+                  child: _buildFab(),
+                ),
+              ],
+            )
+          : Stack(
+              children: [
+                Column(
+                  children: [
+                    _buildStatusFilterBar(),
+                    Expanded(
+                      child: _modalidadesFiltradas.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Nenhuma modalidade neste filtro',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                              itemCount: _modalidadesPaginadas.length,
+                              itemBuilder: (context, index) {
+                                final animation = CurvedAnimation(
+                                  parent: _animController,
+                                  curve: Interval(
+                                    (index * 0.08).clamp(0.0, 0.9),
+                                    ((index * 0.08) + 0.5).clamp(0.1, 1.0),
+                                    curve: Curves.easeOutCubic,
+                                  ),
+                                );
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.15),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: _buildCard(_modalidadesPaginadas[index]),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    if (_modalidadesFiltradas.isNotEmpty) _buildPaginationBar(),
+                  ],
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: 88,
+                  child: _buildFab(),
+                ),
               ],
             ),
+    );
+  }
+
+  Widget _buildFab() {
+    return FloatingActionButton.extended(
+      onPressed: () => _abrirFormulario(),
+      backgroundColor: const Color(0xFFF85C39),
+      icon: const Icon(Icons.add, color: Colors.white),
+      label: const Text(
+        'Nova modalidade',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
     );
   }
 

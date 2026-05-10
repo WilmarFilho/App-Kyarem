@@ -9,12 +9,14 @@ import org.springframework.messaging.handler.annotation.Header;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Consome eventos de partida e atualiza os read models do schema public:
+ * Consome eventos de domínio e atualiza os read models do schema public:
+ *  - public.campeonatos_vitrine
+ *  - public.modalidades_vitrine
+ *  - public.perfis_atletas
+ *  - public.perfis_atleticas
  *  - public.partidas_ao_vivo
  *  - public.partidas_historico
  *  - public.eventos_partida_publicos
- *  - public.estatisticas_partida
- *  - public.timeline_campeonato
  *
  * Cada método é um consumidor independente com ACK manual configurado
  * para garantir que mensagens não sejam perdidas em caso de falha.

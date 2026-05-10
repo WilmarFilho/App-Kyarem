@@ -60,6 +60,18 @@ public class RabbitConfig {
         return BindingBuilder.bind(projectionSocialQueue).to(kyaremExchange).with("social.#");
     }
 
+    @Bean public Binding bindProjectionCampeonato(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("campeonato.#");
+    }
+
+    @Bean public Binding bindProjectionAtletica(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("atletica.#");
+    }
+
+    @Bean public Binding bindProjectionProfile(Queue projectionMatchQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(projectionMatchQueue).to(kyaremExchange).with("profile.#");
+    }
+
     @Bean public Binding bindMetricsRecalcClosed(Queue metricsRecalcQueue, TopicExchange kyaremExchange) {
         return BindingBuilder.bind(metricsRecalcQueue).to(kyaremExchange).with("sumula.fechada");
     }

@@ -142,7 +142,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
   String _motivoBloqueio(Partida p) {
     final s = p.status.toLowerCase();
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-    
+
     if (p.criadoPor != currentUserId) {
       return 'Você não pode editar partidas criadas por outros árbitros.';
     }
@@ -271,7 +271,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
           value: status,
           label: _statusLabel(status),
           count: count,
-          color: _statusColor(status),
+          color: const Color(0xFFF85C39),
         ),
       );
     }
@@ -282,9 +282,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
   List<Partida> get _partidasFiltradas {
     if (_statusSelecionado == 'TODAS') return _partidas;
     return _partidas
-        .where(
-          (partida) => _statusKey(partida.status) == _statusSelecionado,
-        )
+        .where((partida) => _statusKey(partida.status) == _statusSelecionado)
         .toList();
   }
 
@@ -307,10 +305,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
 
   List<Partida> get _partidasPaginadas {
     final inicio = _paginaAtual * _itensPorPagina;
-    final fim = (inicio + _itensPorPagina).clamp(
-      0,
-      _partidasFiltradas.length,
-    );
+    final fim = (inicio + _itensPorPagina).clamp(0, _partidasFiltradas.length);
     if (inicio >= _partidasFiltradas.length) {
       return const <Partida>[];
     }
@@ -403,71 +398,89 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
           ),
         ],
       ),
-      // FAB só aparece se tiver permissão de edição
-      floatingActionButton: widget.canEdit
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 72),
-              child: FloatingActionButton.extended(
-                onPressed: () => _abrirFormulario(),
-                backgroundColor: const Color(0xFFF85C39),
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  'Nova Partida',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            )
-          : null,
+      // FAB só aparece dentro do body após carregar
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFF85C39)),
             )
           : _partidas.isEmpty
-          ? _buildEmptyState()
-          : Column(
+          ? Stack(
               children: [
-                _buildStatusFilterBar(),
-                Expanded(
-                  child: _partidasFiltradas.isEmpty
-                      ? _buildEmptyState(
-                          title: 'Nenhuma partida nesse status',
-                          subtitle:
-                              'Tente outro filtro para ver mais resultados.',
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          itemCount: _partidasPaginadas.length,
-                          itemBuilder: (context, index) {
-                            final delay = index * 0.08;
-                            final animation = CurvedAnimation(
-                              parent: _animController,
-                              curve: Interval(
-                                delay.clamp(0.0, 0.9),
-                                (delay + 0.5).clamp(0.1, 1.0),
-                                curve: Curves.easeOutCubic,
-                              ),
-                            );
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.2),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: _buildPartidaCard(
-                                  _partidasPaginadas[index],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                _buildEmptyState(),
+                if (widget.canEdit)
+                  Positioned(
+                    right: 16,
+                    bottom: 88,
+                    child: _buildFab(),
+                  ),
+              ],
+            )
+          : Stack(
+              children: [
+                Column(
+                  children: [
+                    _buildStatusFilterBar(),
+                    Expanded(
+                      child: _partidasFiltradas.isEmpty
+                          ? _buildEmptyState(
+                              title: 'Nenhuma partida nesse status',
+                              subtitle:
+                                  'Tente outro filtro para ver mais resultados.',
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                              itemCount: _partidasPaginadas.length,
+                              itemBuilder: (context, index) {
+                                final delay = index * 0.08;
+                                final animation = CurvedAnimation(
+                                  parent: _animController,
+                                  curve: Interval(
+                                    delay.clamp(0.0, 0.9),
+                                    (delay + 0.5).clamp(0.1, 1.0),
+                                    curve: Curves.easeOutCubic,
+                                  ),
+                                );
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.2),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: _buildPartidaCard(
+                                      _partidasPaginadas[index],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    if (_partidasFiltradas.isNotEmpty) _buildPaginationBar(),
+                  ],
                 ),
-                if (_partidasFiltradas.isNotEmpty) _buildPaginationBar(),
+                if (widget.canEdit)
+                  Positioned(
+                    right: 16,
+                    bottom: 88,
+                    child: _buildFab(),
+                  ),
               ],
             ),
+    );
+  }
+
+  Widget _buildFab() {
+    return FloatingActionButton.extended(
+      onPressed: () => _abrirFormulario(),
+      backgroundColor: const Color(0xFFF85C39),
+      icon: const Icon(Icons.add, color: Colors.white),
+      label: const Text(
+        'Nova Partida',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -573,9 +586,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                 ? () => _mudarPagina(_paginaAtual - 1)
                 : null,
             icon: const Icon(Icons.chevron_left_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey.shade100,
-            ),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
           ),
           const SizedBox(width: 8),
           ...List.generate(_totalPaginas, (index) {
@@ -611,9 +622,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                 ? () => _mudarPagina(_paginaAtual + 1)
                 : null,
             icon: const Icon(Icons.chevron_right_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey.shade100,
-            ),
+            style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100),
           ),
         ],
       ),

@@ -1,10 +1,10 @@
 package com.nkw.backapisumula.competicao.service;
 
 import com.nkw.backapisumula.competicao.Campeonato;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.competicao.repo.CampeonatoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +18,11 @@ public class CampeonatoService {
     private static final Logger log = LoggerFactory.getLogger(CampeonatoService.class);
 
     private final CampeonatoRepository repo;
-    private final JdbcTemplate jdbc;
+    private final EventPublisherService eventPublisherService;
 
-    public CampeonatoService(CampeonatoRepository repo, JdbcTemplate jdbc) {
+    public CampeonatoService(CampeonatoRepository repo, EventPublisherService eventPublisherService) {
         this.repo = repo;
-        this.jdbc = jdbc;
+        this.eventPublisherService = eventPublisherService;
     }
 
     public List<Campeonato> list() {
@@ -41,7 +41,7 @@ public class CampeonatoService {
         if (c.getStatus() == null) c.setStatus("AGENDADO");
         c.setCriadoEm(OffsetDateTime.now());
         Campeonato saved = repo.save(c);
-        replicarParaPublic(saved);
+        publishCampeonatoEvent(saved, "CampeonatoCriado");
         return saved;
     }
 
@@ -55,7 +55,7 @@ public class CampeonatoService {
         if (patch.getEscudoUrl() != null) c.setEscudoUrl(patch.getEscudoUrl().trim());
         if (patch.getStatus() != null) c.setStatus(patch.getStatus().trim());
         Campeonato saved = repo.save(c);
-        replicarParaPublic(saved);
+        publishCampeonatoEvent(saved, "CampeonatoAtualizado");
         return saved;
     }
 
@@ -63,51 +63,14 @@ public class CampeonatoService {
     public void delete(UUID id) {
         Campeonato c = getOrThrow(id);
         repo.delete(c);
-        removerDoPublic(id);
+        eventPublisherService.publish("Campeonato", id.toString(), "CampeonatoExcluido", java.util.Map.of());
     }
 
-    // -------------------------------------------------------------------------
-    // Replicação para o schema public (lido pelo App Público via Supabase SDK)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Faz UPSERT de um campeonato em public.campeonatos_vitrine.
-     * Chamado sempre que um campeonato é criado ou atualizado.
-     */
-    private void replicarParaPublic(Campeonato c) {
-        String sql = """
-                INSERT INTO public.campeonatos_vitrine (
-                    campeonato_id, nome, slug, escudo_url,
-                    data_inicio, data_fim, status, atualizado_em
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-                ON CONFLICT (campeonato_id) DO UPDATE SET
-                    nome          = EXCLUDED.nome,
-                    slug          = EXCLUDED.slug,
-                    escudo_url    = EXCLUDED.escudo_url,
-                    data_inicio   = EXCLUDED.data_inicio,
-                    data_fim      = EXCLUDED.data_fim,
-                    status        = EXCLUDED.status,
-                    atualizado_em = NOW()
-                """;
-        try {
-            jdbc.update(sql,
-                    c.getId(),
-                    c.getNome(),
-                    null,
-                    c.getEscudoUrl(),
-                    c.getDataInicio(),
-                    c.getDataFim(),
-                    c.getStatus()
-            );
-            log.info("Campeonato {} replicado para public.campeonatos_vitrine", c.getId());
-        } catch (Exception ex) {
-            log.error("Falha ao replicar campeonato {} para public: {}", c.getId(), ex.getMessage());
-            throw ex;
-        }
-    }
-
-    private void removerDoPublic(UUID id) {
-        jdbc.update("DELETE FROM public.campeonatos_vitrine WHERE campeonato_id = ?", id);
-        log.info("Campeonato {} removido de public.campeonatos_vitrine", id);
+    private void publishCampeonatoEvent(Campeonato campeonato, String eventType) {
+        eventPublisherService.publish("Campeonato", campeonato.getId().toString(), eventType, java.util.Map.of(
+                "campeonatoId", campeonato.getId().toString(),
+                "status", campeonato.getStatus() == null ? "" : campeonato.getStatus()
+        ));
+        log.info("Campeonato {} enfileirado para projeção pública via outbox ({})", campeonato.getId(), eventType);
     }
 }
