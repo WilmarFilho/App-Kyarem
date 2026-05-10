@@ -202,7 +202,7 @@ INSERT INTO public.campeonatos_vitrine (
     campeonato_id, nome, slug, nivel, data_inicio, data_fim, status, escudo_url, criado_em, atualizado_em
 )
 SELECT
-    c.id, c.nome, c.slug, c.nivel, c.data_inicio, c.data_fim, c.status, c.escudo_url, c.criado_em, now()
+    c.id, c.nome, NULL, c.nivel, c.data_inicio, c.data_fim, c.status, c.escudo_url, c.criado_em, now()
 FROM operational.campeonatos c;
 
 INSERT INTO public.modalidades_vitrine (
@@ -340,7 +340,7 @@ SELECT
     p.placar_b,
     p.versao_estado,
     c.nome,
-    c.slug,
+    NULL,
     esp.nome,
     mc.nome,
     mc.codigo,

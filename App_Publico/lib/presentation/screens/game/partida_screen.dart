@@ -51,6 +51,7 @@ class JogoDetalhesScreen extends StatefulWidget {
 
 class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   // ← status atual da partida; começa vazio para indicar "ainda não chegou"
+  // ignore: unused_field
   String _statusAtual = '';
 
   // ── CRONÔMETRO PÚBLICO ──────────────────────────────────────────────
@@ -70,7 +71,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   late final RealtimeService _realtimeService = RealtimeService();
 
   final _partidaController = StreamController<Map<String, dynamic>>.broadcast();
-  final _eventosController = StreamController<List<Map<String, dynamic>>>.broadcast();
+  final _eventosController =
+      StreamController<List<Map<String, dynamic>>>.broadcast();
 
   Map<String, dynamic>? _partidaAtual;
   List<Map<String, dynamic>> _eventosAtuais = [];
@@ -112,7 +114,9 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     _carregarDadosIniciais();
 
     // 2. Conecta no SSE
-    _sseSubscription = _realtimeService.listenToMatch(widget.partidaId).listen((evento) {
+    _sseSubscription = _realtimeService.listenToMatch(widget.partidaId).listen((
+      evento,
+    ) {
       if (!mounted) return;
 
       final payload = _normalizarEventoRealtime(evento);
@@ -262,7 +266,9 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     bool emExecucao = false;
 
     for (final evento in eventosAsc) {
-      final timestamp = DateTime.tryParse(evento['criado_em']?.toString() ?? '');
+      final timestamp = DateTime.tryParse(
+        evento['criado_em']?.toString() ?? '',
+      );
       if (timestamp == null) continue;
 
       final code = _eventTypeCode(evento);
@@ -271,10 +277,14 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
           ? _parseTempoCronometro(tempoRaw)
           : null;
 
-      final segundosNoMomento = tempoEvento ??
+      final segundosNoMomento =
+          tempoEvento ??
           (emExecucao && timestampBase != null
               ? segundosBase +
-                    timestamp.toUtc().difference(timestampBase.toUtc()).inSeconds
+                    timestamp
+                        .toUtc()
+                        .difference(timestampBase.toUtc())
+                        .inSeconds
               : segundosBase);
 
       if (code == 'PARTIDA_PAUSADA' ||
@@ -306,7 +316,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     final deveRodar = _statusRodando.contains(status);
     final segundosExibidos = (deveRodar && timestampBase != null)
         ? segundosBase +
-            DateTime.now().toUtc().difference(timestampBase.toUtc()).inSeconds
+              DateTime.now().toUtc().difference(timestampBase.toUtc()).inSeconds
         : segundosBase;
 
     _cronometroTicker?.cancel();
