@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
 
 class BottomNavigationWidget extends StatefulWidget {
-  final String? currentRoute;
   final int? currentIndex;
   final ValueChanged<int>? onTabSelected;
 
   const BottomNavigationWidget({
     super.key,
-    this.currentRoute,
     this.currentIndex,
     this.onTabSelected,
   });
@@ -46,9 +44,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             ),
           ],
         ),
-        child: widget.currentRoute == '/perfil'
-            ? _buildBackButton()
-            : _buildStandardNav(),
+        child: _buildStandardNav(),
       ),
     );
   }
@@ -57,25 +53,21 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildNavItem(Icons.home_max_rounded, 'Início', '/home', 0),
-        _buildNavItem(Icons.sports_soccer_rounded, 'Jogos', '/modalidades', 1),
-        _buildNavItem(Icons.settings_rounded, 'Ajustes', '/configuracoes', 2),
+        _buildNavItem(Icons.home_max_rounded, 'Início', 0),
+        _buildNavItem(Icons.sports_soccer_rounded, 'Jogos', 1),
+        _buildNavItem(Icons.settings_rounded, 'Ajustes', 2),
       ],
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, String route, int index) {
-    final isSelected = widget.currentIndex != null
-        ? widget.currentIndex == index
-        : widget.currentRoute == route;
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = widget.currentIndex != null && widget.currentIndex == index;
 
     return GestureDetector(
       onTap: () {
         if (!isSelected) {
           if (widget.onTabSelected != null) {
             widget.onTabSelected!(index);
-          } else {
-            Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
           }
         }
       },
@@ -116,29 +108,6 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBackButton() {
-    return InkWell(
-      onTap: () =>
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.arrow_back_ios_new_rounded, color: brandRed, size: 16),
-          const SizedBox(width: 12),
-          Text(
-            'VOLTAR',
-            style: TextStyle(
-              color: brandRed,
-
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-            ),
-          ),
-        ],
       ),
     );
   }

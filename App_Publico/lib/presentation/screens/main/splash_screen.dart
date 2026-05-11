@@ -3,6 +3,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kyarem_eventos_publico/models/campeonato_model.dart';
 import 'package:kyarem_eventos_publico/core/app_globals.dart';
 
@@ -22,7 +23,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    // Pequeno delay para garantir que a imagem seja renderizada
     await Future.delayed(const Duration(milliseconds: 1500));
 
     if (!mounted) return;
@@ -45,9 +45,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    // Decide para onde ir baseado na sessão
-    final session = Supabase.instance.client.auth.currentSession;
-    final nextRoute = session != null ? '/home' : '/login';
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingSeen = prefs.getBool('public_onboarding_seen') ?? false;
+    final nextRoute = onboardingSeen ? '/home' : '/login';
 
     Navigator.of(context).pushReplacementNamed(nextRoute);
   }

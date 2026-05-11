@@ -57,7 +57,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
     setState(() => _isLoading = true);
     final lista = await _partidaService.listarTodasPartidas();
 
-    // Se filtro por atlética informado, aplica localmente
+    // Se filtro por atlÃ©tica informado, aplica localmente
     final filtradas = widget.atleticaId != null
         ? lista
               .where(
@@ -86,7 +86,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
           'Excluir Partida?',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text('Essa ação não pode ser desfeita.'),
+        content: const Text('Essa aÃ§Ã£o nÃ£o pode ser desfeita.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -111,7 +111,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(sucesso ? 'Partida excluída!' : 'Erro ao excluir.'),
+            content: Text(sucesso ? 'Partida excluÃ­da!' : 'Erro ao excluir.'),
             backgroundColor: sucesso ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -132,24 +132,24 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
     if (result == true) _carregarPartidas();
   }
 
-  /// Só partidas com status 'agendada' podem ser editadas/excluídas e apenas pelo criador.
+  /// SÃ³ partidas com status 'agendada' podem ser editadas/excluÃ­das e apenas pelo criador.
   bool _podeEditar(Partida p) {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     return p.status.toLowerCase() == 'agendada' && p.criadoPor == currentUserId;
   }
 
-  /// Mensagem explicativa quando a edição não é permitida.
+  /// Mensagem explicativa quando a ediÃ§Ã£o nÃ£o Ã© permitida.
   String _motivoBloqueio(Partida p) {
     final s = p.status.toLowerCase();
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
     if (p.criadoPor != currentUserId) {
-      return 'Você não pode editar partidas criadas por outros árbitros.';
+      return 'VocÃª nÃ£o pode editar partidas criadas por outros Ã¡rbitros.';
     }
     if (s == 'finalizada' || s == 'fechada')
-      return 'Partida encerrada não pode ser editada.';
+      return 'Partida encerrada nÃ£o pode ser editada.';
     if (s == 'agendada') return '';
-    return 'Partida em andamento não pode ser editada.';
+    return 'Partida em andamento nÃ£o pode ser editada.';
   }
 
   void _tentarEditar(Partida p) {
@@ -178,15 +178,15 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case '1° tempo':
-      case '1º tempo':
-      case '2° tempo':
-      case '2º tempo':
+      case '1Â° tempo':
+      case '1Âº tempo':
+      case '2Â° tempo':
+      case '2Âº tempo':
       case 'intervalo':
-      case 'prorrogação':
-      case 'acréscimo':
+      case 'prorrogaÃ§Ã£o':
+      case 'acrÃ©scimo':
         return Colors.green;
-      case 'pênaltis':
+      case 'pÃªnaltis':
         return const Color(0xFFF85C39);
       case 'finalizada':
         return Colors.grey;
@@ -201,20 +201,20 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
 
   String _statusLabel(String status) {
     switch (status.toLowerCase()) {
-      case '1° tempo':
-      case '1º tempo':
-        return '1° Tempo';
-      case '2° tempo':
-      case '2º tempo':
-        return '2° Tempo';
+      case '1Â° tempo':
+      case '1Âº tempo':
+        return '1Â° Tempo';
+      case '2Â° tempo':
+      case '2Âº tempo':
+        return '2Â° Tempo';
       case 'intervalo':
         return 'Intervalo';
-      case 'prorrogação':
-        return 'Prorrogação';
-      case 'acréscimo':
-        return 'Acréscimo';
-      case 'pênaltis':
-        return 'Pênaltis';
+      case 'prorrogaÃ§Ã£o':
+        return 'ProrrogaÃ§Ã£o';
+      case 'acrÃ©scimo':
+        return 'AcrÃ©scimo';
+      case 'pÃªnaltis':
+        return 'PÃªnaltis';
       case 'pausada':
         return 'Pausada';
       case 'finalizada':
@@ -251,13 +251,13 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
 
     final statusOrdem = <String>[
       'agendada',
-      '1° tempo',
+      '1Â° tempo',
       'intervalo',
-      '2° tempo',
-      'prorrogação',
-      'acréscimo',
+      '2Â° tempo',
+      'prorrogaÃ§Ã£o',
+      'acrÃ©scimo',
       'pausada',
-      'pênaltis',
+      'pÃªnaltis',
       'finalizada',
       'fechada',
     ];
@@ -289,10 +289,10 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
   String _statusKey(String status) {
     final normalized = status.trim().toLowerCase();
     switch (normalized) {
-      case '1º tempo':
-        return '1° tempo';
-      case '2º tempo':
-        return '2° tempo';
+      case '1Âº tempo':
+        return '1Â° tempo';
+      case '2Âº tempo':
+        return '2Â° tempo';
       default:
         return normalized;
     }
@@ -382,7 +382,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
-                      '👁 Leitura',
+                      'ðŸ‘ Leitura',
                       style: TextStyle(fontSize: 10, color: Colors.white),
                     ),
                   ),
@@ -398,7 +398,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
           ),
         ],
       ),
-      // FAB só aparece dentro do body após carregar
+      // FAB sÃ³ aparece dentro do body apÃ³s carregar
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFF85C39)),
@@ -470,15 +470,30 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
   }
 
   Widget _buildFab() {
-    return FloatingActionButton.extended(
-      onPressed: () => _abrirFormulario(),
-      backgroundColor: const Color(0xFFF85C39),
-      icon: const Icon(Icons.add, color: Colors.white),
-      label: const Text(
-        'Nova Partida',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.5),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: _animController,
+          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+        )),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Nova Partida',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ),
     );
@@ -574,7 +589,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
@@ -653,14 +668,14 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          // Em modo edição: abre formulário. Em leitura: expansão de detalhes (TODO futuro)
+          // Em modo ediÃ§Ã£o: abre formulÃ¡rio. Em leitura: expansÃ£o de detalhes (TODO futuro)
           onTap: widget.canEdit ? () => _tentarEditar(p) : null,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cabeçalho: status + modalidade + ações (só se canEdit)
+                // CabeÃ§alho: status + modalidade + aÃ§Ãµes (sÃ³ se canEdit)
                 Row(
                   children: [
                     Container(
@@ -706,9 +721,9 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                       ),
                     ],
                     const Spacer(),
-                    // Ações só visíveis para quem pode editar
+                    // AÃ§Ãµes sÃ³ visÃ­veis para quem pode editar
                     if (widget.canEdit) ...[
-                      // Editar — só se agendada
+                      // Editar â€” sÃ³ se agendada
                       Tooltip(
                         message: _podeEditar(p)
                             ? 'Editar partida'
@@ -729,11 +744,11 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // Excluir — só se agendada
+                      // Excluir â€” sÃ³ se agendada
                       Tooltip(
                         message: _podeEditar(p)
                             ? 'Excluir partida'
-                            : 'Só partidas agendadas podem ser excluídas',
+                            : 'SÃ³ partidas agendadas podem ser excluÃ­das',
                         child: IconButton(
                           icon: Icon(
                             Icons.delete_rounded,
@@ -775,7 +790,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          // Atlética do time A
+                          // AtlÃ©tica do time A
                           if (p.equipeA?.atletica?.nome != null)
                             Text(
                               p.equipeA!.atletica!.nome,
@@ -795,7 +810,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                       child: Column(
                         children: [
                           Text(
-                            '${p.placarA} × ${p.placarB}',
+                            '${p.placarA} Ã— ${p.placarB}',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -931,7 +946,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
           Text(
             title ??
                 (widget.atleticaId != null
-                    ? 'Nenhuma partida da sua atlética'
+                    ? 'Nenhuma partida da sua atlÃ©tica'
                     : 'Nenhuma Partida'),
             style: TextStyle(
               color: Colors.grey.shade800,
@@ -966,3 +981,4 @@ class _StatusOption {
     required this.color,
   });
 }
+

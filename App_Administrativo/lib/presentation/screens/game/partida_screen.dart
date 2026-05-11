@@ -321,6 +321,12 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     setState(() => _carregandoDados = true);
 
     try {
+      // Atualizar o status da partida antes de carregar o resto para garantir que o _sincronizarCronometro funcione
+      final partidaAtualizada = await _partidaService.buscarPartidaPorId(widget.partida.id);
+      if (partidaAtualizada != null) {
+        _periodoAtual = _converterStatusParaPeriodo(partidaAtualizada.status);
+      }
+
       // Fase 1: carregar tipos de eventos, atletas e nomes em paralelo.
       await Future.wait([
         _buscarConfiguracoesDeEventos(),

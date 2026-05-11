@@ -113,7 +113,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     final ok = await _api.excluirModalidadeCatalogo(modalidade.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Modalidade excluída.' : 'Erro ao excluir.')),
+      SnackBar(content: Text(ok ? 'Modalidade excluÃ­da.' : 'Erro ao excluir.')),
     );
     if (ok) {
       await _carregar();
@@ -237,7 +237,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
               ),
             ),
             Text(
-              'Catálogo esportivo',
+              'CatÃ¡logo esportivo',
               style: TextStyle(fontSize: 12, color: Colors.white70),
             ),
           ],
@@ -318,13 +318,28 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
   }
 
   Widget _buildFab() {
-    return FloatingActionButton.extended(
-      onPressed: () => _abrirFormulario(),
-      backgroundColor: const Color(0xFFF85C39),
-      icon: const Icon(Icons.add, color: Colors.white),
-      label: const Text(
-        'Nova modalidade',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.5),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: _animController,
+          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+        )),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Nova modalidade',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
@@ -347,7 +362,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${modalidade.esporteNome ?? 'Sem esporte'} · ${modalidade.genero}',
+          '${modalidade.esporteNome ?? 'Sem esporte'} Â· ${modalidade.genero}',
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -393,7 +408,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
               ),
               const SizedBox(width: 8),
               const Text(
-                'Filtrar por gênero',
+                'Filtrar por gÃªnero',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const Spacer(),
@@ -457,7 +472,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
@@ -526,3 +541,4 @@ class _StatusOption {
     required this.color,
   });
 }
+

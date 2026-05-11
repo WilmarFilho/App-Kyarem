@@ -285,9 +285,10 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 ),
               ],
             ),
-
-            // 4. Navigation no topo da Stack
-            const BottomNavigationWidget(currentRoute: '/modalidades'),
+           const Align(
+            alignment: Alignment.bottomCenter,
+            child: BottomNavigationWidget(currentIndex: 1),
+          ),
           ],
         ),
       ),

@@ -10,54 +10,24 @@ import 'firebase_options.dart';
 import 'models/campeonato_model.dart';
 import 'core/app_globals.dart';
 import 'presentation/screens/main/main_screen.dart';
-import 'presentation/screens/auth/login_screen.dart';
-import 'presentation/screens/auth/reset_password_screen.dart';
-import 'presentation/screens/main/perfil_screen.dart';
+import 'presentation/screens/auth/onboarding_screen.dart';
 import 'presentation/screens/main/modalidades_screen.dart';
 import 'presentation/screens/main/configuracoes_screen.dart';
-import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/main/splash_screen.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 Future<void> main() async {
-  // 1. Garante a inicialização dos bindings do Flutter
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-
-  // Preserva a splash nativa até o app estar pronto
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
-  // 2. Carrega variáveis do .env (ex: CAMPEONATO_ID)
   await dotenv.load(fileName: '.env');
-
-  // Inicializa o Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Inicializa serviço de mensagens do Firebase
   await FirebaseMessagingService().initNotifications();
-
-  // 3. Inicializa o Supabase ANTES de qualquer outra coisa
   await Supabase.initialize(
     url: 'https://hlgnackuzfhkhloemtey.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsZ25hY2t1emZoa2hsb2VtdGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MjUyNzIsImV4cCI6MjA4NjIwMTI3Mn0.8jq8Anq419bzO94DqCrCcNAJSOsiqGQ8UiFsEO6ibH4',
   );
-
-  // 4. Inicializa a localização para datas (pt_BR)
   await initializeDateFormatting('pt_BR', null);
-
-  // 5. Escuta mudanças de autenticação (Recuperação de senha)
-  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-    if (data.event == AuthChangeEvent.passwordRecovery) {
-      navigatorKey.currentState?.pushNamedAndRemoveUntil(
-        '/reset-password',
-        (route) => false,
-      );
-    }
-  });
-
-  // 6. Roda o app apenas UMA vez
   runApp(const MyApp());
 }
 
@@ -66,12 +36,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Removemos a preservação da splash nativa aqui, para que o Flutter Splash apareça
     FlutterNativeSplash.remove();
 
     return MaterialApp(
       title: 'Intermeds',
-      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -90,11 +58,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
+        '/login': (context) => const OnboardingScreen(),
         '/home': (context) => const MainScreen(initialIndex: 0),
-        '/reset-password': (context) => const ResetPasswordScreen(),
-        '/perfil': (context) => const PerfilScreen(),
         '/modalidades': (context) => ModalidadesScreen(
           campeonato: AppGlobals.campeonatoAtivo ?? Campeonato(id: '', nome: 'Campeonato'),
         ),

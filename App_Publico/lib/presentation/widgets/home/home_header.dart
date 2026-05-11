@@ -46,27 +46,6 @@ class HomeHeader extends StatelessWidget {
 
   const HomeHeader({super.key, this.collapseProgress = 0.0});
 
-  Future<String> _fetchUserName() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return 'Usuário';
-      final data = await Supabase.instance.client
-          .from('profiles')
-          .select('nome_exibicao')
-          .eq('id', user.id)
-          .single();
-      return data['nome_exibicao'] ?? 'Árbitro';
-    } catch (e) {
-      return 'Árbitro';
-    }
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    await Supabase.instance.client.auth.signOut();
-    if (context.mounted)
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-  }
-
   @override
   Widget build(BuildContext context) {
     // 1. Interpolação de Cores
@@ -106,55 +85,33 @@ class HomeHeader extends StatelessWidget {
                 // CONTEÚDO ORIGINAL
                 Opacity(
                   opacity: contentOpacity,
-                  child: FutureBuilder<String>(
-                    future: _fetchUserName(),
-                    builder: (context, snapshot) {
-                      final displayUserName = snapshot.data ?? '...';
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Olá $displayUserName,',
-                                style: const TextStyle(
-
-                                  fontSize: 15,
-                                  color: Color(0xFF555555),
-                                ),
-                              ),
-                              Text(
-                                'SEJA BEM VINDO!',
-                                style: GoogleFonts.oswald(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.bgDark,
-                                  height: 1.1,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                            ],
+                          const Text(
+                            'Acompanhe tudo aqui!',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF555555),
+                            ),
                           ),
-                          Row(
-                            children: [
-                              _buildHeaderButton(
-                                Icons.logout,
-                                () => _logout(context),
-                                iconBadgeColor!,
-                              ),
-                              const SizedBox(width: 10),
-                              _buildHeaderButton(
-                                Icons.person_outline,
-                                () => Navigator.pushNamed(context, '/perfil'),
-                                iconBadgeColor,
-                              ),
-                            ],
+                          Text(
+                            'BEM-VINDO!',
+                            style: GoogleFonts.oswald(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.bgDark,
+                              height: 1.1,
+                              letterSpacing: 1.0,
+                            ),
                           ),
                         ],
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
 

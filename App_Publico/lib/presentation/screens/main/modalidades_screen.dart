@@ -165,7 +165,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
           ),
 
           if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(currentRoute: '/modalidades'),
+            const BottomNavigationWidget(currentIndex: 1),
         ],
       ),
     );

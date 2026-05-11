@@ -302,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
 
           if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(currentRoute: '/home'),
+            const BottomNavigationWidget(currentIndex: 0),
         ],
       ),
     );

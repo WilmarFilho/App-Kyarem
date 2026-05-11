@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../services/auth_service.dart';
@@ -46,7 +46,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
     super.dispose();
   }
 
-  /// Resolve a permissão do usuário via backend antes de carregar a lista.
+  /// Resolve a permissÃ£o do usuÃ¡rio via backend antes de carregar a lista.
   Future<void> _resolverPermissaoECarregar() async {
     final profile = await _authService.getUserProfile();
     final isAdmin =
@@ -123,7 +123,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
       }).length;
 
       final roleLabel = switch (role) {
-        'USER' || 'REFEREE' => 'Árbitro',
+        'USER' || 'REFEREE' => 'Ãrbitro',
         'ADMIN' => 'Admin',
         'INDEFINIDO' => 'Indefinido',
         _ => role[0].toUpperCase() + role.substring(1).toLowerCase(),
@@ -196,7 +196,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'ÁRBITROS',
+              'ÃRBITROS',
               style: TextStyle(
                 fontFamily: 'Bebas Neue',
                 fontSize: 22,
@@ -207,7 +207,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
             Row(
               children: [
                 const Text(
-                  'Gestão de arbitragem',
+                  'GestÃ£o de arbitragem',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white70,
@@ -226,7 +226,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
-                      '👁 Leitura',
+                      'ðŸ‘ Leitura',
                       style: TextStyle(fontSize: 10, color: Colors.white),
                     ),
                   ),
@@ -248,7 +248,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
           children: [
             Column(
               children: [
-                // ── BARRA DE BUSCA ──
+                // â”€â”€ BARRA DE BUSCA â”€â”€
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Container(
@@ -267,7 +267,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                       controller: _searchCtrl,
                       style: const TextStyle(color: Color(0xFF1a1a2e)),
                       decoration: InputDecoration(
-                        hintText: 'Buscar árbitro...',
+                        hintText: 'Buscar Ã¡rbitro...',
                         hintStyle: TextStyle(color: Colors.grey.shade400),
                         prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
                         suffixIcon: _searchCtrl.text.isNotEmpty
@@ -288,7 +288,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                   ),
                 ),
 
-                // ── LISTA ──
+                // â”€â”€ LISTA â”€â”€
                 Expanded(
                   child: _isLoading
                       ? const Center(
@@ -345,7 +345,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                   backgroundColor: const Color(0xFFF85C39),
                   icon: const Icon(Icons.add, color: Colors.white),
                   label: const Text(
-                    'Adicionar Árbitro',
+                    'Adicionar Ãrbitro',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -428,7 +428,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                   ],
                 ),
               ),
-              // Seta + Badge de árbitro
+              // Seta + Badge de Ã¡rbitro
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -455,7 +455,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                         Text(
                           arbitro.role.toUpperCase() == 'ADMIN'
                               ? 'Administrador'
-                              : 'Árbitro',
+                              : 'Ãrbitro',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFFF85C39),
@@ -515,7 +515,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Adicionar Árbitro',
+                  'Adicionar Ãrbitro',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -524,8 +524,8 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                   Icons.person_search,
                   color: Color(0xFFF85C39),
                 ),
-                title: const Text('Vincular usuário existente'),
-                subtitle: const Text('Busque um usuário já cadastrado no app'),
+                title: const Text('Vincular usuÃ¡rio existente'),
+                subtitle: const Text('Busque um usuÃ¡rio jÃ¡ cadastrado no app'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showVincularExistenteBottomSheet();
@@ -533,9 +533,9 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
               ),
               ListTile(
                 leading: const Icon(Icons.person_add, color: Color(0xFFF85C39)),
-                title: const Text('Criar novo usuário'),
+                title: const Text('Criar novo usuÃ¡rio'),
                 subtitle: const Text(
-                  'Cadastre um novo árbitro com email e senha',
+                  'Cadastre um novo Ã¡rbitro com email e senha',
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -576,7 +576,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Criar novo árbitro'),
+              title: const Text('Criar novo Ã¡rbitro'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -595,7 +595,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                     TextField(
                       controller: senhaCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'Senha (mín. 6 chars)',
+                        labelText: 'Senha (mÃ­n. 6 chars)',
                       ),
                       obscureText: true,
                     ),
@@ -632,7 +632,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                               _resolverPermissaoECarregar();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Árbitro criado com sucesso!'),
+                                  content: Text('Ãrbitro criado com sucesso!'),
                                 ),
                               );
                             }
@@ -640,7 +640,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Erro ao criar árbitro.'),
+                                  content: Text('Erro ao criar Ã¡rbitro.'),
                                 ),
                               );
                             }
@@ -673,8 +673,8 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
             const SizedBox(height: 16),
             Text(
               _searchCtrl.text.isNotEmpty
-                  ? 'Nenhum árbitro encontrado'
-                  : 'Nenhum árbitro cadastrado',
+                  ? 'Nenhum Ã¡rbitro encontrado'
+                  : 'Nenhum Ã¡rbitro cadastrado',
               style: TextStyle(
                 color: Colors.grey.shade800,
                 fontSize: 18,
@@ -683,7 +683,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Os usuários vinculados ao quadro de arbitragem aparecerão aqui',
+              'Os usuÃ¡rios vinculados ao quadro de arbitragem aparecerÃ£o aqui',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -709,7 +709,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
               ),
               const SizedBox(width: 8),
               const Text(
-                'Filtrar por função',
+                'Filtrar por funÃ§Ã£o',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const Spacer(),
@@ -773,7 +773,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
@@ -908,7 +908,7 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
         child: Column(
           children: [
             const Text(
-              'Vincular usuário existente',
+              'Vincular usuÃ¡rio existente',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -931,7 +931,7 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
                       ),
                     )
                   : _filtrados.isEmpty
-                  ? const Center(child: Text('Nenhum usuário encontrado.'))
+                  ? const Center(child: Text('Nenhum usuÃ¡rio encontrado.'))
                   : ListView.separated(
                       itemCount: _filtrados.length,
                       separatorBuilder: (_, __) => const Divider(),
@@ -963,7 +963,7 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'Erro ao vincular usuário.',
+                                        'Erro ao vincular usuÃ¡rio.',
                                       ),
                                     ),
                                   );
@@ -988,3 +988,4 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
     );
   }
 }
+

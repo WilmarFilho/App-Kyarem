@@ -60,7 +60,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.',
+          'Tem certeza que deseja excluir "$nome"?\nEssa aÃ§Ã£o nÃ£o pode ser desfeita.',
         ),
         actions: [
           TextButton(
@@ -87,7 +87,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              sucesso ? 'Campeonato excluído!' : 'Erro ao excluir.',
+              sucesso ? 'Campeonato excluÃ­do!' : 'Erro ao excluir.',
             ),
             backgroundColor: sucesso ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -318,13 +318,28 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
   }
 
   Widget _buildFab() {
-    return FloatingActionButton.extended(
-      onPressed: () => _abrirFormulario(),
-      backgroundColor: const Color(0xFFF85C39),
-      icon: const Icon(Icons.add, color: Colors.white),
-      label: const Text(
-        'Novo Campeonato',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.5),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: _animController,
+          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+        )),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Novo Campeonato',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
@@ -576,7 +591,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
@@ -645,3 +660,4 @@ class _StatusOption {
     required this.color,
   });
 }
+

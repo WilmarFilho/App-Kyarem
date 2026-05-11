@@ -185,7 +185,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
           ),
           const Align(
             alignment: Alignment.bottomCenter,
-            child: BottomNavigationWidget(currentRoute: '/modalidades'),
+            child: BottomNavigationWidget(currentIndex: 1),
           ),
         ],
       ),

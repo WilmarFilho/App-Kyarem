@@ -36,7 +36,7 @@ void main() {
 
   Widget createWidgetUnderTest() {
     return MaterialApp(
-      home: ConfiguracoesScreen(supabaseClient: mockSupabase),
+      home: ConfiguracoesScreen(),
     );
   }
 

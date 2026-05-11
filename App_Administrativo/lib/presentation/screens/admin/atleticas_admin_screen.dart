@@ -79,7 +79,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Excluir atlética?'),
+        title: const Text('Excluir atlÃ©tica?'),
         content: Text('Deseja excluir "${atletica.nome}"?'),
         actions: [
           TextButton(
@@ -98,7 +98,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     final ok = await _api.excluirAtletica(atletica.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Atlética excluída.' : 'Erro ao excluir.')),
+      SnackBar(content: Text(ok ? 'AtlÃ©tica excluÃ­da.' : 'Erro ao excluir.')),
     );
     if (ok) {
       await _carregar();
@@ -215,7 +215,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'ATLÉTICAS',
+              'ATLÃ‰TICAS',
               style: TextStyle(
                 fontFamily: 'Bebas Neue',
                 fontSize: 22,
@@ -223,7 +223,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
               ),
             ),
             Text(
-              'Gestão administrativa',
+              'GestÃ£o administrativa',
               style: TextStyle(fontSize: 12, color: Colors.white70),
             ),
           ],
@@ -238,7 +238,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
               children: [
                 const Center(
                   child: Text(
-                    'Nenhuma atlética cadastrada',
+                    'Nenhuma atlÃ©tica cadastrada',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
@@ -254,7 +254,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                       child: _atleticasFiltradas.isEmpty
                           ? const Center(
                               child: Text(
-                                'Nenhuma atlética neste filtro',
+                                'Nenhuma atlÃ©tica neste filtro',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -303,13 +303,28 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
   }
 
   Widget _buildFab() {
-    return FloatingActionButton.extended(
-      onPressed: () => _abrirFormulario(),
-      backgroundColor: const Color(0xFFF85C39),
-      icon: const Icon(Icons.add, color: Colors.white),
-      label: const Text(
-        'Nova atlética',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.5),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: _animController,
+          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+        )),
+        child: FloatingActionButton.extended(
+          onPressed: () => _abrirFormulario(),
+          backgroundColor: const Color(0xFFF85C39),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Nova atlética',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
@@ -454,7 +469,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'Página ${_paginaAtual + 1} de $_totalPaginas',
+              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
@@ -523,3 +538,4 @@ class _StatusOption {
     required this.color,
   });
 }
+

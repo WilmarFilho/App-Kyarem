@@ -11,7 +11,7 @@ import 'resumo_estatistica_partida_screen.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
 import '../../../models/modalidade_model.dart';
 import '../../../services/modalidade_service.dart';
-import '../../../services/realtime_service.dart';
+import '../../../services/modalidade_service.dart';
 
 class JogoDetalhesScreen extends StatefulWidget {
   final String partidaId;
@@ -68,21 +68,14 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       widget.supabaseClient ?? Supabase.instance.client;
   late final EventoService _eventoService =
       widget.eventoService ?? EventoService();
-  late final RealtimeService _realtimeService = RealtimeService();
-
   final _partidaController = StreamController<Map<String, dynamic>>.broadcast();
   final _eventosController =
       StreamController<List<Map<String, dynamic>>>.broadcast();
 
   Map<String, dynamic>? _partidaAtual;
   List<Map<String, dynamic>> _eventosAtuais = [];
-  StreamSubscription? _sseSubscription;
 
-  late Future<List<Map<String, dynamic>>> _futureTipos;
   Modalidade? _modalidadeObject;
-  List<Map<String, dynamic>> _tiposEventosCache = [];
-
-  final Map<String, String> _atletaNomeCache = {};
 
   // Statuses que significam que o relógio está correndo
   // 'pausada' está AUSENTE — garante que nunca liga o ticker nesse estado
@@ -97,13 +90,6 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   void initState() {
     super.initState();
 
-    _futureTipos = _eventoService
-        .getEventTypesByModality(widget.modalidadeId)
-        .then((tipos) {
-          if (mounted) setState(() => _tiposEventosCache = tipos);
-          return tipos;
-        });
-
     if (widget.enableFirebaseMessaging) {
       FirebaseMessagingService().subscribeToPartidaTopic(widget.partidaId);
     }
@@ -113,33 +99,27 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     // 1. Carrega dados via HTTP (REST/Supabase)
     _carregarDadosIniciais();
 
-    // 2. Conecta no SSE
-    _sseSubscription = _realtimeService.listenToMatch(widget.partidaId).listen((
-      evento,
-    ) {
-      if (!mounted) return;
+    // 2. Conecta no Realtime nativo do Supabase
+    supabase.from('eventos_partida_publicos')
+        .stream(primaryKey: ['evento_id'])
+        .eq('partida_id', widget.partidaId)
+        .order('criado_em', ascending: false)
+        .listen((eventos) {
+          if (!mounted) return;
+          _eventosAtuais = eventos;
+          _reconstruirEstadoCronometro();
+          _eventosController.add(eventos);
+        });
 
-      final payload = _normalizarEventoRealtime(evento);
-      final aggregateType = payload['aggregateType']?.toString();
-      if (aggregateType != 'Partida' && aggregateType != 'EventoPartida') {
-        return;
-      }
-
-      unawaited(_carregarDadosIniciais());
-    });
-
-    // Escuta eventos e atualiza cronômetro localmente
-    _eventosController.stream.listen((eventos) {
-      if (!mounted) return;
-      _eventosAtuais = eventos;
-      _reconstruirEstadoCronometro();
-    });
-
-    _partidaController.stream.listen((dados) {
-      if (!mounted) return;
-      _partidaAtual = dados;
-      _reconstruirEstadoCronometro();
-    });
+    supabase.from('partidas_ao_vivo')
+        .stream(primaryKey: ['partida_id'])
+        .eq('partida_id', widget.partidaId)
+        .listen((partidas) {
+          if (!mounted || partidas.isEmpty) return;
+          _partidaAtual = partidas.first;
+          _reconstruirEstadoCronometro();
+          _partidaController.add(partidas.first);
+        });
   }
 
   Future<void> _carregarDadosIniciais() async {
@@ -148,16 +128,22 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
 
     try {
       final resP = await supabase
-          .schema('operational')
-          .from('partidas')
-          .select(
-            'id, status, placar_a, placar_b, iniciada_em, periodo_atual, periodo_antes_pausa, atualizado_em',
-          )
-          .eq('id', widget.partidaId)
+          .from('partidas_ao_vivo')
+          .select()
+          .eq('partida_id', widget.partidaId)
           .maybeSingle();
 
       if (resP != null) {
         partida = Map<String, dynamic>.from(resP);
+      } else {
+        final resHist = await supabase
+            .from('partidas_historico')
+            .select()
+            .eq('partida_id', widget.partidaId)
+            .maybeSingle();
+        if (resHist != null) {
+          partida = Map<String, dynamic>.from(resHist);
+        }
       }
     } catch (e) {
       debugPrint("Erro carregar partida HTTP: $e");
@@ -165,9 +151,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
 
     try {
       final resE = await supabase
-          .schema('operational')
-          .from('eventos_partida')
-          .select('*, tipo_evento:tipo_evento_id(id, nome, codigo)')
+          .from('eventos_partida_publicos')
+          .select()
           .eq('partida_id', widget.partidaId)
           .order('criado_em', ascending: false);
 
@@ -189,22 +174,6 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     _reconstruirEstadoCronometro();
   }
 
-  Map<String, dynamic> _normalizarEventoRealtime(dynamic evento) {
-    if (evento is! Map) return const {};
-
-    final base = Map<String, dynamic>.from(evento);
-    final nested = base['payloadJson'];
-    if (nested is Map) {
-      return {
-        ...Map<String, dynamic>.from(nested),
-        if (nested['aggregateType'] == null && base['aggregateType'] != null)
-          'aggregateType': base['aggregateType'],
-      };
-    }
-
-    return base;
-  }
-
   Future<void> _loadModalidade() async {
     try {
       final mods = await ModalidadeService().getModalities();
@@ -223,8 +192,6 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   @override
   void dispose() {
     _cronometroTicker?.cancel();
-    _sseSubscription?.cancel();
-    _realtimeService.disconnect();
     _partidaController.close();
     _eventosController.close();
     super.dispose();
@@ -344,20 +311,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   }
 
   String _eventTypeCode(Map<String, dynamic> ev) {
-    final joined = ev['tipo_evento'];
-    if (joined is Map) {
-      final code = joined['codigo']?.toString();
-      final name = joined['nome']?.toString();
-      return (code ?? name ?? '').trim().toUpperCase();
-    }
-
-    final tipoData = _tiposEventosCache.firstWhere(
-      (t) => t['id'] == ev['tipo_evento_id'],
-      orElse: () => const <String, dynamic>{},
-    );
-    final code = tipoData['codigo']?.toString();
-    final name = tipoData['nome']?.toString();
-    return (code ?? name ?? '').trim().toUpperCase();
+    return (ev['tipo_evento_codigo']?.toString() ?? ev['tipo_evento_nome']?.toString() ?? '').trim().toUpperCase();
   }
 
   /// Converte "MM:SS" → total em segundos
@@ -377,38 +331,19 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     return "${min.toString().padLeft(2, '0')}:${seg.toString().padLeft(2, '0')}";
   }
 
-  Future<String?> _resolveAtletaNome(String? atletaId) async {
-    if (atletaId == null || atletaId.isEmpty) return null;
-
-    if (_atletaNomeCache.containsKey(atletaId)) {
-      return _atletaNomeCache[atletaId];
-    }
-
-    final nome = await _eventoService.getAthleteNameById(atletaId);
-    if (nome != null) {
-      _atletaNomeCache[atletaId] = nome;
-    }
-    return nome;
-  }
-
   Future<String> _buildEventDescription(Map<String, dynamic> ev) async {
     final friendlyName = _friendlyEventName(ev);
-    final atletaId = ev['atleta_id']?.toString();
-    final atletaSaiId = ev['atleta_sai_id']?.toString();
-    final isSubstitution = ev['is_substitution'] == true;
+    final atletaNome = ev['atleta_nome_exibicao']?.toString();
+    final atletaSaiNome = ev['atleta_sai_nome']?.toString();
+    final isSubstitution = _eventTypeCode(ev).contains('SUBSTITUICAO');
     final descricao = (ev['descricao_detalhada']?.toString() ?? '').trim();
 
     final parts = <String>[friendlyName];
 
-    if (isSubstitution && atletaId != null && atletaSaiId != null) {
-      final nomeEntra = await _resolveAtletaNome(atletaId);
-      final nomeSai = await _resolveAtletaNome(atletaSaiId);
-      if (nomeEntra != null && nomeSai != null) {
-        parts.add('Entra: $nomeEntra, Sai: $nomeSai');
-      }
-    } else if (atletaId != null) {
-      final nome = await _resolveAtletaNome(atletaId);
-      if (nome != null) parts.add(nome);
+    if (isSubstitution && atletaNome != null && atletaSaiNome != null) {
+      parts.add('Entra: $atletaNome, Sai: $atletaSaiNome');
+    } else if (atletaNome != null) {
+      parts.add(atletaNome);
     }
 
     if (descricao.isNotEmpty) parts.add(descricao);
@@ -463,19 +398,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
-              child: FutureBuilder(
-                future: _futureTipos,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    );
-                  }
-                  return _buildTimelineStream();
-                },
-              ),
+              child: _buildTimelineStream(),
             ),
           ),
         ],
