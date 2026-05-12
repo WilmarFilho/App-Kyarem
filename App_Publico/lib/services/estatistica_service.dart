@@ -32,11 +32,12 @@ class EstatisticaService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Busca as estatísticas dos atletas em uma modalidade agrupando as ocorrências dos eventos.
+  /// [modalidadeId] é o campeonato_modalidade_id.
   Future<List<EstatisticaAtleta>> getEstatisticsByModality(
     String modalidadeId,
   ) async {
     try {
-      // 1. Buscar todas as partidas da modalidade nas duas tabelas
+      // 1. Buscar todas as partidas da modalidade nas duas tabelas públicas
       final pAoVivo = await _supabase
           .from('partidas_ao_vivo')
           .select('partida_id')
@@ -48,8 +49,12 @@ class EstatisticaService {
           .eq('campeonato_modalidade_id', modalidadeId);
 
       final List<String> partidasIds = [];
-      partidasIds.addAll((pAoVivo as List).map((p) => p['partida_id'].toString()));
-      partidasIds.addAll((pHist as List).map((p) => p['partida_id'].toString()));
+      partidasIds.addAll(
+        (pAoVivo as List).map((p) => p['partida_id'].toString()),
+      );
+      partidasIds.addAll(
+        (pHist as List).map((p) => p['partida_id'].toString()),
+      );
 
       if (partidasIds.isEmpty) return [];
 
@@ -66,12 +71,19 @@ class EstatisticaService {
         final atletaId = evento['atleta_id']?.toString();
         if (atletaId == null) continue;
 
-        final nomeAtleta = evento['atleta_nome_exibicao'] ?? 'Desconhecido';
+        final nomeAtleta =
+            evento['atleta_nome_exibicao'] ?? 'Desconhecido';
         final fotoUrl = evento['atleta_foto_url'];
         final nomeEquipe = evento['equipe_nome'] ?? 'Time Desconhecido';
-        final equipeEscudoUrl = evento['equipe_cor']; // ou não ter escudo, apenas cor
+        // equipe_cor foi removido na revisão 12.5 — não usa mais
+        const String? equipeEscudoUrl = null;
 
-        final tipoEventoNome = evento['tipo_evento_nome']?.toString().toUpperCase() ?? '';
+        // Usa tipo_evento_codigo (campo correto) ou tipo_evento_nome como fallback
+        final tipoEventoCodigo =
+            (evento['tipo_evento_codigo']?.toString() ??
+                    evento['tipo_evento_nome']?.toString() ??
+                    '')
+                .toUpperCase();
 
         if (!mapEstatisticas.containsKey(atletaId)) {
           mapEstatisticas[atletaId] = EstatisticaAtleta(
@@ -85,16 +97,18 @@ class EstatisticaService {
 
         final est = mapEstatisticas[atletaId]!;
 
-        // Contabiliza gols e cartões
-        if (tipoEventoNome.contains('GOL')) {
+        // Contabiliza gols e cartões usando o código do evento
+        if (tipoEventoCodigo.contains('GOL') ||
+            tipoEventoCodigo.contains('CESTA') ||
+            tipoEventoCodigo.contains('PONTO')) {
           est.gols += 1;
-        } else if (tipoEventoNome.contains('AMARELO')) {
+        } else if (tipoEventoCodigo.contains('AMARELO')) {
           est.cartoesAmarelos += 1;
-        } else if (tipoEventoNome.contains('VERMELHO')) {
+        } else if (tipoEventoCodigo.contains('VERMELHO')) {
           est.cartoesVermelhos += 1;
-        } else if (tipoEventoNome.contains('FALTA')) {
+        } else if (tipoEventoCodigo.contains('FALTA')) {
           est.faltas += 1;
-        } else if (tipoEventoNome.contains('PENALTI')) {
+        } else if (tipoEventoCodigo.contains('PENALTI')) {
           est.penaltis += 1;
         }
       }

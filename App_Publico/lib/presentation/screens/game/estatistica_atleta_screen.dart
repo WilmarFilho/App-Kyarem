@@ -31,10 +31,8 @@ class EstatisticaAtletaScreen extends StatefulWidget {
 
 class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
   late final GameService _gameService = widget.gameService ?? GameService();
-  late final EventoService _eventoService =
-      widget.eventoService ?? EventoService();
   List<Map<String, dynamic>> _eventos = [];
-  List<Map<String, dynamic>> _tiposEventos = [];
+  // _tiposEventos removido: usamos tipo_evento_codigo diretamente
   bool _isLoading = true;
 
   int gols = 0;
@@ -50,29 +48,16 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
 
   Future<void> _carregarEstatisticas() async {
     try {
-      List<Map<String, dynamic>> tipos = [];
       List<Map<String, dynamic>> eventosDocs = [];
 
       if (widget.partidaId != null) {
-        final partidaData = await _gameService.getPartidaEquipes(
-          widget.partidaId!,
-        );
-        final modalidadeId =
-            partidaData['modalidade_id'] ??
-            (await _gameService.getPartidaComEquipes(
-              widget.partidaId!,
-            ))['modalidade_id'];
-
-        tipos = List<Map<String, dynamic>>.from(
-          await _eventoService.getEventTypesByModality(modalidadeId),
-        );
-
+        // Busca eventos do atleta na partida via public.eventos_partida_publicos
         eventosDocs = await _gameService.getEventosAtleta(
           widget.partidaId!,
           widget.atleta.id,
         );
       } else {
-        tipos = await _gameService.getTodosTiposEventos();
+        // Busca todos os eventos do atleta via public.eventos_partida_publicos
         eventosDocs = await _gameService.getEventosAtletaGeral(
           widget.atleta.id,
         );
@@ -84,22 +69,25 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
       int calcCV = 0;
 
       for (final ev in eventosDocs) {
-        final tipoId = ev['tipo_evento_id'];
-        final tipo = tipos.firstWhere(
-          (t) => t['id'] == tipoId,
-          orElse: () => {'nome': ''},
-        );
-        final rawNome = (tipo['nome']?.toString() ?? '').toUpperCase();
+        // Usa tipo_evento_codigo (campo correto no schema public)
+        final rawCodigo = (
+          ev['tipo_evento_codigo']?.toString() ??
+          ev['tipo_evento_nome']?.toString() ??
+          ''
+        ).toUpperCase();
 
-        if (ev['atleta_id'] == widget.atleta.id) {
-          if (rawNome.contains('GOL') ||
-              rawNome.contains('PENALTI_CONVERTIDO')) {
+        final atletaEvId = ev['atleta_id']?.toString();
+        if (atletaEvId == widget.atleta.id) {
+          if (rawCodigo.contains('GOL') ||
+              rawCodigo.contains('CESTA') ||
+              rawCodigo.contains('PONTO') ||
+              rawCodigo.contains('PENALTI_CONVERTIDO')) {
             calcGols++;
-          } else if (rawNome.contains('FALTA')) {
+          } else if (rawCodigo.contains('FALTA')) {
             calcFaltas++;
-          } else if (rawNome.contains('AMARELO')) {
+          } else if (rawCodigo.contains('AMARELO')) {
             calcCA++;
-          } else if (rawNome.contains('VERMELHO')) {
+          } else if (rawCodigo.contains('VERMELHO')) {
             calcCV++;
           }
         }
@@ -108,7 +96,6 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
       if (mounted) {
         setState(() {
           _eventos = eventosDocs;
-          _tiposEventos = tipos;
           gols = calcGols;
           faltas = calcFaltas;
           cartoesAmarelos = calcCA;
@@ -403,11 +390,11 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
       itemCount: _eventos.length,
       itemBuilder: (context, index) {
         final ev = _eventos[index];
-        final tipo = _tiposEventos.firstWhere(
-          (t) => t['id'] == ev['tipo_evento_id'],
-          orElse: () => {'nome': 'Evento'},
-        );
-        final name = EventoService.friendly(tipo['nome']);
+        // Usa tipo_evento_codigo (campo do schema public) para lookup amigável
+        final rawCodigo = ev['tipo_evento_codigo']?.toString() ??
+            ev['tipo_evento_nome']?.toString() ??
+            'Evento';
+        final name = EventoService.friendly(rawCodigo);
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,7 +476,9 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          ev['tempo_cronometro'] ?? "Tempo não definido",
+                          ev['minuto'] != null
+                              ? '${ev['minuto']}\'${ev['segundo'] != null ? ':${ev['segundo']}"' : ''}'
+                              : (ev['tempo_cronometro'] ?? "Tempo não definido"),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 13,

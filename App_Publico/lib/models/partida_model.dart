@@ -3,11 +3,12 @@ import 'package:kyarem_eventos_publico/models/atletica_equipe_model.dart';
 class Partida {
   final String id;
   final String modalidadeId;
-  final String status; // agendada, em_andamento, encerrada [cite: 36]
+  final String status;
   final int placarA;
   final int placarB;
   final String? local;
   final DateTime? iniciadaEm;
+  final DateTime? agendadoPara;
   final Equipe? equipeA;
   final Equipe? equipeB;
 
@@ -19,15 +20,18 @@ class Partida {
     this.placarB = 0,
     this.local,
     this.iniciadaEm,
+    this.agendadoPara,
     this.equipeA,
     this.equipeB,
   });
 
   factory Partida.fromMap(Map<String, dynamic> map) {
     // Adapter for flattened schema from public.partidas_ao_vivo or public.partidas_historico
-    String id = (map['partida_id'] ?? map['id']).toString();
-    String modId = (map['campeonato_modalidade_id'] ?? map['modalidade_id']).toString();
-    
+    final String id = (map['partida_id'] ?? map['id']).toString();
+    final String modId =
+        (map['campeonato_modalidade_id'] ?? map['modalidade_id'] ?? '')
+            .toString();
+
     Equipe? equipeA;
     if (map['equipe_a'] != null) {
       equipeA = Equipe.fromMap(map['equipe_a']);
@@ -42,7 +46,8 @@ class Partida {
           id: (map['time_a_atletica_id'] ?? '').toString(),
           nome: (map['time_a_atletica_nome'] ?? '').toString(),
           escudoUrl: map['time_a_escudo_url']?.toString(),
-          corPrincipal: map['time_a_cor_principal']?.toString(),
+          // time_a_cor_principal foi removido na revisão 12.5
+          corPrincipal: null,
         ),
       );
     }
@@ -61,21 +66,33 @@ class Partida {
           id: (map['time_b_atletica_id'] ?? '').toString(),
           nome: (map['time_b_atletica_nome'] ?? '').toString(),
           escudoUrl: map['time_b_escudo_url']?.toString(),
-          corPrincipal: map['time_b_cor_principal']?.toString(),
+          // time_b_cor_principal foi removido na revisão 12.5
+          corPrincipal: null,
         ),
       );
+    }
+
+    DateTime? iniciadaEm;
+    if (map['iniciada_em'] != null) {
+      iniciadaEm = DateTime.tryParse(map['iniciada_em'].toString());
+    }
+
+    DateTime? agendadoPara;
+    if (map['agendado_para'] != null) {
+      agendadoPara = DateTime.tryParse(map['agendado_para'].toString());
     }
 
     return Partida(
       id: id,
       modalidadeId: modId,
       status: map['status'] ?? 'agendada',
-      placarA: map['placar_a'] ?? 0,
-      placarB: map['placar_b'] ?? 0,
-      local: map['local'],
-      iniciadaEm: map['iniciada_em'] != null ? DateTime.parse(map['iniciada_em'].toString()) : null,
+      placarA: (map['placar_a'] ?? 0) as int,
+      placarB: (map['placar_b'] ?? 0) as int,
+      local: map['local']?.toString(),
+      iniciadaEm: iniciadaEm,
+      agendadoPara: agendadoPara,
       equipeA: equipeA,
       equipeB: equipeB,
     );
   }
-}
+}

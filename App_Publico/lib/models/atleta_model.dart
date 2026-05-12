@@ -1,6 +1,6 @@
 class Atleta {
   final String id;
-  final String atleticaId; // Nome da variável
+  final String atleticaId;
   final String nome;
   final DateTime? criadoEm;
   final String? nomeAtletica;
@@ -16,16 +16,37 @@ class Atleta {
   });
 
   factory Atleta.fromMap(Map<String, dynamic> map) {
+    // Suporta tanto o formato legado (atleta direto com 'id')
+    // quanto o formato do schema public:
+    //   - perfis_atletas: 'atleta_id', 'nome_exibicao', 'foto_url', 'atletica_atual_id', 'atletica_atual_nome'
+    //   - campeonato_atletas_publicos aninhado
+    final id = (map['atleta_id'] ?? map['id'] ?? '').toString();
+    final atleticaId = (
+      map['atletica_id'] ??
+      map['atletica_atual_id'] ??
+      ''
+    ).toString();
+    final nome = (
+      map['nome_exibicao'] ??
+      map['nome'] ??
+      'Atleta'
+    ).toString();
+    final nomeAtletica = (
+      map['atletica_atual_nome'] ??
+      map['atleticas']?['nome']
+    )?.toString();
+    final fotoUrl = map['foto_url']?.toString();
+    final criadoEm = map['criado_em'] != null
+        ? DateTime.tryParse(map['criado_em'].toString())
+        : null;
+
     return Atleta(
-      id: map['id'],
-      atleticaId:
-          map['atletica_id'], // Aqui mapeia a chave do banco (com underline) para a variável (sem underline)
-      nome: map['nome'],
-      criadoEm: map['criado_em'] != null
-          ? DateTime.parse(map['criado_em'])
-          : null,
-      nomeAtletica: map['atleticas']?['nome'],
-      fotoUrl: map['foto_url'],
+      id: id,
+      atleticaId: atleticaId,
+      nome: nome,
+      criadoEm: criadoEm,
+      nomeAtletica: nomeAtletica,
+      fotoUrl: fotoUrl,
     );
   }
 

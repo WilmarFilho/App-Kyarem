@@ -65,20 +65,22 @@ class _ResumoEstatisticaPartidaScreenState
 
   Future<void> _carregarResumo() async {
     try {
+      // Busca dados da partida no schema público (partidas_ao_vivo ou partidas_historico)
       final partidaData = await _gameService.getPartidaComEquipes(
         widget.partidaId,
       );
 
-      final String? atleticaIdA = partidaData['equipe_a']?['atletica_id']
-          ?.toString();
-      final String? atleticaIdB = partidaData['equipe_b']?['atletica_id']
-          ?.toString();
-      final String modalidadeId = partidaData['modalidade_id'];
+      // No schema público, os IDs dos times estão diretamente como time_a_atletica_id / time_b_atletica_id
+      final String? atleticaIdA =
+          (partidaData['time_a_atletica_id'] ??
+                  partidaData['equipe_a']?['atletica_id'])
+              ?.toString();
+      final String? atleticaIdB =
+          (partidaData['time_b_atletica_id'] ??
+                  partidaData['equipe_b']?['atletica_id'])
+              ?.toString();
 
-      final modalidadeInfo = await _gameService.getModalidadeInfo(modalidadeId);
-      final tipos = await _gameService.getTiposEventos(
-        modalidadeInfo['esporte_id'],
-      );
+      // Busca eventos da partida em public.eventos_partida_publicos
       final eventosDocs = await _gameService.getEventosPartida(
         widget.partidaId,
       );
@@ -87,23 +89,28 @@ class _ResumoEstatisticaPartidaScreenState
       Map<String, Map<String, dynamic>> cacheAtletas = {};
 
       for (var ev in eventosDocs) {
-        final tipoId = ev['tipo_evento_id'];
-        final tipo = tipos.firstWhere(
-          (t) => t['id'] == tipoId,
-          orElse: () => {'nome': ''},
-        );
-        final rawNome = (tipo['nome']?.toString() ?? '').toUpperCase();
+        // Usa tipo_evento_codigo (campo correto no schema public)
+        final rawCodigo = (
+          ev['tipo_evento_codigo']?.toString() ??
+          ev['tipo_evento_nome']?.toString() ??
+          ''
+        ).toUpperCase();
 
-        final atletaInfo = ev['atletas'];
-        if (atletaInfo == null) continue;
+        final atletaId = ev['atleta_id']?.toString();
+        // No schema público, equipe_id identifica a equipe do evento
+        final eventoEquipeId = ev['equipe_id']?.toString();
 
-        final atletaId = ev['atleta_id'];
-        final atletaAtleticaId = atletaInfo['atletica_id']?.toString();
+        bool isTeamA = eventoEquipeId != null &&
+            atleticaIdA != null &&
+            eventoEquipeId == atleticaIdA;
+        bool isTeamB = eventoEquipeId != null &&
+            atleticaIdB != null &&
+            eventoEquipeId == atleticaIdB;
 
-        bool isTeamA = atletaAtleticaId == atleticaIdA;
-        bool isTeamB = atletaAtleticaId == atleticaIdB;
-
-        if (rawNome.contains('GOL') || rawNome.contains('PENALTI_CONVERTIDO')) {
+        if (rawCodigo.contains('GOL') ||
+            rawCodigo.contains('CESTA') ||
+            rawCodigo.contains('PONTO') ||
+            rawCodigo.contains('PENALTI_CONVERTIDO')) {
           if (isTeamA) golsA++;
           if (isTeamB) golsB++;
 
@@ -112,18 +119,18 @@ class _ResumoEstatisticaPartidaScreenState
                 (performanceAtletas[atletaId] ?? 0) + 1;
             cacheAtletas[atletaId] = {
               'id': atletaId,
-              'nome': atletaInfo['nome'],
-              'atletica_id': atletaAtleticaId,
-              'foto_url': atletaInfo['foto_url'],
+              'nome': ev['atleta_nome_exibicao'] ?? 'Atleta',
+              'atletica_id': eventoEquipeId,
+              'foto_url': ev['atleta_foto_url'],
             };
           }
-        } else if (rawNome.contains('FALTA')) {
+        } else if (rawCodigo.contains('FALTA')) {
           if (isTeamA) faltasA++;
           if (isTeamB) faltasB++;
-        } else if (rawNome.contains('AMARELO')) {
+        } else if (rawCodigo.contains('AMARELO')) {
           if (isTeamA) amarelosA++;
           if (isTeamB) amarelosB++;
-        } else if (rawNome.contains('VERMELHO')) {
+        } else if (rawCodigo.contains('VERMELHO')) {
           if (isTeamA) vermelhosA++;
           if (isTeamB) vermelhosB++;
         }
@@ -139,7 +146,7 @@ class _ResumoEstatisticaPartidaScreenState
         final mvpInfo = cacheAtletas[melhorAtletaId]!;
         mvpData = Atleta(
           id: mvpInfo['id'],
-          atleticaId: mvpInfo['atletica_id'],
+          atleticaId: mvpInfo['atletica_id'] ?? '',
           nome: mvpInfo['nome'],
           fotoUrl: mvpInfo['foto_url'],
         );
@@ -150,10 +157,11 @@ class _ResumoEstatisticaPartidaScreenState
 
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
-      debugPrint("Erro ao carregar resumo: \$e");
+      debugPrint("Erro ao carregar resumo: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

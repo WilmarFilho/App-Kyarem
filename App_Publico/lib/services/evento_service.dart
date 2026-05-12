@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class EventoService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Mapeamento de nomes crus do banco → nomes amigáveis para exibição
+  /// Mapeamento de códigos/nomes crus do banco → nomes amigáveis para exibição
   static const Map<String, String> friendlyNames = {
     'INICIO_1_TEMPO': 'Início do 1° Tempo',
     'FIM_1_TEMPO': 'Fim do 1° Tempo',
@@ -40,41 +40,63 @@ class EventoService {
     return friendlyNames[rawName.trim().toUpperCase()] ?? rawName;
   }
 
+  /// Busca tipos de eventos únicos de uma modalidade a partir de eventos_partida_publicos.
+  /// [modalidadeId] é o campeonato_modalidade_id.
   Future<List<Map<String, dynamic>>> getEventTypesByModality(
     String modalidadeId,
   ) async {
     try {
-      // Busca o esporte_id vinculado à modalidade da partida
-      final modalidadeData = await _supabase
-          .from('modalidades')
-          .select('esporte_id')
-          .eq('id', modalidadeId)
-          .single();
+      // Busca partidas da modalidade em ambas as tabelas públicas
+      final partAoVivo = await _supabase
+          .from('partidas_ao_vivo')
+          .select('partida_id')
+          .eq('campeonato_modalidade_id', modalidadeId);
 
-      final String esporteId = modalidadeData['esporte_id'];
+      final partHist = await _supabase
+          .from('partidas_historico')
+          .select('partida_id')
+          .eq('campeonato_modalidade_id', modalidadeId);
 
-      // Busca os nomes dos eventos configurados para aquele esporte
-      final response = await _supabase
-          .from('tipos_eventos')
-          .select('id, nome')
-          .eq('esporte_id', esporteId)
-          .order('nome', ascending: true);
+      final ids = [
+        ...(partAoVivo as List).map((p) => p['partida_id'].toString()),
+        ...(partHist as List).map((p) => p['partida_id'].toString()),
+      ];
 
-      return List<Map<String, dynamic>>.from(response);
+      if (ids.isEmpty) return [];
+
+      final res = await _supabase
+          .from('eventos_partida_publicos')
+          .select('tipo_evento_codigo, tipo_evento_nome')
+          .inFilter('partida_id', ids);
+
+      // Deduplicar por código
+      final seen = <String>{};
+      final result = <Map<String, dynamic>>[];
+      for (final e in (res as List)) {
+        final codigo = e['tipo_evento_codigo']?.toString() ?? '';
+        if (seen.add(codigo)) {
+          result.add({
+            'id': codigo, // código como identificador para lookups
+            'nome': e['tipo_evento_nome'] ?? codigo,
+            'codigo': codigo,
+          });
+        }
+      }
+      return result;
     } catch (e) {
       return [];
     }
   }
 
-  /// Busca o nome de um atleta pelo ID. Retorna null se não encontrado.
+  /// Busca o nome de um atleta pelo ID via perfis_atletas.
   Future<String?> getAthleteNameById(String atletaId) async {
     try {
       final data = await _supabase
-          .from('atletas')
-          .select('nome')
-          .eq('id', atletaId)
-          .single();
-      return data['nome'] as String?;
+          .from('perfis_atletas')
+          .select('nome_exibicao')
+          .eq('atleta_id', atletaId)
+          .maybeSingle();
+      return data?['nome_exibicao'] as String?;
     } catch (e) {
       return null;
     }

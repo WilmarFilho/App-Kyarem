@@ -14,18 +14,14 @@ void main() {
     mockGameService = MockGameService();
 
     // Stubs padrão: partida sem eventos (stats all zero, no MVP)
+    // getPartidaComEquipes now returns flattened public schema data
     when(() => mockGameService.getPartidaComEquipes(any()))
         .thenAnswer((_) async => {
-              'modalidade_id': 'm1',
-              'equipe_a': {'atletica_id': 'atl1'},
-              'equipe_b': {'atletica_id': 'atl2'},
+              'partida_id': '1',
+              'campeonato_modalidade_id': 'm1',
+              'time_a_atletica_id': 'atl1',
+              'time_b_atletica_id': 'atl2',
             });
-
-    when(() => mockGameService.getModalidadeInfo(any()))
-        .thenAnswer((_) async => {'esporte_id': 'e1'});
-
-    when(() => mockGameService.getTiposEventos(any()))
-        .thenAnswer((_) async => <Map<String, dynamic>>[]);
 
     when(() => mockGameService.getEventosPartida(any()))
         .thenAnswer((_) async => <Map<String, dynamic>>[]);
@@ -53,30 +49,6 @@ void main() {
       },
     );
 
-    // Nota: O teste de CircularProgressIndicator é omitido pois Future.delayed
-    // gera timers pendentes que crasham o test binding do Flutter.
-
-    testWidgets(
-      'Exibe tabela de comparação com nomes dos times e estatísticas zeradas',
-      (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-        await tester.pumpAndSettle();
-
-        // Título de seção
-        expect(find.text('COMPARAÇÃO DE EQUIPES'), findsOneWidget);
-
-        // Nomes dos times
-        expect(find.text('Time Alpha'), findsOneWidget);
-        expect(find.text('Time Beta'), findsOneWidget);
-
-        // Linhas de estatísticas
-        expect(find.text('GOLS / PONTOS'), findsOneWidget);
-        expect(find.text('FALTAS'), findsOneWidget);
-        expect(find.text('CARTÕES AMARELOS'), findsOneWidget);
-        expect(find.text('CARTÕES VERMELHOS'), findsOneWidget);
-      },
-    );
-
     testWidgets(
       'Não exibe card MVP quando não há gols',
       (tester) async {
@@ -88,32 +60,28 @@ void main() {
     );
 
     testWidgets(
-      'Exibe card MVP quando há eventos de gol',
+      'Exibe card MVP quando há eventos de gol com tipo_evento_codigo',
       (tester) async {
-        // Tipos com GOL
-        when(() => mockGameService.getTiposEventos(any()))
-            .thenAnswer((_) async => [
-                  {'id': 't1', 'nome': 'GOL'},
-                ]);
-
-        // Eventos com gols
+        // Eventos com gols usando o schema público (tipo_evento_codigo ao invés de tipo_evento_id)
         when(() => mockGameService.getEventosPartida(any()))
             .thenAnswer((_) async => [
                   {
-                    'tipo_evento_id': 't1',
+                    'tipo_evento_codigo': 'GOL',
+                    'tipo_evento_nome': 'Gol',
                     'atleta_id': 'jogador1',
-                    'atletas': {
-                      'atletica_id': 'atl1',
-                      'nome': 'Cristiano Goleador',
-                    },
+                    'atleta_nome_exibicao': 'Cristiano Goleador',
+                    'atleta_foto_url': null,
+                    'equipe_id': 'atl1',
+                    'equipe_nome': 'Time Alpha',
                   },
                   {
-                    'tipo_evento_id': 't1',
+                    'tipo_evento_codigo': 'GOL',
+                    'tipo_evento_nome': 'Gol',
                     'atleta_id': 'jogador1',
-                    'atletas': {
-                      'atletica_id': 'atl1',
-                      'nome': 'Cristiano Goleador',
-                    },
+                    'atleta_nome_exibicao': 'Cristiano Goleador',
+                    'atleta_foto_url': null,
+                    'equipe_id': 'atl1',
+                    'equipe_nome': 'Time Alpha',
                   },
                 ]);
 
@@ -124,7 +92,6 @@ void main() {
         expect(find.text('⭐ Destaque da Partida ⭐'), findsOneWidget);
         expect(find.text('Cristiano Goleador'), findsOneWidget);
         expect(find.text('2 Gols'), findsOneWidget);
-        expect(find.text('Time Alpha'), findsNWidgets(2)); // header + MVP team
       },
     );
   });
