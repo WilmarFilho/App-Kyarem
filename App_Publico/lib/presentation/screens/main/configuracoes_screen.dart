@@ -47,10 +47,7 @@ class _WaveClipper extends CustomClipper<Path> {
 class ConfiguracoesScreen extends StatefulWidget {
   final bool isMainScreenChild;
 
-  const ConfiguracoesScreen({
-    super.key,
-    this.isMainScreenChild = false,
-  });
+  const ConfiguracoesScreen({super.key, this.isMainScreenChild = false});
 
   @override
   State<ConfiguracoesScreen> createState() => _ConfiguracoesScreenState();
@@ -123,7 +120,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
             ),
           ),
           if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(),
+            const BottomNavigationWidget(currentIndex: 3),
           Positioned(top: 0, left: 0, right: 0, child: _buildHeader()),
         ],
       ),
@@ -141,7 +138,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
       0.0,
       1.0,
     );
-    
+
     final waveHeight = 30.0 * (1.0 - _headerCollapseProgress);
     final headerHeight = 150.0 + (waveHeight) - (_headerCollapseProgress * 50);
 
@@ -171,7 +168,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Ajuste suas configurações.',
+                            'Veja suas configurações.',
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 15,
@@ -325,11 +322,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                   color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white70,
-                  size: 20,
-                ),
+                child: Icon(icon, color: Colors.white70, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(

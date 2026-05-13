@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../models/campeonato_atletica_publica_model.dart';
+import '../../../models/modalidade_model.dart';
+import '../../../services/atletica_public_service.dart';
+import '../../../services/modalidade_service.dart';
+import '../atletica/atletica_detalhe_screen.dart';
+import '../modalidade/partidas_modalidade_screen.dart';
+
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final ValueChanged<int>? onNavigateToTab;
+
+  const SearchScreen({super.key, this.onNavigateToTab});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -10,22 +19,42 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ModalidadeService _modalidadeService = ModalidadeService();
+  final AtleticaPublicService _atleticaService = AtleticaPublicService();
   String _query = '';
+  List<Modalidade> _modalidades = [];
+  List<CampeonatoAtleticaPublica> _atleticas = [];
+  bool _isLoadingModalidades = true;
+  bool _isLoadingAtleticas = true;
 
   // Sugestões padrão (links rápidos para outras áreas)
   final List<Map<String, dynamic>> _quickLinks = [
     {
       'title': 'Explorar Modalidades',
       'icon': Icons.sports_soccer,
-      'route': '/modalidades',
+      'tabIndex': 1,
+      'type': 'tab',
     },
-    {'title': 'Meu Perfil', 'icon': Icons.person_outline, 'route': '/perfil'},
+    {
+      'title': 'Atléticas',
+      'icon': Icons.groups_rounded,
+      'tabIndex': 2,
+      'type': 'tab',
+    },
     {
       'title': 'Configurações',
       'icon': Icons.settings_outlined,
-      'route': '/configuracoes',
+      'tabIndex': 3,
+      'type': 'tab',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadModalidades();
+    _loadAtleticas();
+  }
 
   @override
   void dispose() {
@@ -33,15 +62,100 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  Future<void> _loadModalidades() async {
+    try {
+      final modalidades = await _modalidadeService.getModalities();
+      if (!mounted) return;
+      setState(() {
+        _modalidades = modalidades;
+        _isLoadingModalidades = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _modalidades = [];
+        _isLoadingModalidades = false;
+      });
+    }
+  }
+
+  Future<void> _loadAtleticas() async {
+    try {
+      final atleticas = await _atleticaService.getAthletics();
+      if (!mounted) return;
+      setState(() {
+        _atleticas = atleticas;
+        _isLoadingAtleticas = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _atleticas = [];
+        _isLoadingAtleticas = false;
+      });
+    }
+  }
+
+  List<Map<String, dynamic>> get _allItems {
+    final modalidadeItems = _modalidades.map((modalidade) {
+      final titulo = (modalidade.nome ?? 'Modalidade').trim();
+      final subtitulo = (modalidade.esporteNome ?? '').trim();
+
+      return <String, dynamic>{
+        'title': titulo.isEmpty ? 'Modalidade' : titulo,
+        'subtitle': subtitulo,
+        'icon': _resolveIcon(modalidade.nome ?? modalidade.esporteNome ?? ''),
+        'type': 'modalidade',
+        'modalidade': modalidade,
+      };
+    });
+
+    final atleticaItems = _atleticas.map((atletica) {
+      return <String, dynamic>{
+        'title': atletica.nome,
+        'subtitle': atletica.sigla ?? 'Atlética inscrita',
+        'icon': Icons.groups_rounded,
+        'type': 'atletica',
+        'atletica': atletica,
+      };
+    });
+
+    return [..._quickLinks, ...modalidadeItems, ...atleticaItems];
+  }
+
   // Lógica para filtrar as sugestões baseado no que é digitado
-  List<Map<String, dynamic>> get _filteredLinks {
-    if (_query.trim().isEmpty) return _quickLinks;
+  List<Map<String, dynamic>> get _filteredItems {
+    final items = _allItems;
+    if (_query.trim().isEmpty) return items;
 
     final queryLower = _query.toLowerCase();
-    return _quickLinks.where((link) {
-      final titleLower = link['title'].toString().toLowerCase();
-      return titleLower.contains(queryLower);
+    return items.where((item) {
+      final titleLower = item['title'].toString().toLowerCase();
+      final subtitleLower = item['subtitle'].toString().toLowerCase();
+      return titleLower.contains(queryLower) || subtitleLower.contains(queryLower);
     }).toList();
+  }
+
+  IconData _resolveIcon(String nome) {
+    final nomeUpper = nome.toUpperCase();
+
+    if (nomeUpper.contains('FUTSAL') || nomeUpper.contains('FUTEBOL')) {
+      return Icons.sports_soccer;
+    }
+    if (nomeUpper.contains('VOLEI') || nomeUpper.contains('VÔLEI')) {
+      return Icons.sports_volleyball;
+    }
+    if (nomeUpper.contains('BASQUETE') || nomeUpper.contains('BASKET')) {
+      return Icons.sports_basketball;
+    }
+    if (nomeUpper.contains('HANDEBOL')) {
+      return Icons.sports_handball;
+    }
+    if (nomeUpper.contains('TENIS') || nomeUpper.contains('TÊNIS')) {
+      return Icons.sports_tennis;
+    }
+
+    return Icons.sports;
   }
 
   @override
@@ -139,7 +253,13 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildBodyContent() {
-    final results = _filteredLinks;
+    final results = _filteredItems;
+
+    if (_isLoadingModalidades || _isLoadingAtleticas) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFF22F1D)),
+      );
+    }
 
     if (results.isEmpty) {
       return Center(
@@ -196,10 +316,39 @@ class _SearchScreenState extends State<SearchScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // Fecha a tela de busca e navega para a rota sugerida
-            if (mounted) {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, item['route']);
+            final type = item['type'] as String?;
+
+            if (type == 'modalidade') {
+              final modalidade = item['modalidade'] as Modalidade?;
+              if (modalidade == null) return;
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PartidasModalidadeScreen(modalidade: modalidade),
+                ),
+              );
+              return;
+            }
+
+            if (type == 'atletica') {
+              final atletica = item['atletica'] as CampeonatoAtleticaPublica?;
+              if (atletica == null) return;
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AtleticaDetalheScreen(atletica: atletica),
+                ),
+              );
+              return;
+            }
+
+            final tabIndex = item['tabIndex'] as int?;
+            Navigator.pop(context);
+
+            if (tabIndex != null && widget.onNavigateToTab != null) {
+              widget.onNavigateToTab!(tabIndex);
             }
           },
           child: Padding(
@@ -220,14 +369,32 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    item['title'],
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF260404),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['title'],
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF260404),
+                        ),
+                      ),
+                      if ((item['subtitle']?.toString().trim().isNotEmpty ?? false))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            item['subtitle'],
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF777777),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const Icon(

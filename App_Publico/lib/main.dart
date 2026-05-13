@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 
 import 'models/campeonato_model.dart';
 import 'core/app_globals.dart';
+import 'services/campeonato_config_service.dart';
 import 'presentation/screens/main/main_screen.dart';
 import 'presentation/screens/auth/onboarding_screen.dart';
 import 'presentation/screens/main/modalidades_screen.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsZ25hY2t1emZoa2hsb2VtdGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MjUyNzIsImV4cCI6MjA4NjIwMTI3Mn0.8jq8Anq419bzO94DqCrCcNAJSOsiqGQ8UiFsEO6ibH4',
   );
+  await CampeonatoConfigService.loadCampeonatoAtivo();
   await initializeDateFormatting('pt_BR', null);
   runApp(const MyApp());
 }
@@ -39,7 +41,7 @@ class MyApp extends StatelessWidget {
     FlutterNativeSplash.remove();
 
     return MaterialApp(
-      title: 'Intermeds',
+      title: AppGlobals.campeonatoAtivo?.nome ?? 'Intermeds',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -61,7 +63,9 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const OnboardingScreen(),
         '/home': (context) => const MainScreen(initialIndex: 0),
         '/modalidades': (context) => ModalidadesScreen(
-          campeonato: AppGlobals.campeonatoAtivo ?? Campeonato(id: '', nome: 'Campeonato'),
+          campeonato:
+              AppGlobals.campeonatoAtivo ??
+              Campeonato(id: '', nome: 'Campeonato'),
         ),
         '/configuracoes': (context) => const ConfiguracoesScreen(),
       },

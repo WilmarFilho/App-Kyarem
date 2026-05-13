@@ -44,6 +44,10 @@ public class PartidaProjectionService {
                     syncCampeonatoAtletica(resolveAggregateId(payload, "campeonatoAtleticaId"));
             case "CampeonatoAtleticaExcluida" ->
                     deleteCampeonatoAtletica(resolveAggregateId(payload, "campeonatoAtleticaId"));
+            case "CampeonatoTimeCriado", "CampeonatoTimeAtualizado" ->
+                    syncCampeonatoTime(resolveAggregateId(payload, "campeonatoTimeId"));
+            case "CampeonatoTimeExcluido" ->
+                    deleteCampeonatoTime(resolveAggregateId(payload, "campeonatoTimeId"));
             case "CampeonatoAtletaCriado", "CampeonatoAtletaAtualizado" ->
                     syncCampeonatoAtleta(resolveAggregateId(payload, "campeonatoAtletaId"));
             case "CampeonatoAtletaExcluido" ->
@@ -245,20 +249,27 @@ public class PartidaProjectionService {
         }
         jdbcTemplate.update("""
                 INSERT INTO public.campeonato_atleticas_publicos (
-                    campeonato_atletica_id, campeonato_id, atletica_id, criado_em
+                    campeonato_atletica_id, campeonato_id, atletica_id, criado_em,
+                    atletica_nome, atletica_sigla, atletica_escudo_url
                 )
-                SELECT id, campeonato_id, atletica_id, criado_em
-                FROM operational.campeonato_atleticas
-                WHERE id = ?
+                SELECT ca.id, ca.campeonato_id, ca.atletica_id, ca.criado_em,
+                       a.nome, a.sigla, a.escudo_url
+                FROM operational.campeonato_atleticas ca
+                JOIN operational.atleticas a ON a.id = ca.atletica_id
+                WHERE ca.id = ?
                 ON CONFLICT (campeonato_atletica_id) DO UPDATE SET
                     campeonato_id = EXCLUDED.campeonato_id,
                     atletica_id = EXCLUDED.atletica_id,
-                    criado_em = EXCLUDED.criado_em
+                    criado_em = EXCLUDED.criado_em,
+                    atletica_nome = EXCLUDED.atletica_nome,
+                    atletica_sigla = EXCLUDED.atletica_sigla,
+                    atletica_escudo_url = EXCLUDED.atletica_escudo_url
                 """, campeonatoAtleticaId);
     }
 
     private void deleteCampeonatoAtletica(UUID campeonatoAtleticaId) {
         if (campeonatoAtleticaId != null) {
+            jdbcTemplate.update("DELETE FROM public.campeonato_times_publicos WHERE campeonato_atletica_id = ?", campeonatoAtleticaId);
             jdbcTemplate.update("DELETE FROM public.campeonato_atleticas_publicos WHERE campeonato_atletica_id = ?", campeonatoAtleticaId);
         }
     }
@@ -289,6 +300,55 @@ public class PartidaProjectionService {
                 """, campeonatoAtletaId);
     }
 
+    private void syncCampeonatoTime(UUID campeonatoTimeId) {
+        if (campeonatoTimeId == null) {
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO public.campeonato_times_publicos (
+                    campeonato_time_id, campeonato_id, campeonato_atletica_id, atletica_id,
+                    campeonato_modalidade_id, modalidade_nome, modalidade_genero,
+                    nome_equipe, status, criado_em, atualizado_em
+                )
+                SELECT
+                    ct.id,
+                    ct.campeonato_id,
+                    ct.campeonato_atletica_id,
+                    ca.atletica_id,
+                    ct.campeonato_modalidade_id,
+                    COALESCE(cm.nome_exibicao, mc.nome),
+                    cm.genero,
+                    COALESCE(NULLIF(ct.nome_exibicao, ''), ta.nome, atl.nome),
+                    ct.status,
+                    ct.criado_em,
+                    now()
+                FROM operational.campeonato_times ct
+                JOIN operational.campeonato_atleticas ca ON ca.id = ct.campeonato_atletica_id
+                JOIN operational.campeonato_modalidades cm ON cm.id = ct.campeonato_modalidade_id
+                JOIN operational.modalidades_catalogo mc ON mc.id = cm.modalidade_catalogo_id
+                LEFT JOIN operational.times_atletica ta ON ta.id = ct.time_atletica_id
+                LEFT JOIN operational.atleticas atl ON atl.id = ta.atletica_id
+                WHERE ct.id = ?
+                ON CONFLICT (campeonato_time_id) DO UPDATE SET
+                    campeonato_id = EXCLUDED.campeonato_id,
+                    campeonato_atletica_id = EXCLUDED.campeonato_atletica_id,
+                    atletica_id = EXCLUDED.atletica_id,
+                    campeonato_modalidade_id = EXCLUDED.campeonato_modalidade_id,
+                    modalidade_nome = EXCLUDED.modalidade_nome,
+                    modalidade_genero = EXCLUDED.modalidade_genero,
+                    nome_equipe = EXCLUDED.nome_equipe,
+                    status = EXCLUDED.status,
+                    criado_em = EXCLUDED.criado_em,
+                    atualizado_em = now()
+                """, campeonatoTimeId);
+    }
+
+    private void deleteCampeonatoTime(UUID campeonatoTimeId) {
+        if (campeonatoTimeId != null) {
+            jdbcTemplate.update("DELETE FROM public.campeonato_times_publicos WHERE campeonato_time_id = ?", campeonatoTimeId);
+        }
+    }
+
     private void deleteCampeonatoAtleta(UUID campeonatoAtletaId) {
         if (campeonatoAtletaId != null) {
             jdbcTemplate.update("DELETE FROM public.campeonato_atletas_publicos WHERE campeonato_atleta_id = ?", campeonatoAtletaId);
@@ -317,12 +377,94 @@ public class PartidaProjectionService {
                     criado_em = EXCLUDED.criado_em,
                     atualizado_em = now()
                 """, atleticaId);
+        refreshCampeonatoAtleticasByAtletica(atleticaId);
+        refreshPartidasByAtletica(atleticaId);
     }
 
     private void deleteAtletica(UUID atleticaId) {
         if (atleticaId != null) {
             jdbcTemplate.update("DELETE FROM public.perfis_atleticas WHERE atletica_id = ?", atleticaId);
         }
+    }
+
+    private void refreshCampeonatoAtleticasByAtletica(UUID atleticaId) {
+        jdbcTemplate.update("""
+                UPDATE public.campeonato_atleticas_publicos cap
+                SET atletica_nome = a.nome,
+                    atletica_sigla = a.sigla,
+                    atletica_escudo_url = a.escudo_url
+                FROM operational.atleticas a
+                WHERE a.id = ?
+                  AND cap.atletica_id = a.id
+                """, atleticaId);
+    }
+
+    private void refreshPartidasByAtletica(UUID atleticaId) {
+        jdbcTemplate.update("""
+                UPDATE public.partidas_ao_vivo pa
+                SET time_a_escudo_url = a.escudo_url,
+                    time_a_sigla = a.sigla,
+                    time_a_nome = COALESCE((
+                        SELECT ta.nome
+                        FROM operational.campeonato_times ct
+                        LEFT JOIN operational.times_atletica ta ON ta.id = ct.time_atletica_id
+                        WHERE ct.id = pa.campeonato_time_a_id
+                    ), a.nome),
+                    atualizado_em = now()
+                FROM operational.atleticas a
+                WHERE a.id = ?
+                  AND pa.time_a_atletica_id = a.id
+                """, atleticaId);
+
+        jdbcTemplate.update("""
+                UPDATE public.partidas_ao_vivo pa
+                SET time_b_escudo_url = a.escudo_url,
+                    time_b_sigla = a.sigla,
+                    time_b_nome = COALESCE((
+                        SELECT tb.nome
+                        FROM operational.campeonato_times ct
+                        LEFT JOIN operational.times_atletica tb ON tb.id = ct.time_atletica_id
+                        WHERE ct.id = pa.campeonato_time_b_id
+                    ), a.nome),
+                    atualizado_em = now()
+                FROM operational.atleticas a
+                WHERE a.id = ?
+                  AND pa.time_b_atletica_id = a.id
+                """, atleticaId);
+
+        jdbcTemplate.update("""
+                UPDATE public.partidas_historico ph
+                SET time_a_escudo_url = a.escudo_url,
+                    time_a_sigla = a.sigla,
+                    time_a_atletica_nome = a.nome,
+                    time_a_nome = COALESCE((
+                        SELECT ta.nome
+                        FROM operational.campeonato_times ct
+                        LEFT JOIN operational.times_atletica ta ON ta.id = ct.time_atletica_id
+                        WHERE ct.id = ph.campeonato_time_a_id
+                    ), a.nome),
+                    atualizado_em = now()
+                FROM operational.atleticas a
+                WHERE a.id = ?
+                  AND ph.time_a_atletica_id = a.id
+                """, atleticaId);
+
+        jdbcTemplate.update("""
+                UPDATE public.partidas_historico ph
+                SET time_b_escudo_url = a.escudo_url,
+                    time_b_sigla = a.sigla,
+                    time_b_atletica_nome = a.nome,
+                    time_b_nome = COALESCE((
+                        SELECT tb.nome
+                        FROM operational.campeonato_times ct
+                        LEFT JOIN operational.times_atletica tb ON tb.id = ct.time_atletica_id
+                        WHERE ct.id = ph.campeonato_time_b_id
+                    ), a.nome),
+                    atualizado_em = now()
+                FROM operational.atleticas a
+                WHERE a.id = ?
+                  AND ph.time_b_atletica_id = a.id
+                """, atleticaId);
     }
 
     private void syncAtleticaMembro(UUID atleticaMembroId) {

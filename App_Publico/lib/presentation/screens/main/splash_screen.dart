@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:kyarem_eventos_publico/models/campeonato_model.dart';
-import 'package:kyarem_eventos_publico/core/app_globals.dart';
+
+import '../../../core/app_globals.dart';
+import '../../../services/campeonato_config_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -27,20 +26,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    try {
-      final campeonatoId = dotenv.get('CAMPEONATO_ID');
-      final res = await Supabase.instance.client
-          .from('campeonatos_vitrine')
-          .select('*')
-          .eq('campeonato_id', campeonatoId)
-          .limit(1)
-          .maybeSingle();
-
-      if (res != null) {
-        AppGlobals.campeonatoAtivo = Campeonato.fromMap(res);
-      }
-    } catch (e) {
-      debugPrint('Erro ao buscar campeonato ativo: $e');
+    if (AppGlobals.campeonatoAtivo == null) {
+      await CampeonatoConfigService.loadCampeonatoAtivo();
     }
 
     if (!mounted) return;

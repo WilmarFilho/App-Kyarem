@@ -104,22 +104,20 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
       'status': _selectedStatus,
     };
 
-    bool sucesso = false;
+    Campeonato? campeonatoSalvo;
     if (widget.campeonato == null) {
-      final res = await _apiService.criarCampeonato(data);
-      sucesso = res != null;
+      campeonatoSalvo = await _apiService.criarCampeonato(data);
     } else {
-      final res = await _apiService.atualizarCampeonato(
+      campeonatoSalvo = await _apiService.atualizarCampeonato(
         widget.campeonato!.id,
         data,
       );
-      sucesso = res != null;
     }
 
     setState(() => _isSaving = false);
 
-    if (sucesso) {
-      if (mounted) Navigator.pop(context, true);
+    if (campeonatoSalvo != null) {
+      if (mounted) Navigator.pop(context, campeonatoSalvo);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(

@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:intl/intl.dart';
 
+import '../../../models/atleta_model.dart';
 import '../../../models/modalidade_model.dart';
 import '../../../models/partida_model.dart';
 import '../../../services/estatistica_service.dart';
 import '../../../services/partida_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
+import '../game/estatistica_atleta_screen.dart';
 import '../game/partida_screen.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
   final double waveHeight;
-  // ignore: unused_element_parameter
   _WaveClipper({this.waveHeight = 30});
 
   @override
@@ -76,7 +77,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   bool _loading = true;
   bool _loadingStats = true;
   _FiltroStatus _filtro = _FiltroStatus.todas;
-  String _ordemStats = 'Gols'; // 'Gols', 'Faltas', 'Cartões', 'Pênaltis'
+  String _ordemStats = 'Gols';
   List<Partida> _partidas = [];
   List<EstatisticaAtleta> _estatisticas = [];
 
@@ -110,26 +111,24 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
   }
 
   void _ordenarEstatisticas() {
-    setState(() {
-      switch (_ordemStats) {
-        case 'Gols':
-          _estatisticas.sort((a, b) => b.gols.compareTo(a.gols));
-          break;
-        case 'Faltas':
-          _estatisticas.sort((a, b) => b.faltas.compareTo(a.faltas));
-          break;
-        case 'Cartões':
-          _estatisticas.sort((a, b) {
-            final totalA = a.cartoesAmarelos + (a.cartoesVermelhos * 2);
-            final totalB = b.cartoesAmarelos + (b.cartoesVermelhos * 2);
-            return totalB.compareTo(totalA);
-          });
-          break;
-        case 'Pênaltis':
-          _estatisticas.sort((a, b) => b.penaltis.compareTo(a.penaltis));
-          break;
-      }
-    });
+    switch (_ordemStats) {
+      case 'Gols':
+        _estatisticas.sort((a, b) => b.gols.compareTo(a.gols));
+        break;
+      case 'Faltas':
+        _estatisticas.sort((a, b) => b.faltas.compareTo(a.faltas));
+        break;
+      case 'Cartões':
+        _estatisticas.sort((a, b) {
+          final totalA = a.cartoesAmarelos + (a.cartoesVermelhos * 2);
+          final totalB = b.cartoesAmarelos + (b.cartoesVermelhos * 2);
+          return totalB.compareTo(totalA);
+        });
+        break;
+      case 'Pênaltis':
+        _estatisticas.sort((a, b) => b.penaltis.compareTo(a.penaltis));
+        break;
+    }
   }
 
   num _getStatValue(EstatisticaAtleta est) {
@@ -149,16 +148,13 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 
   Future<void> _carregar() async {
     setState(() => _loading = true);
-
     try {
-      // 1) Partidas (Supabase)
       final statusSupabase = _statusParaApi(_filtro);
       var partidas = await _partidaService.getMatchesByModalityAndStatus(
         modalityId: widget.modalidade.id,
         status: statusSupabase ?? 'all',
       );
 
-      // 2) Filtro "Em andamento"
       if (_filtro == _FiltroStatus.emAndamento) {
         partidas = partidas.where((p) {
           final st = p.status.trim().toLowerCase();
@@ -166,7 +162,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         }).toList();
       }
 
-      // 3) Ordenação
       partidas.sort((a, b) {
         final da = a.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
         final db = b.iniciadaEm ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -194,89 +189,64 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         return 'agendada';
       case _FiltroStatus.finalizadas:
         return 'finalizada';
-      case _FiltroStatus.emAndamento:
-        return null;
-      case _FiltroStatus.todas:
+      default:
         return null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Tratamento de título simplificado
     final String titulo = (widget.modalidade.nome?.trim().isNotEmpty ?? false)
         ? widget.modalidade.nome!.toUpperCase()
         : 'MODALIDADE';
 
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
-      // Removida a AppBar padrão para o Header colar no topo
       body: DefaultTabController(
         length: 2,
         child: Stack(
           children: [
             const GradientBackground(),
-
             Column(
               children: [
-                // 1. O Novo Header com Wave (Substitui a AppBar)
                 _buildHeader(titulo),
-
-                // 2. Seção da TabBar com efeito Glass e Aba Ativa em destaque
                 Container(
+                  padding: const EdgeInsets.all(12),
                   child: Container(
-                    padding: const EdgeInsets.all(
-                      12,
-                    ), // Espaçamento para o "glass" respirar
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(
-                          alpha: 0.05,
-                        ), // Efeito Glass inativo
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: TabBar(
-                        // O segredo está aqui: o indicator agora preenche o botão
-                        indicator: BoxDecoration(
-                          color:
-                              AppColors.primary, // Vermelho sólido para a ativa
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        labelColor: Colors.white,
-                        unselectedLabelColor: Colors.white54,
-                        dividerColor: Colors
-                            .transparent, // Remove a linha chata do Flutter 3
-                        indicatorSize: TabBarIndicatorSize
-                            .tab, // Faz o vermelho ocupar a aba toda
-                        labelStyle: const TextStyle(
-                          fontFamily: 'Oswald',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 1.2,
-                        ),
-                        tabs: const [
-                          Tab(text: 'PARTIDAS'),
-                          Tab(text: 'ESTATÍSTICAS'),
+                    child: TabBar(
+                      indicator: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.white54,
+                      dividerColor: Colors.transparent,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelStyle: const TextStyle(
+                        fontFamily: 'Oswald',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: 1.2,
+                      ),
+                      tabs: const [
+                        Tab(text: 'PARTIDAS'),
+                        Tab(text: 'ESTATÍSTICAS'),
+                      ],
                     ),
                   ),
                 ),
-                // 3. Conteúdo das Abas
                 Expanded(
                   child: TabBarView(
                     physics: const BouncingScrollPhysics(),
@@ -285,10 +255,10 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 ),
               ],
             ),
-           const Align(
-            alignment: Alignment.bottomCenter,
-            child: BottomNavigationWidget(currentIndex: 1),
-          ),
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomNavigationWidget(currentIndex: 1),
+            ),
           ],
         ),
       ),
@@ -297,7 +267,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 
   Widget _buildHeader(String titulo) {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
-
     return ClipPath(
       clipper: _WaveClipper(),
       child: Container(
@@ -307,7 +276,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         padding: EdgeInsets.fromLTRB(16, statusBarHeight, 16, 0),
         child: Row(
           children: [
-            // Botão de voltar customizado já que removemos a AppBar
             IconButton(
               icon: const Icon(
                 Icons.arrow_back_ios_new,
@@ -329,7 +297,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 ),
               ),
             ),
-            // Espaçador para centralizar o título perfeitamente
             const SizedBox(width: 48),
           ],
         ),
@@ -376,20 +343,15 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(child: _buildSortingChips()),
-
-                // Pódio dinâmico: Só exibe se houver dados suficientes
                 if (_estatisticas.length >= 3)
                   SliverToBoxAdapter(child: _buildPodium()),
-
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, i) {
-                        // Se o pódio está visível, pulamos os 3 primeiros atletas
                         final bool hasPodium = _estatisticas.length >= 3;
                         final int index = hasPodium ? i + 3 : i;
-
                         if (index >= _estatisticas.length) return null;
                         return _buildEstatisticaItem(
                           _estatisticas[index],
@@ -407,7 +369,6 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     );
   }
 
-  // Widget auxiliar para evitar repetição de código nos estados vazios
   Widget _buildEmptyState(String mensagem) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -455,12 +416,11 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 ),
                 selected: isSelected,
                 onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _ordemStats = f;
-                      _ordenarEstatisticas();
-                    });
-                  }
+                  if (!selected) return;
+                  setState(() {
+                    _ordemStats = f;
+                    _ordenarEstatisticas();
+                  });
                 },
                 selectedColor: AppColors.primary,
                 backgroundColor: AppColors.bgDeep,
@@ -480,7 +440,9 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 
   Widget _buildPodium() {
     return Container(
-      height: 200,
+      // Aumentamos levemente para 240 ou 250 para dar respiro,
+      // ou mantemos 220 e deixamos o Expanded trabalhar.
+      height: 240,
       margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -498,178 +460,101 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     final color = isFirst
         ? const Color(0xFFFFD700)
         : (pos == 2 ? const Color(0xFFC0C0C0) : const Color(0xFFCD7F32));
-    final double height = isFirst ? 130 : (pos == 2 ? 100 : 85);
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        // Avatar com Glow
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.2),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: CircleAvatar(
-            radius: isFirst ? 34 : 28,
-            backgroundColor: color,
-            child: CircleAvatar(
-              radius: isFirst ? 31 : 25,
-              backgroundColor: AppColors.bgCard,
-              backgroundImage:
-                  (est.fotoUrl ?? est.equipeEscudoUrl) != null &&
-                      (est.fotoUrl ?? est.equipeEscudoUrl)!.isNotEmpty
-                  ? NetworkImage(est.fotoUrl ?? est.equipeEscudoUrl!)
-                  : null,
-              child:
-                  (est.fotoUrl ?? est.equipeEscudoUrl) == null ||
-                      (est.fotoUrl ?? est.equipeEscudoUrl)!.isEmpty
-                  ? Text(
-                      est.nomeAtleta.isNotEmpty ? est.nomeAtleta[0] : '?',
-                      style: TextStyle(
-                        fontSize: isFirst ? 18 : 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          est.nomeAtleta.split(' ').first.toUpperCase(),
-          style: TextStyle(
-            fontFamily: 'Oswald',
-            fontSize: isFirst ? 14 : 12,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 6),
-        // Base do Pódio
-        Container(
-          width: double.infinity,
-          height: height,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                color.withValues(alpha: 0.9),
-                color.withValues(alpha: 0.3),
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => _abrirEstatisticaAtleta(est),
+      child: Column(
+        mainAxisSize: MainAxisSize
+            .max, // Altera para max para preencher o Expanded do Row
+        children: [
+          // 1. Avatar
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                ),
               ],
             ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '$posº',
-                style: const TextStyle(
-                  fontFamily: 'Oswald',
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
+            child: CircleAvatar(
+              radius: isFirst ? 32 : 26, // Reduzi levemente para ganhar espaço
+              backgroundColor: color,
+              child: CircleAvatar(
+                radius: isFirst ? 29 : 23,
+                backgroundColor: AppColors.bgCard,
+                backgroundImage: (est.fotoUrl?.isNotEmpty ?? false)
+                    ? NetworkImage(est.fotoUrl!)
+                    : (est.equipeEscudoUrl?.isNotEmpty ?? false)
+                    ? NetworkImage(est.equipeEscudoUrl!)
+                    : null,
               ),
-              Text(
-                '${_getStatValue(est)} ${_ordemStats.toUpperCase()}',
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 8),
 
-  Widget _buildEstatisticaItem(EstatisticaAtleta est, int pos) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05), // Efeito Glass
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        children: [
+          // 2. Nome
           Text(
-            '${pos + 1}º',
-            style: const TextStyle(
+            est.nomeAtleta.split(' ').first.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
               fontFamily: 'Oswald',
-              color: Colors.white24,
-              fontSize: 18,
+              fontSize: isFirst ? 13 : 11,
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 15),
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.bgDeep,
-            backgroundImage:
-                (est.fotoUrl ?? est.equipeEscudoUrl) != null &&
-                    (est.fotoUrl ?? est.equipeEscudoUrl)!.isNotEmpty
-                ? NetworkImage(est.fotoUrl ?? est.equipeEscudoUrl!)
-                : null,
-            child:
-                (est.fotoUrl ?? est.equipeEscudoUrl) == null ||
-                    (est.fotoUrl ?? est.equipeEscudoUrl)!.isEmpty
-                ? Text(
-                    est.nomeAtleta.isNotEmpty ? est.nomeAtleta[0] : '?',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 12),
+          const SizedBox(height: 8),
+
+          // 3. Base do Pódio (O segredo está no Expanded aqui)
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  est.nomeAtleta,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.white,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    color.withValues(alpha: 0.8),
+                    color.withValues(alpha: 0.2),
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$posº',
+                    style: TextStyle(
+                      fontFamily: 'Oswald',
+                      fontSize: isFirst ? 32 : 24,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                Text(
-                  est.equipeNome,
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          // Valor principal em destaque
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              _getStatValue(est).toString(),
-              style: const TextStyle(
-                fontFamily: 'Oswald',
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${_getStatValue(est)} ${_ordemStats.toUpperCase()}',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -678,19 +563,122 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     );
   }
 
-  void _abrirDetalhe(Partida p) {
-    final timeA = p.equipeA?.nome ?? 'Time A';
-    final timeB = p.equipeB?.nome ?? 'Time B';
+  Widget _buildEstatisticaItem(EstatisticaAtleta est, int pos) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => _abrirEstatisticaAtleta(est),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '${pos + 1}º',
+                style: const TextStyle(
+                  fontFamily: 'Oswald',
+                  color: Colors.white24,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 15),
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.bgDeep,
+                backgroundImage: (est.fotoUrl?.isNotEmpty ?? false)
+                    ? NetworkImage(est.fotoUrl!)
+                    : (est.equipeEscudoUrl?.isNotEmpty ?? false)
+                    ? NetworkImage(est.equipeEscudoUrl!)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      est.nomeAtleta,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      est.equipeNome,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _getStatValue(est).toString(),
+                  style: const TextStyle(
+                    fontFamily: 'Oswald',
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
+  void _abrirEstatisticaAtleta(EstatisticaAtleta est) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EstatisticaAtletaScreen(
+          atleta: Atleta(
+            id: est.atletaId,
+            atleticaId: '',
+            nome: est.nomeAtleta,
+            fotoUrl: est.fotoUrl,
+          ),
+          timeNome: est.equipeNome,
+          escudoUrl: est.equipeEscudoUrl,
+        ),
+      ),
+    );
+  }
+
+  void _abrirDetalhe(Partida p) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => JogoDetalhesScreen(
           partidaId: p.id,
           modalidadeId: p.modalidadeId,
-          timeA: timeA,
-          timeB: timeB,
-          // ✅ Escudos enriquecidos
+          timeA: p.equipeA?.nome ?? 'Time A',
+          timeB: p.equipeB?.nome ?? 'Time B',
           EscudoTimeA: p.equipeA?.atleticaEscudoUrl,
           EscudoTimeB: p.equipeB?.atleticaEscudoUrl,
           status: p.status,
@@ -710,23 +698,16 @@ class _PartidaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeA = partida.equipeA?.nome ?? 'Time A';
-    final timeB = partida.equipeB?.nome ?? 'Time B';
-    final escudoA = partida.equipeA?.atleticaEscudoUrl ?? '';
-    final escudoB = partida.equipeB?.atleticaEscudoUrl ?? '';
-
     final st = partida.status.toUpperCase();
-    final isFinalizada =
-        partida.status.trim().toLowerCase() == 'finalizada' ||
-        partida.status.trim().toLowerCase() == 'fechada';
+    final isFinalizada = [
+      'finalizada',
+      'fechada',
+    ].contains(partida.status.trim().toLowerCase());
     final isAoVivo =
         partida.status.trim().toLowerCase() != 'agendada' && !isFinalizada;
-
-    final dt = partida.iniciadaEm;
-    final dtStr = dt != null
-        ? DateFormat('dd/MM • HH:mm').format(dt.toLocal())
+    final dtStr = partida.iniciadaEm != null
+        ? DateFormat('dd/MM • HH:mm').format(partida.iniciadaEm!.toLocal())
         : '';
-
     final badgeColor = isAoVivo
         ? Colors.green
         : isFinalizada
@@ -736,7 +717,6 @@ class _PartidaTile extends StatelessWidget {
     return Material(
       color: AppColors.bgCard,
       borderRadius: BorderRadius.circular(22),
-      elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: onTap,
@@ -744,7 +724,6 @@ class _PartidaTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Column(
             children: [
-              // ── Badge + data ──────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -756,9 +735,7 @@ class _PartidaTile extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
-                    )
-                  else
-                    const SizedBox.shrink(),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -796,22 +773,16 @@ class _PartidaTile extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 14),
-
-              // ── Times + Placar ────────────────────────────────────────
               Row(
                 children: [
-                  // Time A
                   Expanded(
                     child: _buildTeamBlock(
-                      escudoA,
-                      timeA,
+                      partida.equipeA?.atleticaEscudoUrl ?? '',
+                      partida.equipeA?.nome ?? 'Time A',
                       CrossAxisAlignment.start,
                     ),
                   ),
-
-                  // Placar central
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Column(
@@ -829,8 +800,6 @@ class _PartidaTile extends StatelessWidget {
                         if ((partida.local ?? '').trim().isNotEmpty)
                           Text(
                             partida.local!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white30,
                               fontSize: 10,
@@ -840,19 +809,15 @@ class _PartidaTile extends StatelessWidget {
                       ],
                     ),
                   ),
-
-                  // Time B
                   Expanded(
                     child: _buildTeamBlock(
-                      escudoB,
-                      timeB,
+                      partida.equipeB?.atleticaEscudoUrl ?? '',
+                      partida.equipeB?.nome ?? 'Time B',
                       CrossAxisAlignment.end,
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 4),
             ],
           ),
         ),
@@ -872,11 +837,6 @@ class _PartidaTile extends StatelessWidget {
           radius: 24,
           backgroundColor: AppColors.bgDeep,
           backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
-          onBackgroundImageError: url.isNotEmpty
-              ? (error, stackTrace) {
-                  print('ERRO AO CARREGAR IMAGEM ($url): $error');
-                }
-              : null,
           child: url.isEmpty
               ? Text(
                   nome.isNotEmpty ? nome[0] : '?',

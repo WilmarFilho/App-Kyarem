@@ -43,8 +43,13 @@ class _WaveClipper extends CustomClipper<Path> {
 
 class HomeHeader extends StatelessWidget {
   final double collapseProgress;
+  final ValueChanged<int>? onNavigateToTab;
 
-  const HomeHeader({super.key, this.collapseProgress = 0.0});
+  const HomeHeader({
+    super.key,
+    this.collapseProgress = 0.0,
+    this.onNavigateToTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +130,9 @@ class HomeHeader extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SearchScreen(),
+                            builder: (_) => SearchScreen(
+                              onNavigateToTab: onNavigateToTab,
+                            ),
                           ),
                         ),
                         child: Container(

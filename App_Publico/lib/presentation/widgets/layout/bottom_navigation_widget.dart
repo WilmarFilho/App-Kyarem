@@ -23,10 +23,8 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
   Widget build(BuildContext context) {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
+    return Align(
+      alignment: Alignment.bottomCenter,
       child: Container(
         height: 75 + bottomPadding,
         padding: EdgeInsets.only(bottom: bottomPadding * 0.5),
@@ -55,7 +53,8 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
       children: [
         _buildNavItem(Icons.home_max_rounded, 'Início', 0),
         _buildNavItem(Icons.sports_soccer_rounded, 'Jogos', 1),
-        _buildNavItem(Icons.settings_rounded, 'Ajustes', 2),
+        _buildNavItem(Icons.groups_rounded, 'Atléticas', 2),
+        _buildNavItem(Icons.settings_rounded, 'Ajustes', 3),
       ],
     );
   }
@@ -73,7 +72,7 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
       },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 85,
+        width: 74,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -100,7 +99,6 @@ class _BottomNavigationWidgetState extends State<BottomNavigationWidget> {
             Text(
               label,
               style: TextStyle(
-
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? brandRed : Colors.black38,

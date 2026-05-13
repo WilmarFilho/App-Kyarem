@@ -69,14 +69,14 @@ class PartidaListItem extends StatelessWidget {
                 children: [
                   _buildTeamRow(
                     partida.equipeA?.nome ?? 'Time A',
-                    partida.equipeA?.atletica?.escudoUrl,
+                    partida.equipeA?.atleticaEscudoUrl,
                     partida.placarA,
                     venceu: partida.placarA > partida.placarB,
                   ),
                   const SizedBox(height: 6),
                   _buildTeamRow(
                     partida.equipeB?.nome ?? 'Time B',
-                    partida.equipeB?.atletica?.escudoUrl,
+                    partida.equipeB?.atleticaEscudoUrl,
                     partida.placarB,
                     venceu: partida.placarB > partida.placarA,
                   ),
@@ -97,13 +97,15 @@ class PartidaListItem extends StatelessWidget {
     int placar, {
     bool venceu = false,
   }) {
+    final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
+
     return Row(
       children: [
         CircleAvatar(
           radius: 12,
           backgroundColor: const Color(0xFF2A0808),
-          backgroundImage: logoUrl != null ? NetworkImage(logoUrl) : null,
-          child: logoUrl == null
+          backgroundImage: hasLogo ? NetworkImage(logoUrl) : null,
+          child: !hasLogo
               ? Text(
                   nome[0],
                   style: const TextStyle(fontSize: 10, color: Colors.white54),

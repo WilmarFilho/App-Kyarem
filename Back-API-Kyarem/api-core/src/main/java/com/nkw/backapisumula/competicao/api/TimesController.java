@@ -142,13 +142,33 @@ public class TimesController {
                 // until the business logic fully implements campeonato_atleticas.
                 campeonatoTime.setCampeonatoAtleticaId(UUID.randomUUID());
 
-                return CampeonatoTimeResponse.from(campeonatoTimeRepository.save(campeonatoTime));
+                CampeonatoTime saved = campeonatoTimeRepository.save(campeonatoTime);
+                eventPublisherService.publish(
+                                "CampeonatoTime",
+                                saved.getId().toString(),
+                                "CampeonatoTimeCriado",
+                                java.util.Map.of(
+                                                "campeonatoTimeId", saved.getId().toString(),
+                                                "campeonatoId", saved.getCampeonato().getId().toString(),
+                                                "campeonatoAtleticaId", saved.getCampeonatoAtleticaId().toString()));
+
+                return CampeonatoTimeResponse.from(saved);
         }
 
         @DeleteMapping("/campeonato/{campeonatoTimeId}")
         @ResponseStatus(HttpStatus.NO_CONTENT)
         @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
         public void removerTimeDoCampeonato(@PathVariable UUID campeonatoTimeId) {
+                CampeonatoTime time = campeonatoTimeRepository.findById(campeonatoTimeId)
+                                .orElseThrow(() -> new IllegalStateException("Time do campeonato não encontrado."));
+                eventPublisherService.publish(
+                                "CampeonatoTime",
+                                campeonatoTimeId.toString(),
+                                "CampeonatoTimeExcluido",
+                                java.util.Map.of(
+                                                "campeonatoTimeId", campeonatoTimeId.toString(),
+                                                "campeonatoId", time.getCampeonato().getId().toString(),
+                                                "campeonatoAtleticaId", time.getCampeonatoAtleticaId().toString()));
                 campeonatoTimeRepository.deleteById(campeonatoTimeId);
         }
 

@@ -80,7 +80,7 @@ class PartidaCard extends StatelessWidget {
                     // Time A
                     _buildTeamInfo(
                       partida.equipeA?.nome ?? "Time A",
-                      partida.equipeA?.atletica?.escudoUrl,
+                      partida.equipeA?.atleticaEscudoUrl,
                     ),
 
                     // Placar Central
@@ -110,7 +110,7 @@ class PartidaCard extends StatelessWidget {
                     // Time B
                     _buildTeamInfo(
                       partida.equipeB?.nome ?? "Time B",
-                      partida.equipeB?.atletica?.escudoUrl,
+                      partida.equipeB?.atleticaEscudoUrl,
                     ),
                   ],
                 ),
@@ -124,6 +124,8 @@ class PartidaCard extends StatelessWidget {
 
   // Widget auxiliar para montar a coluna de cada time dentro do card
   Widget _buildTeamInfo(String nome, String? logoUrl) {
+    final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
+
     return SizedBox(
       width: 85,
       child: Column(
@@ -131,15 +133,15 @@ class PartidaCard extends StatelessWidget {
           CircleAvatar(
             radius: 24,
             backgroundColor: Colors.white.withValues(alpha: 0.3),
-            backgroundImage: logoUrl != null ? NetworkImage(logoUrl) : null,
-            child: logoUrl == null
+            backgroundImage: hasLogo ? NetworkImage(logoUrl) : null,
+            child: !hasLogo
                 ? Text(
                     nome[0].toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
-                  )
+                )
                 : null,
           ),
           const SizedBox(height: 8),

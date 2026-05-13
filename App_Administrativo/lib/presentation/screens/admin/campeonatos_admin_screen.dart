@@ -108,7 +108,17 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         builder: (_) => CampeonatoFormScreen(campeonato: campeonato),
       ),
     );
-    if (result == true) _carregarCampeonatos();
+    if (result is Campeonato) {
+      setState(() {
+        final index = _campeonatos.indexWhere((item) => item.id == result.id);
+        if (index >= 0) {
+          _campeonatos[index] = result;
+        } else {
+          _campeonatos.insert(0, result);
+        }
+      });
+      _carregarCampeonatos();
+    }
   }
 
   List<_StatusOption> get _statusOptions {

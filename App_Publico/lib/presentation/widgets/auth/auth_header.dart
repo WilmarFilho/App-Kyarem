@@ -103,7 +103,7 @@ class _AuthHeaderState extends State<AuthHeader> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  'Área Pública',
+                  'Área do Campeonato',
                   style: TextStyle(
                     fontSize: widget.isSmall ? 14 : 16,
                     color: Colors.white70,

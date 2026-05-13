@@ -6,8 +6,10 @@ import '../../../core/app_globals.dart';
 import '../../../services/partida_service.dart';
 import '../../../services/modalidade_service.dart';
 import '../../../services/atleta_service.dart';
+import '../../../services/atletica_public_service.dart';
 
 import '../../widgets/layout/bottom_navigation_widget.dart';
+import 'atleticas_screen.dart';
 import 'home_screen.dart';
 import 'modalidades_screen.dart';
 import 'configuracoes_screen.dart';
@@ -18,6 +20,7 @@ class MainScreen extends StatefulWidget {
   final PartidaService? partidaService;
   final ModalidadeService? modalidadeService;
   final AtletaService? atletaService;
+  final AtleticaPublicService? atleticaPublicService;
 
   const MainScreen({
     super.key,
@@ -26,6 +29,7 @@ class MainScreen extends StatefulWidget {
     this.partidaService,
     this.modalidadeService,
     this.atletaService,
+    this.atleticaPublicService,
   });
 
   @override
@@ -89,6 +93,7 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               HomeScreen(
                 isMainScreenChild: true,
+                onNavigateToTab: _onTabSelected,
                 supabaseClient: widget.supabaseClient,
                 partidaService: widget.partidaService,
                 modalidadeService: widget.modalidadeService,
@@ -100,6 +105,10 @@ class _MainScreenState extends State<MainScreen> {
                     AppGlobals.campeonatoAtivo ??
                     Campeonato(id: '', nome: 'Campeonato'),
                 modalidadeService: widget.modalidadeService,
+              ),
+              AtleticasScreen(
+                isMainScreenChild: true,
+                atleticaService: widget.atleticaPublicService,
               ),
               ConfiguracoesScreen(
                 isMainScreenChild: true,

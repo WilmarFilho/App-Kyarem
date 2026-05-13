@@ -20,6 +20,7 @@ import '../../widgets/home/partida_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isMainScreenChild;
+  final ValueChanged<int>? onNavigateToTab;
   final SupabaseClient? supabaseClient;
   final PartidaService? partidaService;
   final ModalidadeService? modalidadeService;
@@ -28,6 +29,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.isMainScreenChild = false,
+    this.onNavigateToTab,
     this.supabaseClient,
     this.partidaService,
     this.modalidadeService,
@@ -298,7 +300,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             top: 0,
             left: 0,
             right: 0,
-            child: HomeHeader(collapseProgress: _headerCollapseProgress),
+            child: HomeHeader(
+              collapseProgress: _headerCollapseProgress,
+              onNavigateToTab: widget.onNavigateToTab,
+            ),
           ),
 
           if (!widget.isMainScreenChild)
@@ -747,8 +752,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           modalidadeId: partida.modalidadeId,
           timeA: partida.equipeA?.nome ?? "Time A",
           timeB: partida.equipeB?.nome ?? "Time B",
-          EscudoTimeA: partida.equipeA?.atletica?.escudoUrl ?? "",
-          EscudoTimeB: partida.equipeB?.atletica?.escudoUrl ?? "",
+          EscudoTimeA: partida.equipeA?.atleticaEscudoUrl ?? "",
+          EscudoTimeB: partida.equipeB?.atleticaEscudoUrl ?? "",
           status: partida.status.toUpperCase(),
           placarA: partida.placarA.toString(),
           placarB: partida.placarB.toString(),
