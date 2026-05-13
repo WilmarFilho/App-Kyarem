@@ -15,6 +15,7 @@ import '../main/main_screen.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
   final double waveHeight;
+  // ignore: unused_element_parameter
   _WaveClipper({this.waveHeight = 30});
 
   @override
