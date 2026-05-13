@@ -56,7 +56,7 @@ SELECT
     ct.campeonato_modalidade_id,
     COALESCE(cm.nome_exibicao, mc.nome),
     cm.genero,
-    COALESCE(NULLIF(ct.nome_exibicao, ''), ta.nome, atl.nome),
+    COALESCE(NULLIF(ta.nome, ''), atl.nome),
     ct.status,
     ct.criado_em,
     now()
