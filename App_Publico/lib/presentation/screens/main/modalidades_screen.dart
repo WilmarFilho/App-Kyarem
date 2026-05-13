@@ -10,6 +10,7 @@ import 'package:kyarem_eventos_publico/services/partida_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
+import 'main_screen.dart';
 
 IconData _getModalidadeIcon(String nome) {
   final n = nome.toLowerCase();
@@ -64,6 +65,13 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
     setState(() {
       _future = _service.getModalities();
     });
+  }
+
+  void _onBottomTabSelected(int index) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+      (route) => false,
+    );
   }
 
   @override
@@ -165,7 +173,10 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
           ),
 
           if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(currentIndex: 1),
+            BottomNavigationWidget(
+              currentIndex: 1,
+              onTabSelected: _onBottomTabSelected,
+            ),
         ],
       ),
     );

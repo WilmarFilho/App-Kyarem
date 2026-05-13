@@ -17,6 +17,7 @@ import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/home/home_header.dart';
 import '../../widgets/home/partida_list_item.dart';
 import '../../widgets/home/partida_card.dart';
+import 'main_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isMainScreenChild;
@@ -67,6 +68,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   List<Map<String, dynamic>> _topArtilheiros = [];
   List<Map<String, dynamic>> _topCestinhas = [];
+
+  void _onBottomTabSelected(int index) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+      (route) => false,
+    );
+  }
 
   @override
   void initState() {
@@ -306,8 +314,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(currentIndex: 0),
+            if (!widget.isMainScreenChild)
+              BottomNavigationWidget(
+                currentIndex: 0,
+                onTabSelected: _onBottomTabSelected,
+              ),
         ],
       ),
     );

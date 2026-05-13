@@ -70,14 +70,11 @@ class _ResumoEstatisticaPartidaScreenState
         widget.partidaId,
       );
 
-      // No schema público, os IDs dos times estão diretamente como time_a_atletica_id / time_b_atletica_id
-      final String? atleticaIdA =
-          (partidaData['time_a_atletica_id'] ??
-                  partidaData['equipe_a']?['atletica_id'])
+      final String? equipeIdA =
+          (partidaData['campeonato_time_a_id'] ?? partidaData['equipe_a']?['id'])
               ?.toString();
-      final String? atleticaIdB =
-          (partidaData['time_b_atletica_id'] ??
-                  partidaData['equipe_b']?['atletica_id'])
+      final String? equipeIdB =
+          (partidaData['campeonato_time_b_id'] ?? partidaData['equipe_b']?['id'])
               ?.toString();
 
       // Busca eventos da partida em public.eventos_partida_publicos
@@ -97,15 +94,16 @@ class _ResumoEstatisticaPartidaScreenState
         ).toUpperCase();
 
         final atletaId = ev['atleta_id']?.toString();
-        // No schema público, equipe_id identifica a equipe do evento
         final eventoEquipeId = ev['equipe_id']?.toString();
 
-        bool isTeamA = eventoEquipeId != null &&
-            atleticaIdA != null &&
-            eventoEquipeId == atleticaIdA;
-        bool isTeamB = eventoEquipeId != null &&
-            atleticaIdB != null &&
-            eventoEquipeId == atleticaIdB;
+        final bool isTeamA =
+            eventoEquipeId != null &&
+            equipeIdA != null &&
+            eventoEquipeId == equipeIdA;
+        final bool isTeamB =
+            eventoEquipeId != null &&
+            equipeIdB != null &&
+            eventoEquipeId == equipeIdB;
 
         if (rawCodigo.contains('GOL') ||
             rawCodigo.contains('CESTA') ||
@@ -150,7 +148,7 @@ class _ResumoEstatisticaPartidaScreenState
           nome: mvpInfo['nome'],
           fotoUrl: mvpInfo['foto_url'],
         );
-        mvpTeam = mvpInfo['atletica_id'] == atleticaIdA
+        mvpTeam = mvpInfo['atletica_id'] == equipeIdA
             ? widget.timeA
             : widget.timeB;
       }
@@ -263,6 +261,8 @@ class _ResumoEstatisticaPartidaScreenState
   }
 
   Widget _buildMvpCard() {
+    final hasMvpPhoto = mvpData?.fotoUrl != null && mvpData!.fotoUrl!.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -314,24 +314,19 @@ class _ResumoEstatisticaPartidaScreenState
             child: CircleAvatar(
               radius: 45,
               backgroundColor: const Color(0xFF110101),
-              // 1. Verificamos se a URL existe e não está vazia para carregar a imagem
-              backgroundImage:
-                  (mvpData?.fotoUrl != null && mvpData!.fotoUrl!.isNotEmpty)
-                  ? NetworkImage(mvpData!.fotoUrl!)
+              backgroundImage: hasMvpPhoto ? NetworkImage(mvpData!.fotoUrl!) : null,
+              onBackgroundImageError: hasMvpPhoto
+                  ? (exception, stackTrace) {
+                      // Log opcional ou tratamento de erro de carregamento
+                    }
                   : null,
-
-              onBackgroundImageError: (exception, stackTrace) {
-                // Log opcional ou tratamento de erro de carregamento
-              },
-
-              // 2. Se não houver imagem (URL nula ou vazia), o child (ícone) aparece
-              child: (mvpData?.fotoUrl == null || mvpData!.fotoUrl!.isEmpty)
-                  ? const Icon(
+              child: hasMvpPhoto
+                  ? null
+                  : const Icon(
                       Icons.person_rounded,
                       size: 40,
                       color: Colors.white24,
-                    )
-                  : null,
+                    ),
             ),
           ),
           const SizedBox(height: 15),

@@ -16,15 +16,19 @@ class GameService {
       final resAoVivo = await _supabase
           .from('partidas_ao_vivo')
           .select(
-            'partida_id, campeonato_modalidade_id, time_a_atletica_id, time_b_atletica_id',
+            'partida_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id, time_a_atletica_id, time_b_atletica_id',
           )
           .eq('partida_id', partidaId)
           .maybeSingle();
 
       if (resAoVivo != null) {
         return {
-          'equipe_a_id': resAoVivo['time_a_atletica_id'],
-          'equipe_b_id': resAoVivo['time_b_atletica_id'],
+          'equipe_a_id': resAoVivo['campeonato_time_a_id'],
+          'equipe_b_id': resAoVivo['campeonato_time_b_id'],
+          'atletica_a_id': resAoVivo['time_a_atletica_id'],
+          'atletica_b_id': resAoVivo['time_b_atletica_id'],
+          'campeonato_time_a_id': resAoVivo['campeonato_time_a_id'],
+          'campeonato_time_b_id': resAoVivo['campeonato_time_b_id'],
           'campeonato_modalidade_id': resAoVivo['campeonato_modalidade_id'],
           'partida_id': partidaId,
           'fonte': 'ao_vivo',
@@ -34,17 +38,19 @@ class GameService {
       final resHist = await _supabase
           .from('partidas_historico')
           .select(
-            'partida_id, campeonato_modalidade_id, time_a_id, time_b_id, time_a_atletica_id, time_b_atletica_id',
+            'partida_id, campeonato_modalidade_id, campeonato_time_a_id, campeonato_time_b_id, time_a_atletica_id, time_b_atletica_id',
           )
           .eq('partida_id', partidaId)
           .maybeSingle();
 
       if (resHist != null) {
         return {
-          'equipe_a_id': resHist['time_a_atletica_id'],
-          'equipe_b_id': resHist['time_b_atletica_id'],
-          'campeonato_time_a_id': resHist['time_a_id'],
-          'campeonato_time_b_id': resHist['time_b_id'],
+          'equipe_a_id': resHist['campeonato_time_a_id'],
+          'equipe_b_id': resHist['campeonato_time_b_id'],
+          'atletica_a_id': resHist['time_a_atletica_id'],
+          'atletica_b_id': resHist['time_b_atletica_id'],
+          'campeonato_time_a_id': resHist['campeonato_time_a_id'],
+          'campeonato_time_b_id': resHist['campeonato_time_b_id'],
           'campeonato_modalidade_id': resHist['campeonato_modalidade_id'],
           'partida_id': partidaId,
           'fonte': 'historico',
@@ -56,21 +62,19 @@ class GameService {
     return {};
   }
 
-  /// Busca atletas de um campeonato_time pelo time_id OU atletica_id + partida_id.
+  /// Busca atletas inscritos de um campeonato_time.
   /// Usa public.campeonato_atletas_publicos.
-  /// [equipeId] aqui representa o atletica_id ou campeonato_time_id.
   Future<List<Map<String, dynamic>>> getAtletasInscritos(
-    String equipeId, {
+    String campeonatoTimeId, {
     String? campeonatoId,
   }) async {
     try {
-      // Busca atletas pelo atletica_id no campeonato
       var query = _supabase
           .from('campeonato_atletas_publicos')
           .select(
-            'atleta_id, numero_camisa, is_capitao, is_goleiro, status, campeonato_time_id',
+            'atleta_id, atletica_id, numero_camisa, is_capitao, is_goleiro, status, campeonato_time_id',
           )
-          .eq('atletica_id', equipeId)
+          .eq('campeonato_time_id', campeonatoTimeId)
           .eq('status', 'ATIVO');
 
       if (campeonatoId != null && campeonatoId.isNotEmpty) {
@@ -83,14 +87,13 @@ class GameService {
       if (inscritos.isEmpty) return [];
 
       // Buscar perfis dos atletas
-      final atletaIds =
-          inscritos.map((i) => i['atleta_id'].toString()).toList();
+      final atletaIds = inscritos
+          .map((i) => i['atleta_id'].toString())
+          .toList();
 
       final perfisRes = await _supabase
           .from('perfis_atletas')
-          .select(
-            'atleta_id, user_id, nome_exibicao, foto_url, atletica_atual_nome, atletica_atual_id, atletica_atual_escudo_url',
-          )
+          .select('atleta_id, nome_exibicao, nome_completo, avatar_url')
           .inFilter('atleta_id', atletaIds);
 
       final perfisMap = {
@@ -110,10 +113,10 @@ class GameService {
           // estrutura compatível com Atleta.fromMap via 'atletas'
           'atletas': {
             'id': atletaId,
-            'atletica_id': inscrito['campeonato_time_id'] ?? '',
-            'nome': perfil['nome_exibicao'] ?? 'Atleta',
-            'foto_url': perfil['foto_url'],
-            'atleticas': {'nome': perfil['atletica_atual_nome'] ?? ''},
+            'atletica_id': inscrito['atletica_id'] ?? '',
+            'nome':
+                perfil['nome_exibicao'] ?? perfil['nome_completo'] ?? 'Atleta',
+            'foto_url': perfil['avatar_url'],
           },
         };
       }).toList();
@@ -192,9 +195,7 @@ class GameService {
   }
 
   /// Busca eventos de uma partida no schema público.
-  Future<List<Map<String, dynamic>>> getEventosPartida(
-    String partidaId,
-  ) async {
+  Future<List<Map<String, dynamic>>> getEventosPartida(String partidaId) async {
     try {
       final res = await _supabase
           .from('eventos_partida_publicos')

@@ -11,6 +11,7 @@ import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../game/estatistica_atleta_screen.dart';
 import '../game/partida_screen.dart';
+import '../main/main_screen.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
   final double waveHeight;
@@ -194,6 +195,13 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
     }
   }
 
+  void _onBottomTabSelected(int index) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final String titulo = (widget.modalidade.nome?.trim().isNotEmpty ?? false)
@@ -255,9 +263,12 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
                 ),
               ],
             ),
-            const Align(
+            Align(
               alignment: Alignment.bottomCenter,
-              child: BottomNavigationWidget(currentIndex: 1),
+              child: BottomNavigationWidget(
+                currentIndex: 1,
+                onTabSelected: _onBottomTabSelected,
+              ),
             ),
           ],
         ),
@@ -275,6 +286,7 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
         color: Colors.white,
         padding: EdgeInsets.fromLTRB(16, statusBarHeight, 16, 0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             IconButton(
               icon: const Icon(
@@ -284,20 +296,23 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
+            const SizedBox(width: 4),
             Expanded(
-              child: Text(
-                titulo,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Oswald',
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.bgDeep,
-                  letterSpacing: 1.5,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  titulo,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    fontFamily: 'Oswald',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.bgDeep,
+                    letterSpacing: 1.5,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 48),
           ],
         ),
       ),

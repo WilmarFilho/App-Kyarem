@@ -32,20 +32,37 @@ class Partida {
         (map['campeonato_modalidade_id'] ?? map['modalidade_id'] ?? '')
             .toString();
 
+    String? firstNonEmpty(List<dynamic> values) {
+      for (final value in values) {
+        final text = value?.toString();
+        if (text != null && text.isNotEmpty) {
+          return text;
+        }
+      }
+      return null;
+    }
+
     Equipe? equipeA;
     if (map['equipe_a'] != null) {
       equipeA = Equipe.fromMap(map['equipe_a']);
     } else if (map['time_a_nome'] != null) {
+      final timeAEscudoUrl = firstNonEmpty([
+        map['time_a_escudo_url'],
+        map['time_a_atletica_escudo_url'],
+      ]);
       equipeA = Equipe(
         id: (map['time_a_id'] ?? '').toString(),
         nome: map['time_a_nome'].toString(),
         atleticaId: (map['time_a_atletica_id'] ?? '').toString(),
-        atleticaNome: map['time_a_atletica_nome']?.toString(),
-        atleticaEscudoUrl: map['time_a_escudo_url']?.toString(),
+        atleticaNome: firstNonEmpty([
+          map['time_a_atletica_nome'],
+          map['time_a_nome_atletica'],
+        ]),
+        atleticaEscudoUrl: timeAEscudoUrl,
         atletica: Atletica(
           id: (map['time_a_atletica_id'] ?? '').toString(),
           nome: (map['time_a_atletica_nome'] ?? '').toString(),
-          escudoUrl: map['time_a_escudo_url']?.toString(),
+          escudoUrl: timeAEscudoUrl,
           // time_a_cor_principal foi removido na revisão 12.5
           corPrincipal: null,
         ),
@@ -56,16 +73,23 @@ class Partida {
     if (map['equipe_b'] != null) {
       equipeB = Equipe.fromMap(map['equipe_b']);
     } else if (map['time_b_nome'] != null) {
+      final timeBEscudoUrl = firstNonEmpty([
+        map['time_b_escudo_url'],
+        map['time_b_atletica_escudo_url'],
+      ]);
       equipeB = Equipe(
         id: (map['time_b_id'] ?? '').toString(),
         nome: map['time_b_nome'].toString(),
         atleticaId: (map['time_b_atletica_id'] ?? '').toString(),
-        atleticaNome: map['time_b_atletica_nome']?.toString(),
-        atleticaEscudoUrl: map['time_b_escudo_url']?.toString(),
+        atleticaNome: firstNonEmpty([
+          map['time_b_atletica_nome'],
+          map['time_b_nome_atletica'],
+        ]),
+        atleticaEscudoUrl: timeBEscudoUrl,
         atletica: Atletica(
           id: (map['time_b_atletica_id'] ?? '').toString(),
           nome: (map['time_b_atletica_nome'] ?? '').toString(),
-          escudoUrl: map['time_b_escudo_url']?.toString(),
+          escudoUrl: timeBEscudoUrl,
           // time_b_cor_principal foi removido na revisão 12.5
           corPrincipal: null,
         ),
@@ -95,4 +119,4 @@ class Partida {
       equipeB: equipeB,
     );
   }
-}
+}

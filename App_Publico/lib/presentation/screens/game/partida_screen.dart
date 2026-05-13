@@ -596,13 +596,15 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   }
 
   Widget _buildTeamBadge(String nome, String? escudo) {
+    final hasEscudo = escudo != null && escudo.isNotEmpty;
+
     return Column(
       children: [
         CircleAvatar(
           radius: 35,
           backgroundColor: Colors.white.withValues(alpha: 0.2),
-          backgroundImage: escudo != null ? NetworkImage(escudo) : null,
-          child: escudo == null
+          backgroundImage: hasEscudo ? NetworkImage(escudo) : null,
+          child: !hasEscudo
               ? Text(
                   nome.isNotEmpty ? nome[0] : "?",
                   style: const TextStyle(

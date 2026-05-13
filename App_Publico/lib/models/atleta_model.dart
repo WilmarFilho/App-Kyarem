@@ -35,7 +35,7 @@ class Atleta {
       map['atletica_atual_nome'] ??
       map['atleticas']?['nome']
     )?.toString();
-    final fotoUrl = map['foto_url']?.toString();
+    final fotoUrl = (map['foto_url'] ?? map['avatar_url'])?.toString();
     final criadoEm = map['criado_em'] != null
         ? DateTime.tryParse(map['criado_em'].toString())
         : null;

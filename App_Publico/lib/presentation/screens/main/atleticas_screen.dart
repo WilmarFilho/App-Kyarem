@@ -7,6 +7,7 @@ import '../../../services/atletica_public_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../atletica/atletica_detalhe_screen.dart';
+import 'main_screen.dart';
 
 class AtleticasScreen extends StatefulWidget {
   final bool isMainScreenChild;
@@ -26,6 +27,13 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
   late final AtleticaPublicService _service =
       widget.atleticaService ?? AtleticaPublicService();
   late Future<List<CampeonatoAtleticaPublica>> _future;
+
+  void _onBottomTabSelected(int index) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+      (route) => false,
+    );
+  }
 
   @override
   void initState() {
@@ -133,9 +141,12 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
                 ),
               ),
             ],
-          ),
-          if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(currentIndex: 2),
+            ),
+            if (!widget.isMainScreenChild)
+              BottomNavigationWidget(
+                currentIndex: 2,
+                onTabSelected: _onBottomTabSelected,
+              ),
         ],
       ),
     );

@@ -68,6 +68,16 @@ class Equipe {
       atleticaMap = Map<String, dynamic>.from(joinedAtletica);
     }
 
+    String? firstNonEmpty(List<dynamic> values) {
+      for (final value in values) {
+        final text = value?.toString();
+        if (text != null && text.isNotEmpty) {
+          return text;
+        }
+      }
+      return null;
+    }
+
     return Equipe(
       id: (map['id'] ?? '').toString(),
       // API: nomeEquipe | Supabase: nome_equipe
@@ -76,27 +86,44 @@ class Equipe {
       // API: atleticaId | Supabase: atletica_id
       atleticaId: (map['atleticaId'] ?? map['atletica_id'] ?? '').toString(),
       atleticaNome:
-          map['atleticaNome']?.toString() ??
-          (atleticaMap != null ? atleticaMap['nome']?.toString() : null),
+          firstNonEmpty([
+            map['atleticaNome'],
+            map['atletica_nome'],
+            atleticaMap != null ? atleticaMap['nome'] : null,
+          ]),
       atleticaEscudoUrl:
-          map['atleticaEscudoUrl']?.toString() ??
-          (atleticaMap != null
-              ? (atleticaMap['escudo_url'] ??
-                        atleticaMap['escudoUrl'] ??
-                        atleticaMap['logo_url'] ??
-                        atleticaMap['logoUrl'])
-                    ?.toString()
-              : null),
+          firstNonEmpty([
+            map['atleticaEscudoUrl'],
+            map['atletica_escudo_url'],
+            map['escudo_url'],
+            map['logo_url'],
+            atleticaMap != null ? atleticaMap['escudo_url'] : null,
+            atleticaMap != null ? atleticaMap['escudoUrl'] : null,
+            atleticaMap != null ? atleticaMap['logo_url'] : null,
+            atleticaMap != null ? atleticaMap['logoUrl'] : null,
+          ]),
       campeonatoId: map['campeonatoId']?.toString(),
       campeonatoNome: map['campeonatoNome']?.toString(),
       modalidadeId: map['modalidadeId']?.toString(),
       modalidadeNome: map['modalidadeNome']?.toString(),
       atletica: atleticaMap != null
           ? Atletica.fromMap(atleticaMap)
-          : (map['atleticaId'] != null || map['atleticaNome'] != null
+          : (map['atleticaId'] != null ||
+                    map['atletica_id'] != null ||
+                    map['atleticaNome'] != null ||
+                    map['atletica_nome'] != null
                 ? Atletica(
-                    id: (map['atleticaId'] ?? '').toString(),
-                    nome: (map['atleticaNome'] ?? '').toString(),
+                    id: (map['atleticaId'] ?? map['atletica_id'] ?? '')
+                        .toString(),
+                    nome:
+                        (map['atleticaNome'] ?? map['atletica_nome'] ?? '')
+                            .toString(),
+                    escudoUrl: firstNonEmpty([
+                      map['atleticaEscudoUrl'],
+                      map['atletica_escudo_url'],
+                      map['escudo_url'],
+                      map['logo_url'],
+                    ]),
                   )
                 : null),
     );

@@ -40,6 +40,18 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
   int cartoesAmarelos = 0;
   int cartoesVermelhos = 0;
 
+  bool get _hasFotoUrl =>
+      widget.atleta.fotoUrl != null &&
+      widget.atleta.fotoUrl!.trim().isNotEmpty &&
+      Uri.tryParse(widget.atleta.fotoUrl!)?.hasAbsolutePath == true &&
+      Uri.tryParse(widget.atleta.fotoUrl!)?.host.isNotEmpty == true;
+
+  bool get _hasEscudoUrl =>
+      widget.escudoUrl != null &&
+      widget.escudoUrl!.trim().isNotEmpty &&
+      Uri.tryParse(widget.escudoUrl!)?.hasAbsolutePath == true &&
+      Uri.tryParse(widget.escudoUrl!)?.host.isNotEmpty == true;
+
   @override
   void initState() {
     super.initState();
@@ -217,10 +229,10 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
             child: CircleAvatar(
               radius: 40,
               backgroundColor: Colors.black,
-              backgroundImage: widget.atleta.fotoUrl != null
+              backgroundImage: _hasFotoUrl
                   ? NetworkImage(widget.atleta.fotoUrl!)
                   : null,
-              child: widget.atleta.fotoUrl == null
+              child: !_hasFotoUrl
                   ? const Icon(Icons.person, size: 40, color: Colors.white24)
                   : null,
             ),
@@ -232,6 +244,8 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
               children: [
                 Text(
                   widget.atleta.nome.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.oswald(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -241,16 +255,25 @@ class _EstatisticaAtletaScreenState extends State<EstatisticaAtletaScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    if (widget.escudoUrl != null) ...[
-                      Image.network(widget.escudoUrl!, height: 18),
+                    if (_hasEscudoUrl) ...[
+                      Image.network(
+                        widget.escudoUrl!,
+                        height: 18,
+                        width: 18,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
                       const SizedBox(width: 8),
                     ],
-                    Text(
-                      widget.timeNome,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        widget.timeNome,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],

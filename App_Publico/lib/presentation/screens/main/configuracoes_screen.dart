@@ -6,6 +6,7 @@ import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/common/app_snackbar.dart';
 import '../../widgets/common/themed_divider.dart';
+import 'main_screen.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
   final double waveHeight;
@@ -57,6 +58,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
+  
+  void _onBottomTabSelected(int index) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+      (route) => false,
+    );
+  }
 
   late ScrollController _scrollController;
   double _headerCollapseProgress = 0.0;
@@ -118,10 +126,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                 const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
-          ),
-          if (!widget.isMainScreenChild)
-            const BottomNavigationWidget(currentIndex: 3),
-          Positioned(top: 0, left: 0, right: 0, child: _buildHeader()),
+            ),
+            if (!widget.isMainScreenChild)
+              BottomNavigationWidget(
+                currentIndex: 3,
+                onTabSelected: _onBottomTabSelected,
+              ),
+            Positioned(top: 0, left: 0, right: 0, child: _buildHeader()),
         ],
       ),
     );

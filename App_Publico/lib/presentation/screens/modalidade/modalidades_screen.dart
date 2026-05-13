@@ -6,6 +6,7 @@ import '../../../models/modalidade_model.dart';
 import '../../../services/modalidade_service.dart';
 import '../../widgets/layout/bottom_navigation_widget.dart';
 import 'partidas_modalidade_screen.dart';
+import '../main/main_screen.dart';
 
 class ModalidadesScreen extends StatefulWidget {
   final Campeonato campeonato;
@@ -19,6 +20,13 @@ class ModalidadesScreen extends StatefulWidget {
 class _ModalidadesScreenState extends State<ModalidadesScreen> {
   final _service = ModalidadeService();
   late Future<List<Modalidade>> _future;
+
+  void _onBottomTabSelected(int index) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+      (route) => false,
+    );
+  }
 
   @override
   void initState() {
@@ -183,9 +191,12 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
               );
             },
           ),
-          const Align(
+          Align(
             alignment: Alignment.bottomCenter,
-            child: BottomNavigationWidget(currentIndex: 1),
+            child: BottomNavigationWidget(
+              currentIndex: 1,
+              onTabSelected: _onBottomTabSelected,
+            ),
           ),
         ],
       ),
