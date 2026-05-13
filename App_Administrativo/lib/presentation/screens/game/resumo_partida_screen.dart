@@ -6,7 +6,6 @@ import 'package:kyarem_eventos/models/atleta_model.dart';
 import 'package:kyarem_eventos/models/tipo_evento_model.dart';
 import 'package:kyarem_eventos/services/pdf_service.dart';
 import 'package:printing/printing.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../../widgets/game/summary_header.dart';
@@ -148,9 +147,8 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       await _carregarAtletasEquipes();
     }
 
-    if (mounted) {
-      Navigator.of(context).pop(); // fecha loading
-    }
+    if (!mounted) return;
+    Navigator.of(context).pop(); // fecha loading
 
     final isFinalizada =
         _partidaApi!.status.trim().toLowerCase() == 'finalizada';
@@ -172,16 +170,16 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.only(
             left: 20,
             right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
             top: 20,
           ),
           child: StatefulBuilder(
-            builder: (context, setModalState) {
+            builder: (sheetContext, setModalState) {
               return SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -198,7 +196,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       dropdownColor: const Color(0xFF2D2D2D),
-                      value: tipoSelecionadoId,
+                      initialValue: tipoSelecionadoId,
                       decoration: const InputDecoration(
                         labelText: 'Tipo de evento',
                         labelStyle: TextStyle(color: Colors.white70),
@@ -221,7 +219,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     // Equipe (opcional para eventos gerais; obrigatória se houver atleta)
                     DropdownButtonFormField<String>(
                       dropdownColor: const Color(0xFF2D2D2D),
-                      value: equipeSelecionadaId,
+                      initialValue: equipeSelecionadaId,
                       decoration: const InputDecoration(
                         labelText: 'Equipe (se aplicável)',
                         labelStyle: TextStyle(color: Colors.white70),
@@ -268,7 +266,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     if (equipeSelecionadaId != null)
                       DropdownButtonFormField<String>(
                         dropdownColor: const Color(0xFF2D2D2D),
-                        value: atletaEntraId,
+                        initialValue: atletaEntraId,
                         decoration: const InputDecoration(
                           labelText: 'Atleta (entra) - opcional',
                           labelStyle: TextStyle(color: Colors.white70),
@@ -282,7 +280,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     if (isSubstitution && equipeSelecionadaId != null)
                       DropdownButtonFormField<String>(
                         dropdownColor: const Color(0xFF2D2D2D),
-                        value: atletaSaiId,
+                        initialValue: atletaSaiId,
                         decoration: const InputDecoration(
                           labelText: 'Atleta (sai)',
                           labelStyle: TextStyle(color: Colors.white70),
@@ -308,7 +306,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                         onPressed: () async {
                           if (tipoSelecionadoId == null ||
                               tipoSelecionadoId!.isEmpty) {
-                            Navigator.pop(context);
+                            Navigator.pop(sheetContext);
                             return;
                           }
 
@@ -370,7 +368,8 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                             }
                           });
 
-                          Navigator.pop(context);
+                          if (!sheetContext.mounted) return;
+                          Navigator.pop(sheetContext);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00FFC2),

@@ -4,7 +4,7 @@ import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
 
 void main() {
   group('Partida.fromMap', () {
-    Map<String, dynamic> _mapCompleto() => {
+    Map<String, dynamic> mapCompleto() => {
       'id': 'partida-001',
       'modalidadeId': 'mod-001',
       'status': 'agendada',
@@ -21,7 +21,7 @@ void main() {
     };
 
     test('deve criar partida corretamente com todos os campos', () {
-      final partida = Partida.fromMap(_mapCompleto());
+      final partida = Partida.fromMap(mapCompleto());
 
       expect(partida.id, 'partida-001');
       expect(partida.modalidadeId, 'mod-001');
@@ -36,7 +36,7 @@ void main() {
     });
 
     test('deve parsear agendadoPara corretamente', () {
-      final partida = Partida.fromMap(_mapCompleto());
+      final partida = Partida.fromMap(mapCompleto());
       expect(
         partida.agendadaPara,
         DateTime.tryParse('2025-05-10T15:00:00.000Z'),
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('alias agendadoPara deve funcionar igual a agendadaPara', () {
-      final partida = Partida.fromMap(_mapCompleto());
+      final partida = Partida.fromMap(mapCompleto());
       expect(partida.agendadoPara, equals(partida.agendadaPara));
     });
 

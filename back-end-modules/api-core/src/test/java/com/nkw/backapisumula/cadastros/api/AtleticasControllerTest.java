@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -38,12 +38,12 @@ class AtleticasControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean private AtleticaService service;
-    @MockBean private AtleticaMembroService membroService;
-    @MockBean private SupabaseImageUploadService imageUploadService;
-    @MockBean private ApplicationLogService applicationLogService;
-    @MockBean private JwtDecoder jwtDecoder;
-    @MockBean private ProfileRepository profileRepository;
+    @MockitoBean private AtleticaService service;
+    @MockitoBean private AtleticaMembroService membroService;
+    @MockitoBean private SupabaseImageUploadService imageUploadService;
+    @MockitoBean private ApplicationLogService applicationLogService;
+    @MockitoBean private JwtDecoder jwtDecoder;
+    @MockitoBean private ProfileRepository profileRepository;
 
     @Test
     void create_roleAdmin_preencheCriadoPorNoPayload() throws Exception {

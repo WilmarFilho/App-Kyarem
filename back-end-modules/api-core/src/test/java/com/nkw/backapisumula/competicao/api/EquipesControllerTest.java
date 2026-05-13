@@ -10,10 +10,12 @@ import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
 import com.nkw.backapisumula.competicao.repo.ModalidadeCatalogoRepository;
 import com.nkw.backapisumula.competicao.repo.TimeAtleticaRepository;
 import com.nkw.backapisumula.identity.repo.ProfileRepository;
+import com.nkw.backapisumula.common.outbox.EventPublisherService;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -44,20 +46,26 @@ class EquipesControllerTest {
         @Autowired
         private ObjectMapper objectMapper;
 
-        @MockBean
+        @MockitoBean
         private TimeAtleticaRepository timeAtleticaRepository;
-        @MockBean
+        @MockitoBean
         private CampeonatoTimeRepository campeonatoTimeRepository;
-        @MockBean
+        @MockitoBean
         private ModalidadeCatalogoRepository modalidadeCatalogoRepository;
-        @MockBean
+        @MockitoBean
         private CampeonatoModalidadeRepository campeonatoModalidadeRepository;
-        @MockBean
+        @MockitoBean
         private ApplicationLogService applicationLogService;
-        @MockBean
+        @MockitoBean
         private JwtDecoder jwtDecoder;
-        @MockBean
+        @MockitoBean
         private ProfileRepository profileRepository;
+        @MockitoBean
+        private EventPublisherService eventPublisherService;
+        @MockitoBean
+        private EntityManager entityManager;
+        @MockitoBean
+        private jakarta.persistence.EntityManagerFactory entityManagerFactory;
 
         private static final UUID ATLETICA_ID = UUID.randomUUID();
         private static final UUID CAMPEONATO_ID = UUID.randomUUID();
@@ -76,6 +84,10 @@ class EquipesControllerTest {
         private CampeonatoTime campeonatoTime() {
                 CampeonatoTime ct = new CampeonatoTime();
                 ct.setId(CAMPEONATO_TIME_ID);
+                com.nkw.backapisumula.competicao.Campeonato c = new com.nkw.backapisumula.competicao.Campeonato();
+                c.setId(CAMPEONATO_ID);
+                ct.setCampeonato(c);
+                ct.setCampeonatoAtleticaId(UUID.randomUUID());
                 return ct;
         }
 
@@ -212,6 +224,7 @@ class EquipesControllerTest {
         @Test
         @WithMockUser(roles = "admin")
         void removerTimeCampeonato_roleAdmin_retorna204() throws Exception {
+                when(campeonatoTimeRepository.findById(CAMPEONATO_TIME_ID)).thenReturn(Optional.of(campeonatoTime()));
                 mockMvc.perform(delete("/api/v1/times/campeonato/{id}", CAMPEONATO_TIME_ID).with(csrf()))
                                 .andExpect(status().isNoContent());
         }

@@ -135,11 +135,6 @@ public class TimesController {
                 campeonatoTime.setCampeonatoModalidade(campeonatoModalidade);
                 campeonatoTime.setTime(timeAtletica);
                 campeonatoTime.setStatus("CONFIRMADA");
-                // TODO: campeonatoAtleticaId is required by schema, but no entity/endpoint
-                // exists yet.
-                // We set a temporary UUID to avoid null pointer/compile errors, but this will
-                // fail DB constraints
-                // until the business logic fully implements campeonato_atleticas.
                 campeonatoTime.setCampeonatoAtleticaId(UUID.randomUUID());
 
                 CampeonatoTime saved = campeonatoTimeRepository.save(campeonatoTime);
@@ -208,11 +203,11 @@ public class TimesController {
                                 .setParameter("atletaId", atletaId)
                                 .getSingleResult();
 
-                eventPublisherService.publish("CampeonatoAtleta", campeonatoAtletaId.toString(), "CampeonatoAtletaAtualizado", java.util.Map.of(
-                                "campeonatoAtletaId", campeonatoAtletaId.toString(),
-                                "campeonatoTimeId", campeonatoTimeId.toString(),
-                                "atletaId", atletaId.toString()
-                ));
+                eventPublisherService.publish("CampeonatoAtleta", campeonatoAtletaId.toString(),
+                                "CampeonatoAtletaAtualizado", java.util.Map.of(
+                                                "campeonatoAtletaId", campeonatoAtletaId.toString(),
+                                                "campeonatoTimeId", campeonatoTimeId.toString(),
+                                                "atletaId", atletaId.toString()));
         }
 
         @GetMapping("/campeonato/{campeonatoTimeId}/atletas")
@@ -223,24 +218,27 @@ public class TimesController {
                                 .orElseThrow(() -> new IllegalStateException("Equipe do campeonato não encontrada."));
                 if (ct.getTime() == null)
                         return List.of();
-                List<Object[]> rows = entityManager.createNativeQuery("""
-                                SELECT p.id,
-                                       COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS nome,
-                                       p.avatar_url,
-                                       ca.status,
-                                       ca.numero_camisa
-                                FROM operational.campeonato_atletas ca
-                                JOIN operational.profiles p ON p.id = ca.atleta_id
-                                WHERE ca.campeonato_time_id = :campeonatoTimeId
-                                ORDER BY ca.numero_camisa ASC NULLS LAST, COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) ASC
-                                """)
+                List<Object[]> rows = entityManager
+                                .createNativeQuery(
+                                                """
+                                                                SELECT p.id,
+                                                                       COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS nome,
+                                                                       p.avatar_url,
+                                                                       ca.status,
+                                                                       ca.numero_camisa
+                                                                FROM operational.campeonato_atletas ca
+                                                                JOIN operational.profiles p ON p.id = ca.atleta_id
+                                                                WHERE ca.campeonato_time_id = :campeonatoTimeId
+                                                                ORDER BY ca.numero_camisa ASC NULLS LAST, COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) ASC
+                                                                """)
                                 .setParameter("campeonatoTimeId", campeonatoTimeId)
                                 .getResultList();
 
                 return rows.stream().map(r -> {
-                                Integer numeroCamisa = null;
-                                if (r[4] instanceof Number n) numeroCamisa = n.intValue();
-                                return new AtletaRosterResponse(
+                        Integer numeroCamisa = null;
+                        if (r[4] instanceof Number n)
+                                numeroCamisa = n.intValue();
+                        return new AtletaRosterResponse(
                                         (UUID) r[0],
                                         (String) r[1],
                                         (String) r[2],
@@ -326,8 +324,6 @@ public class TimesController {
         }
 
         public record AtualizarNumeroCamisaRequest(
-                        @Min(value = 0, message = "Número da camisa deve ser maior ou igual a 0.")
-                        @Max(value = 999, message = "Número da camisa deve ser menor ou igual a 999.")
-                        Integer numeroCamisa) {
+                        @Min(value = 0, message = "Número da camisa deve ser maior ou igual a 0.") @Max(value = 999, message = "Número da camisa deve ser menor ou igual a 999.") Integer numeroCamisa) {
         }
 }

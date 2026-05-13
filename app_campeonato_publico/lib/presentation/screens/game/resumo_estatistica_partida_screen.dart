@@ -266,7 +266,7 @@ class _ResumoEstatisticaPartidaScreenState
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.primary, const Color(0xFFFF8B70)],
+          colors: [AppColors.primary, Color(0xFFFF8B70)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -378,7 +378,7 @@ class _ResumoEstatisticaPartidaScreenState
     final isTeamA = _selectedTeamIndex == 0;
 
     // 2. Mapeie os dados dinamicamente para as listas que o Column espera
-    final List<StatItem> _statsTeamA = [
+    final List<StatItem> statsTeamA = [
       StatItem("Gols / Pontos", golsA.toString()),
       StatItem("Faltas", faltasA.toString()),
       StatItem("Cartões Amarelos", amarelosA.toString(), color: Colors.amber),
@@ -389,7 +389,7 @@ class _ResumoEstatisticaPartidaScreenState
       ),
     ];
 
-    final List<StatItem> _statsTeamB = [
+    final List<StatItem> statsTeamB = [
       StatItem("Gols / Pontos", golsB.toString()),
       StatItem("Faltas", faltasB.toString()),
       StatItem("Cartões Amarelos", amarelosB.toString(), color: Colors.amber),
@@ -471,7 +471,7 @@ class _ResumoEstatisticaPartidaScreenState
               ),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               child: Column(
-                children: (isTeamA ? _statsTeamA : _statsTeamB)
+                children: (isTeamA ? statsTeamA : statsTeamB)
                     .map(
                       (stat) => _buildStatRowSingle(
                         stat.label,

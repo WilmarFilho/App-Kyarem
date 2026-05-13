@@ -212,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fontFamily: 'Poppins',
                                   fontSize: isSmallScreen ? 11 : 12,
                                   // ignore: deprecated_member_use
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                   height: 1.4,
                                 ),
                                 textAlign: TextAlign.center,

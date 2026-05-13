@@ -20,7 +20,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final AuthService _authService = AuthService();
   bool _isAdminRole = false;
-  bool _isPresidenteAtletica = false;
+  final bool _isPresidenteAtletica = false;
   bool _isArbitro = false;
   bool _perfilCarregado = false;
 

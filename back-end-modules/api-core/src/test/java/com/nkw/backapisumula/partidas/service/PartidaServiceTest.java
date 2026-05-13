@@ -376,7 +376,7 @@ class PartidaServiceTest {
                 "pausada", "2° tempo");
 
         assertEquals("pausada", resultado.getStatus());
-        assertEquals("2° tempo", resultado.getStatusAntesPausa());
+        assertEquals("2° tempo", resultado.getPeriodoAntesPausa());
     }
 
     @Test

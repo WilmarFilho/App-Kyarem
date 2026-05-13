@@ -18,8 +18,8 @@ class JogoDetalhesScreen extends StatefulWidget {
   final String modalidadeId;
   final String timeA;
   final String timeB;
-  final String? EscudoTimeA;
-  final String? EscudoTimeB;
+  final String? escudoTimeA;
+  final String? escudoTimeB;
   final String placarA;
   final String placarB;
   final String status;
@@ -34,8 +34,8 @@ class JogoDetalhesScreen extends StatefulWidget {
     required this.modalidadeId,
     required this.timeA,
     required this.timeB,
-    this.EscudoTimeA,
-    this.EscudoTimeB,
+    this.escudoTimeA,
+    this.escudoTimeB,
     this.placarA = "0",
     this.placarB = "0",
     this.status = "AO VIVO",
@@ -425,8 +425,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                         partidaId: widget.partidaId,
                         timeA: widget.timeA,
                         timeB: widget.timeB,
-                        escudoA: widget.EscudoTimeA,
-                        escudoB: widget.EscudoTimeB,
+                        escudoA: widget.escudoTimeA,
+                        escudoB: widget.escudoTimeB,
                       ),
                     ),
                   );
@@ -455,8 +455,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                         partidaId: widget.partidaId,
                         timeA: widget.timeA,
                         timeB: widget.timeB,
-                        escudoA: widget.EscudoTimeA,
-                        escudoB: widget.EscudoTimeB,
+                        escudoA: widget.escudoTimeA,
+                        escudoB: widget.escudoTimeB,
                       ),
                     ),
                   );
@@ -524,7 +524,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildTeamBadge(widget.timeA, widget.EscudoTimeA),
+          _buildTeamBadge(widget.timeA, widget.escudoTimeA),
           Column(
             children: [
               Text(
@@ -592,7 +592,7 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
               ],
             ],
           ),
-          _buildTeamBadge(widget.timeB, widget.EscudoTimeB),
+          _buildTeamBadge(widget.timeB, widget.escudoTimeB),
         ],
       ),
     );
@@ -839,8 +839,9 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
                                       .substring(friendlyName.length)
                                       .replaceFirst(RegExp(r'^\s*—\s*'), '')
                                 : desc;
-                            if (cleanDesc.isEmpty)
+                            if (cleanDesc.isEmpty) {
                               return const SizedBox.shrink();
+                            }
                             return Text(
                               cleanDesc,
                               style: const TextStyle(

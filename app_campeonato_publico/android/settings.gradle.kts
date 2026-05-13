@@ -28,4 +28,4 @@ plugins {
 
 include(":app")
 
-rootProject.name = "app-publico-android"
+rootProject.name = "app-campeonato-publico-android"

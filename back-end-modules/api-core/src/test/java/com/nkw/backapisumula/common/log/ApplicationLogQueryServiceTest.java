@@ -33,14 +33,14 @@ class ApplicationLogQueryServiceTest {
 
     @Test
     void list_semLimiteInformado_usaLimitePadraoEOrdenaPorDataDesc() {
-        when(repository.findAll(any(Specification.class), any(Pageable.class)))
+        when(repository.findAll(org.mockito.ArgumentMatchers.<Specification<ApplicationLog>>any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(new ApplicationLog())));
 
         service.list("error", "INTERNAL", 500, UUID.randomUUID(), "req-1", "/api", "ApiExceptionHandler", null, null,
                 null);
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(repository).findAll(any(Specification.class), pageableCaptor.capture());
+        verify(repository).findAll(org.mockito.ArgumentMatchers.<Specification<ApplicationLog>>any(), pageableCaptor.capture());
 
         Pageable pageable = pageableCaptor.getValue();
         assertEquals(50, pageable.getPageSize());

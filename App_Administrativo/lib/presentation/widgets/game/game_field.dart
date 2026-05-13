@@ -34,7 +34,7 @@ class GameField extends StatelessWidget {
             color: const Color(0xFF8DBA94),
             borderRadius: BorderRadius.circular(15),
             // ignore: deprecated_member_use
-            border: Border.all(color: Colors.white.withOpacity(0.8), width: 2),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
           ),
           child: Stack(
             children: [

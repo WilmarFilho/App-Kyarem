@@ -10,7 +10,7 @@ class CustomSelectorField<T> extends StatelessWidget {
   final T? value;
 
   const CustomSelectorField({
-    Key? key,
+    super.key,
     required this.label,
     this.valueText,
     required this.hint,
@@ -18,7 +18,7 @@ class CustomSelectorField<T> extends StatelessWidget {
     this.onTap,
     this.validator,
     this.value,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

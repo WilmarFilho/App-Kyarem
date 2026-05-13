@@ -138,7 +138,7 @@ public final class ModalidadeRules {
             return;
         }
 
-        source.fields().forEachRemaining(entry -> {
+        source.properties().forEach(entry -> {
             JsonNode value = entry.getValue();
             if (value != null && value.isObject() && target.has(entry.getKey())
                     && target.get(entry.getKey()).isObject()) {

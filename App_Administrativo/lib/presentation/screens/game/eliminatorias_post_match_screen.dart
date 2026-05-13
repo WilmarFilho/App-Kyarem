@@ -116,6 +116,7 @@ class _EliminatoriasPostMatchScreenState
     final tipoEvento = _buscarTipoEvento(
       foiGol ? 'PENALTI_MARCADO' : 'PENALTI_PERDIDO',
     );
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       setState(() {
@@ -152,7 +153,7 @@ class _EliminatoriasPostMatchScreenState
         );
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             foiGol
@@ -165,7 +166,7 @@ class _EliminatoriasPostMatchScreenState
       );
     } catch (e) {
       debugPrint("Erro ao registrar cobrança: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text("Erro: $e"), backgroundColor: Colors.red),
       );
     }
@@ -507,13 +508,13 @@ class _EliminatoriasPostMatchScreenState
         padding: const EdgeInsets.symmetric(vertical: 24),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: cor.withOpacity(0.5), width: 2),
+          side: BorderSide(color: cor.withValues(alpha: 0.5), width: 2),
         ),
       ),
       child: Column(
         children: [
           CircleAvatar(
-            backgroundColor: cor.withOpacity(0.2),
+            backgroundColor: cor.withValues(alpha: 0.2),
             child: Icon(Icons.shield, color: cor, size: 20),
           ),
           const SizedBox(height: 12),
@@ -551,7 +552,7 @@ class _EliminatoriasPostMatchScreenState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: corAtacante.withOpacity(0.12),
+              color: corAtacante.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: corAtacante),
             ),
@@ -616,13 +617,13 @@ class _EliminatoriasPostMatchScreenState
               child: ElevatedButton(
                 onPressed: () => _registrarCobranca(false),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent.withOpacity(0.08),
+                  backgroundColor: Colors.redAccent.withValues(alpha: 0.08),
                   foregroundColor: Colors.redAccent,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.redAccent.withOpacity(0.35)),
+                    side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.35)),
                   ),
                 ),
                 child: const Column(
@@ -642,13 +643,13 @@ class _EliminatoriasPostMatchScreenState
               child: ElevatedButton(
                 onPressed: () => _registrarCobranca(true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.withOpacity(0.08),
+                  backgroundColor: Colors.green.withValues(alpha: 0.08),
                   foregroundColor: Colors.green,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.green.withOpacity(0.35)),
+                    side: BorderSide(color: Colors.green.withValues(alpha: 0.35)),
                   ),
                 ),
                 child: const Column(
@@ -714,7 +715,7 @@ class _EliminatoriasPostMatchScreenState
           border: Border.all(
             color: selecionado == null
                 ? const Color(0xFFE4D8D0)
-                : iconColor.withOpacity(0.5),
+                : iconColor.withValues(alpha: 0.5),
             width: selecionado == null ? 1.2 : 1.6,
           ),
         ),
@@ -722,7 +723,7 @@ class _EliminatoriasPostMatchScreenState
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: iconColor.withOpacity(0.16),
+              backgroundColor: iconColor.withValues(alpha: 0.16),
               radius: 20,
               child: Icon(iconContent, size: 18, color: iconColor),
             ),
@@ -799,7 +800,7 @@ class _EliminatoriasPostMatchScreenState
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: iconColor.withOpacity(0.14),
+                      backgroundColor: iconColor.withValues(alpha: 0.14),
                       child: Icon(iconContent, color: iconColor, size: 18),
                     ),
                     const SizedBox(width: 12),
@@ -837,7 +838,7 @@ class _EliminatoriasPostMatchScreenState
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: iconColor.withOpacity(0.16),
+                              backgroundColor: iconColor.withValues(alpha: 0.16),
                               radius: 20,
                               child: Text(
                                 '${atleta.numero ?? '-'}',

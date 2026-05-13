@@ -35,7 +35,7 @@ void main() {
   });
 
   Widget createWidgetUnderTest() {
-    return MaterialApp(
+    return const MaterialApp(
       home: ConfiguracoesScreen(),
     );
   }

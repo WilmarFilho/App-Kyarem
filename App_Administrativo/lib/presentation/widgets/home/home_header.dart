@@ -26,7 +26,7 @@ class HomeHeader extends StatelessWidget {
       return _UserInfo(nome: nome.isNotEmpty ? nome : cargo, cargo: cargo);
     } catch (e) {
       debugPrint('Erro ao buscar perfil do usuário: $e');
-      return _UserInfo(nome: 'Usuário', cargo: '');
+      return const _UserInfo(nome: 'Usuário', cargo: '');
     }
   }
 

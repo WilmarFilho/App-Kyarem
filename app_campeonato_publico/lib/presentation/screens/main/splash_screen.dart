@@ -36,6 +36,8 @@ class _SplashScreenState extends State<SplashScreen> {
     final onboardingSeen = prefs.getBool('public_onboarding_seen') ?? false;
     final nextRoute = onboardingSeen ? '/home' : '/login';
 
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacementNamed(nextRoute);
   }
 

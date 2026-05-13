@@ -40,7 +40,7 @@ class AuthInputField extends StatelessWidget {
                 height: 18,
                 // ignore: deprecated_member_use
                 colorFilter: ColorFilter.mode(
-                  const Color(0xFFF85C39).withOpacity(0.6),
+                  const Color(0xFFF85C39).withValues(alpha: 0.6),
                   BlendMode.srcIn,
                 ),
               ),
@@ -59,7 +59,7 @@ class AuthInputField extends StatelessWidget {
                 hintText: placeholder,
                 // ignore: deprecated_member_use
                 hintStyle: TextStyle(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   fontSize: 15,
                 ),
                 border: InputBorder.none,

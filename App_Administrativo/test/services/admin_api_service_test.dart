@@ -13,7 +13,7 @@ void main() {
   late AdminApiService service;
 
   /// Cria um [Response] fake com os dados e status informados.
-  Response<dynamic> _fakeResponse(dynamic data, {int statusCode = 200}) {
+  Response<dynamic> fakeResponse(dynamic data, {int statusCode = 200}) {
     return Response(
       data: data,
       statusCode: statusCode,
@@ -40,7 +40,7 @@ void main() {
           queryParameters: anyNamed('queryParameters'),
         ),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {'id': 'c1', 'nome': 'Copa Universitária'},
           {'id': 'c2', 'nome': 'Liga de Verão'},
         ]),
@@ -76,7 +76,7 @@ void main() {
             '/campeonatos',
             queryParameters: anyNamed('queryParameters'),
           ),
-        ).thenAnswer((_) async => _fakeResponse([]));
+        ).thenAnswer((_) async => fakeResponse([]));
 
         final result = await service.listarCampeonatos();
         expect(result, isEmpty);
@@ -88,7 +88,7 @@ void main() {
     test('deve retornar Campeonato em caso de sucesso', () async {
       final payload = {'nome': 'Novo Campeonato', 'nivelCampeonato': 'Local'};
       when(mockDio.post('/campeonatos', data: anyNamed('data'))).thenAnswer(
-        (_) async => _fakeResponse({'id': 'c-new', 'nome': 'Novo Campeonato'}),
+        (_) async => fakeResponse({'id': 'c-new', 'nome': 'Novo Campeonato'}),
       );
 
       final result = await service.criarCampeonato(payload);
@@ -112,7 +112,7 @@ void main() {
     test('deve retornar Campeonato atualizado em caso de sucesso', () async {
       final payload = {'nome': 'Nome Atualizado'};
       when(mockDio.put('/campeonatos/c1', data: anyNamed('data'))).thenAnswer(
-        (_) async => _fakeResponse({'id': 'c1', 'nome': 'Nome Atualizado'}),
+        (_) async => fakeResponse({'id': 'c1', 'nome': 'Nome Atualizado'}),
       );
 
       final result = await service.atualizarCampeonato('c1', payload);
@@ -135,7 +135,7 @@ void main() {
     test('deve retornar true em caso de sucesso', () async {
       when(
         mockDio.delete('/campeonatos/c1'),
-      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      ).thenAnswer((_) async => fakeResponse(null, statusCode: 204));
 
       final result = await service.excluirCampeonato('c1');
       expect(result, isTrue);
@@ -159,7 +159,7 @@ void main() {
       when(
         mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {'id': 'atl-1', 'nome': 'Atlética Eng'},
           {'id': 'atl-2', 'nome': 'Atlética Med'},
         ]),
@@ -188,7 +188,7 @@ void main() {
       when(
         mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {'id': 'atl-1', 'presidenteId': 'user-abc', 'nome': 'Atlética Eng'},
           {'id': 'atl-2', 'presidenteId': 'user-xyz', 'nome': 'Atlética Med'},
         ]),
@@ -207,7 +207,7 @@ void main() {
             queryParameters: anyNamed('queryParameters'),
           ),
         ).thenAnswer(
-          (_) async => _fakeResponse([
+          (_) async => fakeResponse([
             {'id': 'atl-1', 'presidenteId': 'user-outro', 'nome': 'Outro'},
           ]),
         );
@@ -223,7 +223,7 @@ void main() {
       when(
         mockDio.get('/atleticas', queryParameters: anyNamed('queryParameters')),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {
             'id': 'atl-3',
             'presidente_id': 'user-snake',
@@ -256,7 +256,7 @@ void main() {
       when(
         mockDio.get('/arbitros', queryParameters: anyNamed('queryParameters')),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {'id': 'arb-1', 'nomeExibicao': 'João Silva'},
           {'id': 'arb-2', 'nomeExibicao': 'Maria Souza'},
         ]),
@@ -284,7 +284,7 @@ void main() {
     test('deve retornar true em caso de sucesso', () async {
       when(
         mockDio.post('/partidas/p1/arbitros', data: anyNamed('data')),
-      ).thenAnswer((_) async => _fakeResponse({'ok': true}));
+      ).thenAnswer((_) async => fakeResponse({'ok': true}));
 
       final result = await service.vincularArbitro(
         'p1',
@@ -312,7 +312,7 @@ void main() {
     test('deve retornar true em caso de sucesso', () async {
       when(
         mockDio.delete('/partidas/p1/arbitros/vinc-1'),
-      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      ).thenAnswer((_) async => fakeResponse(null, statusCode: 204));
 
       final result = await service.desvincularArbitro('p1', 'vinc-1');
       expect(result, isTrue);
@@ -338,7 +338,7 @@ void main() {
       when(
         mockDio.get('/equipes', queryParameters: anyNamed('queryParameters')),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {'id': 'eq-1', 'nome': 'Engenharia FC', 'atleticaId': 'atl-1'},
           {'id': 'eq-2', 'nome': 'Medicina RC', 'atleticaId': 'atl-2'},
         ]),
@@ -364,7 +364,7 @@ void main() {
     test('deve retornar true em caso de sucesso', () async {
       when(
         mockDio.delete('/equipes/eq-1'),
-      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      ).thenAnswer((_) async => fakeResponse(null, statusCode: 204));
 
       final result = await service.excluirEquipe('eq-1');
       expect(result, isTrue);
@@ -391,7 +391,7 @@ void main() {
         'equipeBId': 'b',
       };
       when(mockDio.post('/partidas', data: anyNamed('data'))).thenAnswer(
-        (_) async => _fakeResponse({'id': 'p-new', 'status': 'agendada'}),
+        (_) async => fakeResponse({'id': 'p-new', 'status': 'agendada'}),
       );
 
       final result = await service.criarPartida(payload);
@@ -415,7 +415,7 @@ void main() {
     test('deve retornar true em caso de sucesso', () async {
       when(
         mockDio.delete('/partidas/p1'),
-      ).thenAnswer((_) async => _fakeResponse(null, statusCode: 204));
+      ).thenAnswer((_) async => fakeResponse(null, statusCode: 204));
 
       final result = await service.excluirPartida('p1');
       expect(result, isTrue);

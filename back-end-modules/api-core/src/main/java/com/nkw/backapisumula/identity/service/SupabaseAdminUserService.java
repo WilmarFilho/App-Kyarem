@@ -34,7 +34,6 @@ public class SupabaseAdminUserService {
      * @param role         papel inicial colocado no metadata do usuário
      * @return UUID do usuário criado
      */
-    @SuppressWarnings("unchecked")
     public UUID createAuthUser(String email, String password, String nomeExibicao, String role) {
         String url = supabaseUrl + "/auth/v1/admin/users";
 
@@ -52,14 +51,14 @@ public class SupabaseAdminUserService {
                         "role", role));
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+        ResponseEntity<com.fasterxml.jackson.databind.JsonNode> response = restTemplate.postForEntity(url, request, com.fasterxml.jackson.databind.JsonNode.class);
 
         if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
-            Map<String, Object> responseBody = response.getBody();
-            if (responseBody == null || responseBody.get("id") == null) {
+            com.fasterxml.jackson.databind.JsonNode responseBody = response.getBody();
+            if (responseBody == null || !responseBody.hasNonNull("id")) {
                 throw new IllegalStateException("Supabase não retornou o ID do usuário criado.");
             }
-            return UUID.fromString(responseBody.get("id").toString());
+            return UUID.fromString(responseBody.get("id").asText());
         }
 
         throw new IllegalStateException("Erro ao criar usuário no Supabase Auth: " + response.getStatusCode());

@@ -9,7 +9,7 @@ import com.nkw.backapisumula.partidas.service.SumulaOficialPdfService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -46,15 +46,15 @@ class PartidasControllerTest {
     private ObjectMapper objectMapper;
 
     // Mocks obrigatórios: services usados pelo controller
-    @MockBean private PartidaService service;
-    @MockBean private SumulaOficialPdfService sumulaOficialPdfService;
-    @MockBean private ApplicationLogService applicationLogService;
+    @MockitoBean private PartidaService service;
+    @MockitoBean private SumulaOficialPdfService sumulaOficialPdfService;
+    @MockitoBean private ApplicationLogService applicationLogService;
 
     // Mocks de infraestrutura de segurança:
     // JwtDecoder → evita chamada HTTP ao endpoint JWKS do Supabase
     // ProfileRepository → necessário para o SecurityConfig.filterChain()
-    @MockBean private JwtDecoder jwtDecoder;
-    @MockBean private ProfileRepository profileRepository;
+    @MockitoBean private JwtDecoder jwtDecoder;
+    @MockitoBean private ProfileRepository profileRepository;
 
     private static final UUID PARTIDA_ID   = UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001");
     private static final UUID EQUIPE_A_ID  = UUID.fromString("bbbbbbbb-0000-0000-0000-000000000002");

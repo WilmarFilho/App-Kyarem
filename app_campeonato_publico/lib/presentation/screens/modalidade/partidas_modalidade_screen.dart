@@ -78,7 +78,8 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
 
   bool _loading = true;
   bool _loadingStats = true;
-  _FiltroStatus _filtro = _FiltroStatus.todas;
+  final _FiltroStatus _filtro = _FiltroStatus.todas;
+
   String _ordemStats = 'Gols';
   List<Partida> _partidas = [];
   List<EstatisticaAtleta> _estatisticas = [];
@@ -695,8 +696,8 @@ class _PartidasModalidadeScreenState extends State<PartidasModalidadeScreen> {
           modalidadeId: p.modalidadeId,
           timeA: p.equipeA?.nome ?? 'Time A',
           timeB: p.equipeB?.nome ?? 'Time B',
-          EscudoTimeA: p.equipeA?.atleticaEscudoUrl,
-          EscudoTimeB: p.equipeB?.atleticaEscudoUrl,
+          escudoTimeA: p.equipeA?.atleticaEscudoUrl,
+          escudoTimeB: p.equipeB?.atleticaEscudoUrl,
           status: p.status,
           placarA: p.placarA.toString(),
           placarB: p.placarB.toString(),

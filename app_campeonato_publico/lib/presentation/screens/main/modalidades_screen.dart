@@ -76,8 +76,8 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryColor = AppColors.primary;
-    final Color accentColor = AppColors.orange;
+    const Color primaryColor = AppColors.primary;
+    const Color accentColor = AppColors.orange;
 
     return Scaffold(
       backgroundColor: const Color(0xFF110101), // Fundo bem escuro
@@ -118,7 +118,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                     ),
                   ),
                   background: Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [accentColor, primaryColor],
                         begin: Alignment.topLeft,
@@ -137,7 +137,7 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                 future: _future,
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
-                    return SliverFillRemaining(
+                    return const SliverFillRemaining(
                       child: Center(
                         child: CircularProgressIndicator(color: primaryColor),
                       ),

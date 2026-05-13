@@ -9,12 +9,12 @@ import org.springframework.stereotype.Component;
  * Consome eventos que disparam recálculo de métricas e rankings.
  *
  * Tabelas alvo no schema public:
- *  - public.classificacoes       (pontos, vitórias, derrotas, saldo)
- *  - public.artilharia           (pontuadores por modalidade)
- *  - public.ranking_assistencias
- *  - public.ranking_geral_campeonato
- *  - public.metricas_atletas
- *  - public.snapshot_comparacao_atletas / times
+ * - public.classificacoes (pontos, vitórias, derrotas, saldo)
+ * - public.artilharia (pontuadores por modalidade)
+ * - public.ranking_assistencias
+ * - public.ranking_geral_campeonato
+ * - public.metricas_atletas
+ * - public.snapshot_comparacao_atletas / times
  */
 @Component
 public class MetricsListener {
@@ -29,10 +29,6 @@ public class MetricsListener {
     @RabbitListener(queues = "metrics.recalculate")
     public void onRecalculateRequest(String payload) {
         log.info("[metrics-worker] Recalculo solicitado: {}", payload);
-        // TODO: desserializar → extrair campeonato_modalidade_id e time_ids
-        //       → recalcular public.classificacoes via stored procedure ou query
-        //       → recalcular artilharia e assistências
-        //       → atualizar metricas_atletas
         recalculateStandings(payload);
         recalculateArtilharia(payload);
     }
@@ -44,8 +40,8 @@ public class MetricsListener {
     @RabbitListener(queues = "metrics.ranking")
     public void onRankingRequest(String payload) {
         log.info("[metrics-worker] Ranking solicitado: {}", payload);
-        // TODO: recalcular public.ranking_geral_campeonato
-        //       agrupando pontos de todas as modalidades por atletica
+        // Lógica futura para recalcular public.ranking_geral_campeonato
+        // agrupando pontos de todas as modalidades por atlética
         recalculateGeneralRanking(payload);
     }
 

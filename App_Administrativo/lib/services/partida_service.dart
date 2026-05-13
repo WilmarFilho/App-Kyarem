@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -526,12 +525,12 @@ class PartidaService {
     String partidaId,
   ) async {
     try {
-      final response = await _dio.get('/partidas/' + partidaId + '/eventos');
+      final response = await _dio.get('/partidas/$partidaId/eventos');
       if (response.statusCode == 200 && response.data is List) {
         return List<Map<String, dynamic>>.from(response.data);
       }
     } catch (e) {
-      debugPrint("Erro buscarEventosDaPartida: " + e.toString());
+      debugPrint("Erro buscarEventosDaPartida: $e");
     }
     return [];
   }

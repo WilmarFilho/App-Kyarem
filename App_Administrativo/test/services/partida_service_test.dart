@@ -13,7 +13,7 @@ void main() {
   late MockDio mockDio;
   late PartidaService service;
 
-  Response<dynamic> _fakeResponse(dynamic data, {int statusCode = 200}) {
+  Response<dynamic> fakeResponse(dynamic data, {int statusCode = 200}) {
     return Response(
       data: data,
       statusCode: statusCode,
@@ -54,7 +54,7 @@ void main() {
           onReceiveProgress: anyNamed('onReceiveProgress'),
         ),
       ).thenAnswer(
-        (_) async => _fakeResponse([
+        (_) async => fakeResponse([
           {
             'id': 'p1',
             'modalidadeId': 'm1',
@@ -157,7 +157,7 @@ void main() {
           onReceiveProgress: anyNamed('onReceiveProgress'),
         ),
       ).thenAnswer(
-        (_) async => _fakeResponse({
+        (_) async => fakeResponse({
           'id': 'p1',
           'modalidadeId': 'm1',
           'status': 'agendada',
@@ -210,7 +210,7 @@ void main() {
             onSendProgress: anyNamed('onSendProgress'),
             onReceiveProgress: anyNamed('onReceiveProgress'),
           ),
-        ).thenAnswer((_) async => _fakeResponse({'ok': true}));
+        ).thenAnswer((_) async => fakeResponse({'ok': true}));
 
         // Não deve lançar exceção
         await expectLater(
@@ -280,7 +280,7 @@ void main() {
           onSendProgress: anyNamed('onSendProgress'),
           onReceiveProgress: anyNamed('onReceiveProgress'),
         ),
-      ).thenAnswer((_) async => _fakeResponse({'ok': true}));
+      ).thenAnswer((_) async => fakeResponse({'ok': true}));
 
       await expectLater(service.startPartida('p1'), completes);
     });
@@ -298,7 +298,7 @@ void main() {
           onSendProgress: anyNamed('onSendProgress'),
           onReceiveProgress: anyNamed('onReceiveProgress'),
         ),
-      ).thenAnswer((_) async => _fakeResponse({'ok': true}, statusCode: 200));
+      ).thenAnswer((_) async => fakeResponse({'ok': true}, statusCode: 200));
 
       final (code, detail) = await service.endPartida('p1');
 

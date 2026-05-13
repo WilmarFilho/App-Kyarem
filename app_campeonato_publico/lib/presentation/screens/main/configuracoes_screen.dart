@@ -178,9 +178,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Veja suas configurações.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 15,
                               color: Color(0xFF555555),
@@ -214,11 +214,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
       title: 'Notificações',
       icon: Icons.notifications_outlined,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Text(
             'Por padrão, você é notificado sobre os principais acontecimentos do campeonato. Para desativar as notificações, altere a permissão de notificação deste aplicativo diretamente nas configurações do seu celular.',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 13,
               color: Colors.white70,

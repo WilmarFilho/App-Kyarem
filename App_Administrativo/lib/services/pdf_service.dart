@@ -154,7 +154,7 @@ class PdfService {
             padding: const pw.EdgeInsets.symmetric(vertical: 16),
             child: pw.Text(
               'Nenhum evento registrado.',
-              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
             ),
           )
         else

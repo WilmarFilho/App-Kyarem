@@ -97,7 +97,7 @@ class _ObservacaoEventoModalState extends State<_ObservacaoEventoModal> {
                   ? 'Adicione uma observação para ${widget.tituloEvento}. Esse campo é opcional.'
                   : 'Adicione uma observação para ${widget.tituloEvento} de ${widget.nomeJogador}. Esse campo é opcional.',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -116,7 +116,7 @@ class _ObservacaoEventoModalState extends State<_ObservacaoEventoModal> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Ex.: toque por trás, reclamação, lance confuso...',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
                 filled: true,
                 fillColor: Colors.black26,
                 border: OutlineInputBorder(
@@ -731,7 +731,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       setState(() {
         _tiposDeEventosDisponiveis = tipos;
       });
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('[_carregarDadosModalidade] Erro: $e');
+    }
   }
 
   // Método para registrar eventos sistêmicos usando as IDs reais carregadas
@@ -876,8 +878,9 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     if (_periodoAtual == PeriodoPartida.naoIniciada ||
         _periodoAtual == PeriodoPartida.aguardandoPenaltis ||
         _periodoAtual == PeriodoPartida.finalizada ||
-        _periodoAtual == PeriodoPartida.fechada)
+        _periodoAtual == PeriodoPartida.fechada) {
       return;
+    }
 
     final ultimoEvento = await _partidaService.buscarUltimoEventoComTempo(
       widget.partida.id,
@@ -1836,9 +1839,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
             // Header com Avatar e Número
             CircleAvatar(
               radius: 45,
-              backgroundColor: (jogador.corTime ?? Colors.grey).withOpacity(
-                0.2,
-              ),
+              backgroundColor: (jogador.corTime ?? Colors.grey).withValues(alpha: 0.2),
               child: Text(
                 "#${jogador.numero}",
                 style: TextStyle(
@@ -1866,7 +1867,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                 Text(
                   "EM CAMPO",
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -1918,7 +1919,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color.withOpacity(0.8), size: 20),
+        Icon(icon, color: color.withValues(alpha: 0.8), size: 20),
         const SizedBox(height: 8),
         Text(
           valor,
@@ -1930,7 +1931,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         ),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
         ),
       ],
     );
@@ -2041,7 +2042,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       Navigator.of(context, rootNavigator: true).pop();
       await Printing.layoutPdf(
         onLayout: (_) async => bytes,
-        name: 'Sumula_Oficial_${_nomeTimeA}_x_${_nomeTimeB}.pdf',
+        name: 'Sumula_Oficial_${_nomeTimeA}_x_$_nomeTimeB.pdf',
       );
     } catch (e) {
       if (!mounted) return;
@@ -2379,7 +2380,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                 color: Colors.black26,
                 borderRadius: BorderRadius.circular(15),
                 // ignore: deprecated_member_use
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -2389,7 +2390,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
                     "SAINDO:",
                     style: TextStyle(
                       // ignore: deprecated_member_use
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -2467,7 +2468,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
             gradient: LinearGradient(
               // ignore: deprecated_member_use
               colors: [
-                (reserva.corTime ?? Colors.grey).withOpacity(0.2),
+                (reserva.corTime ?? Colors.grey).withValues(alpha: 0.2),
                 Colors.white10,
               ],
             ),
@@ -2515,7 +2516,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
             margin: const EdgeInsets.symmetric(horizontal: 20),
             height: 120,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(25),
             ),
             child: const Center(
@@ -2527,7 +2528,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
           Text(
             "PREPARANDO CAMPO...",
             style: TextStyle(
-              color: const Color.fromARGB(255, 39, 39, 39).withOpacity(0.5),
+              color: const Color.fromARGB(255, 39, 39, 39).withValues(alpha: 0.5),
               letterSpacing: 2,
               fontWeight: FontWeight.bold,
             ),

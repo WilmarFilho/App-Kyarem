@@ -208,7 +208,7 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: cor.withOpacity(0.1),
+          color: cor.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icone, color: cor),
@@ -491,7 +491,7 @@ class _CampeonatoFormScreenState extends State<CampeonatoFormScreen> {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: _obterCorStatus().withOpacity(0.1),
+                                color: _obterCorStatus().withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(

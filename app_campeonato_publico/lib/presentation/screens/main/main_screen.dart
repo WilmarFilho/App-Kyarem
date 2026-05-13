@@ -110,7 +110,7 @@ class _MainScreenState extends State<MainScreen> {
                 isMainScreenChild: true,
                 atleticaService: widget.atleticaPublicService,
               ),
-              ConfiguracoesScreen(
+              const ConfiguracoesScreen(
                 isMainScreenChild: true,
               ),
             ],

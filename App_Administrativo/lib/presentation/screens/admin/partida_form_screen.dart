@@ -1346,7 +1346,7 @@ class _SelecionarArbitroSheetState extends State<_SelecionarArbitroSheet> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                 child: DropdownButtonFormField<String>(
-                  value: _funcao,
+                  initialValue: _funcao,
                   decoration: InputDecoration(
                     labelText: 'Função na partida',
                     floatingLabelStyle: const TextStyle(
@@ -1540,11 +1540,12 @@ class _AtletasDoTimeSheetState extends State<_AtletasDoTimeSheet> {
 
   Future<void> _load() async {
     final data = await widget.apiService.listarAtletasDoTime(widget.equipeId);
-    if (mounted)
+    if (mounted) {
       setState(() {
         _atletas = data;
         _loading = false;
       });
+    }
   }
 
   @override
@@ -1577,7 +1578,7 @@ class _AtletasDoTimeSheetState extends State<_AtletasDoTimeSheet> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF85C39).withOpacity(0.12),
+                      color: const Color(0xFFF85C39).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -1658,7 +1659,7 @@ class _AtletasDoTimeSheetState extends State<_AtletasDoTimeSheet> {
                                 : null,
                             backgroundColor: const Color(
                               0xFFF85C39,
-                            ).withOpacity(0.12),
+                            ).withValues(alpha: 0.12),
                             child: (foto == null || foto.isEmpty)
                                 ? Text(
                                     nome.isNotEmpty

@@ -50,8 +50,7 @@ public class PartidaService {
             STATUS_PAUSADA,
             STATUS_PENALTIS,
             STATUS_FINALIZADA,
-            STATUS_FECHADA
-    );
+            STATUS_FECHADA);
 
     private final PartidaRepository repo;
     private final CampeonatoModalidadeRepository modalidadeRepo;
@@ -65,14 +64,14 @@ public class PartidaService {
     private final EventPublisherService eventPublisherService;
 
     public PartidaService(PartidaRepository repo,
-                          CampeonatoModalidadeRepository modalidadeRepo,
-                          CampeonatoTimeRepository equipeRepo,
-                          PartidaArbitroRepository partidaArbitroRepo,
-                          EventoPartidaRepository eventoRepo,
-                          ProfileRepository profileRepository,
-                          SupabaseStorageService supabaseStorageService,
-                          SumulaOficialPdfService sumulaOficialPdfService,
-                          EventPublisherService eventPublisherService) {
+            CampeonatoModalidadeRepository modalidadeRepo,
+            CampeonatoTimeRepository equipeRepo,
+            PartidaArbitroRepository partidaArbitroRepo,
+            EventoPartidaRepository eventoRepo,
+            ProfileRepository profileRepository,
+            SupabaseStorageService supabaseStorageService,
+            SumulaOficialPdfService sumulaOficialPdfService,
+            EventPublisherService eventPublisherService) {
         this.repo = repo;
         this.modalidadeRepo = modalidadeRepo;
         this.equipeRepo = equipeRepo;
@@ -98,7 +97,6 @@ public class PartidaService {
         return repo.findAll();
     }
 
-
     public List<Partida> listByArbitro(UUID userId) {
         // Partidas onde o usuário está vinculado como árbitro
         List<Partida> comoArbitro = partidaArbitroRepo.findByArbitro_Id(userId).stream()
@@ -106,25 +104,31 @@ public class PartidaService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        // Partidas criadas pelo usuário (admin que criou mas não está em partida_arbitros)
+        // Partidas criadas pelo usuário (admin que criou mas não está em
+        // partida_arbitros)
         List<Partida> comoCriador = repo.findByCriadoPor(userId);
 
         // União sem duplicatas, mantendo ordem por relevância
         java.util.LinkedHashSet<UUID> vistosIds = new java.util.LinkedHashSet<>();
         java.util.List<Partida> todas = new java.util.ArrayList<>();
         for (Partida p : comoArbitro) {
-            if (vistosIds.add(p.getId())) todas.add(p);
+            if (vistosIds.add(p.getId()))
+                todas.add(p);
         }
         for (Partida p : comoCriador) {
-            if (vistosIds.add(p.getId())) todas.add(p);
+            if (vistosIds.add(p.getId()))
+                todas.add(p);
         }
 
         return todas.stream()
                 .sorted(Comparator.comparing((Partida p) -> {
-                    if (isStatusEmAndamento(p.getStatus())) return 0;
-                    if (STATUS_AGENDADA.equalsIgnoreCase(p.getStatus())) return 1;
+                    if (isStatusEmAndamento(p.getStatus()))
+                        return 0;
+                    if (STATUS_AGENDADA.equalsIgnoreCase(p.getStatus()))
+                        return 1;
                     return 2;
-                }).thenComparing(p -> Optional.ofNullable(p.getIniciadaEm()).orElse(OffsetDateTime.MIN), Comparator.reverseOrder()))
+                }).thenComparing(p -> Optional.ofNullable(p.getIniciadaEm()).orElse(OffsetDateTime.MIN),
+                        Comparator.reverseOrder()))
                 .toList();
     }
 
@@ -142,8 +146,7 @@ public class PartidaService {
             OffsetDateTime agendadoPara,
             String local,
             String categoria,
-            String fase
-    ) {
+            String fase) {
         if (equipeAId.equals(equipeBId)) {
             throw new IllegalStateException("Equipe A e Equipe B não podem ser a mesma.");
         }
@@ -191,16 +194,18 @@ public class PartidaService {
         }
 
         eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaCriada", Map.of(
-            "timeAId", equipeAId.toString(),
-            "timeBId", equipeBId.toString()
-        ));
+                "timeAId", equipeAId.toString(),
+                "timeBId", equipeBId.toString()));
 
-        // Recarrega com EntityGraph para evitar LazyInitializationException na serialização do DTO
+        // Recarrega com EntityGraph para evitar LazyInitializationException na
+        // serialização do DTO
         return getOrThrow(saved.getId());
     }
 
     @Transactional
-    public Partida update(UUID partidaId, UUID userId, boolean isArbitroOnly, UUID modalidadeId, UUID equipeAId, UUID equipeBId, OffsetDateTime agendadoPara, String local, JsonNode snapshotSumula, String sumulaPdfUrl, String categoria, String fase) {
+    public Partida update(UUID partidaId, UUID userId, boolean isArbitroOnly, UUID modalidadeId, UUID equipeAId,
+            UUID equipeBId, OffsetDateTime agendadoPara, String local, JsonNode snapshotSumula, String sumulaPdfUrl,
+            String categoria, String fase) {
         Partida p = getOrThrow(partidaId);
 
         String st = p.getStatus() == null ? "" : p.getStatus().trim().toLowerCase();
@@ -229,9 +234,8 @@ public class PartidaService {
             }
             Partida saved = repo.save(p);
             eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaAtualizada", Map.of(
-                "status", saved.getStatus(),
-                "sumulaPdfUrl", saved.getSumulaPdfUrl() == null ? "" : saved.getSumulaPdfUrl()
-            ));
+                    "status", saved.getStatus(),
+                    "sumulaPdfUrl", saved.getSumulaPdfUrl() == null ? "" : saved.getSumulaPdfUrl()));
             return getOrThrow(saved.getId());
         }
 
@@ -239,7 +243,6 @@ public class PartidaService {
         if (!STATUS_AGENDADA.equals(st)) {
             throw new IllegalStateException("Só é possível editar dados básicos quando a partida estiver agendada.");
         }
-
 
         if (equipeAId != null && equipeBId != null && equipeAId.equals(equipeBId)) {
             throw new IllegalStateException("Equipe A e Equipe B não podem ser a mesma.");
@@ -268,17 +271,20 @@ public class PartidaService {
 
         validateEquipeCompatibilidade(equipeA, equipeB);
 
-        if (agendadoPara != null) p.setAgendadoPara(agendadoPara);
-        if (local != null) p.setLocal(local);
-        if (categoria != null) p.setCategoria(categoria);
-        if (fase != null) p.setFase(fase);
+        if (agendadoPara != null)
+            p.setAgendadoPara(agendadoPara);
+        if (local != null)
+            p.setLocal(local);
+        if (categoria != null)
+            p.setCategoria(categoria);
+        if (fase != null)
+            p.setFase(fase);
 
         Partida saved = repo.save(p);
         eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaAtualizada", Map.of(
-            "status", saved.getStatus(),
-            "agendadoPara", saved.getAgendadoPara() == null ? "" : saved.getAgendadoPara().toString(),
-            "local", saved.getLocal() == null ? "" : saved.getLocal()
-        ));
+                "status", saved.getStatus(),
+                "agendadoPara", saved.getAgendadoPara() == null ? "" : saved.getAgendadoPara().toString(),
+                "local", saved.getLocal() == null ? "" : saved.getLocal()));
         // Recarrega com EntityGraph para evitar LazyInitializationException
         return getOrThrow(saved.getId());
     }
@@ -302,10 +308,9 @@ public class PartidaService {
         p.setPeriodoAtual("1_TEMPO");
         p.setIniciadaEm(OffsetDateTime.now());
         Partida saved = repo.save(p);
-        
+
         eventPublisherService.publish("Partida", saved.getId().toString(), "PartidaIniciada", Map.of(
-            "status", STATUS_PRIMEIRO_TEMPO
-        ));
+                "status", STATUS_PRIMEIRO_TEMPO));
 
         // Recarrega com EntityGraph
         return getOrThrow(saved.getId());
@@ -345,7 +350,8 @@ public class PartidaService {
             String publicUrl = supabaseStorageService.getPublicUrl(fileName);
             p.setSumulaPdfUrl(publicUrl);
         } catch (Exception e) {
-            // Em caso de erro no upload/geração, logar. A url continuará vazia, ou a excecão vai interromper?
+            // Em caso de erro no upload/geração, logar. A url continuará vazia, ou a
+            // excecão vai interromper?
             // A exceção pode propagar para o controller para que o admin saiba do erro
             throw new RuntimeException("Erro ao gerar/salvar a súmula oficial em PDF", e);
         }
@@ -355,18 +361,19 @@ public class PartidaService {
 
         Partida saved = repo.save(p);
         eventPublisherService.publish("Partida", saved.getId().toString(), "SumulaFechada", Map.of(
-            "hashIntegridade", saved.getHashIntegridade(),
-            "sumulaPdfUrl", saved.getSumulaPdfUrl()
-        ));
-        
+                "hashIntegridade", saved.getHashIntegridade(),
+                "sumulaPdfUrl", saved.getSumulaPdfUrl()));
+
         return saved;
     }
 
     @Transactional
-    public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status, String periodoAntesPausa) {
+    public Partida updateStatus(UUID partidaId, UUID userId, boolean isArbitroOnly, String status,
+            String periodoAntesPausa) {
         Partida p = getOrThrow(partidaId);
 
-        // Se for árbitro (sem ser admin/delegado), só pode alterar se estiver atribuído à partida
+        // Se for árbitro (sem ser admin/delegado), só pode alterar se estiver atribuído
+        // à partida
         if (isArbitroOnly && !partidaArbitroRepo.existsByPartida_IdAndArbitro_Id(partidaId, userId)) {
             throw new IllegalStateException("Árbitro não está atribuído a esta partida.");
         }
@@ -407,40 +414,53 @@ public class PartidaService {
             p.setIniciadaEm(OffsetDateTime.now());
         }
 
-        // Se marcou como finalizada por aqui, preenche encerradaEm (não gera snapshot automaticamente)
+        // Se marcou como finalizada por aqui, preenche encerradaEm (não gera snapshot
+        // automaticamente)
         if (STATUS_FINALIZADA.equalsIgnoreCase(normalized) && p.getEncerradaEm() == null) {
             p.setEncerradaEm(OffsetDateTime.now());
         }
 
         Partida saved = repo.save(p);
-        
+
         eventPublisherService.publish("Partida", saved.getId().toString(), "StatusAlterado", Map.of(
-            "novoStatus", normalized
-        ));
+                "novoStatus", normalized));
 
         // Recarrega com EntityGraph
         return getOrThrow(saved.getId());
     }
 
     private String mapStatusToPeriodoAtual(String status) {
-        if (status == null) return null;
+        if (status == null)
+            return null;
         switch (status.trim().toLowerCase(java.util.Locale.ROOT)) {
-            case "1° tempo": return "1_TEMPO";
-            case "intervalo": return "INTERVALO";
-            case "2° tempo": return "2_TEMPO";
-            case "prorrogação": return "PRORROGACAO";
-            case "acréscimo": return "ACRESCIMO";
-            case "pausada": return null; // mantém o periodo_atual inalterado na pausa
-            case "pênaltis": return "PENALTIS";
-            case "finalizada": return "FINALIZADO";
-            case "fechada": return "FECHADO";
-            case "agendada": return "NAO_INICIADA";
-            default: return null;
+            case "1° tempo":
+                return "1_TEMPO";
+            case "intervalo":
+                return "INTERVALO";
+            case "2° tempo":
+                return "2_TEMPO";
+            case "prorrogação":
+                return "PRORROGACAO";
+            case "acréscimo":
+                return "ACRESCIMO";
+            case "pausada":
+                return null; // mantém o periodo_atual inalterado na pausa
+            case "pênaltis":
+                return "PENALTIS";
+            case "finalizada":
+                return "FINALIZADO";
+            case "fechada":
+                return "FECHADO";
+            case "agendada":
+                return "NAO_INICIADA";
+            default:
+                return null;
         }
     }
 
     private String normalizeStatusForDb(String raw) {
-        if (raw == null) return null;
+        if (raw == null)
+            return null;
 
         String s = raw.trim().toLowerCase(Locale.ROOT);
 
@@ -448,20 +468,24 @@ public class PartidaService {
         s = s.replace('º', '°');
 
         // Aceita variações sem acento
-        if (s.equals("prorrogacao")) return STATUS_PRORROGACAO;
+        if (s.equals("prorrogacao"))
+            return STATUS_PRORROGACAO;
         if (s.equals("penaltis") || s.equals("pênaltis") || s.equals("penalti") || s.equals("pênalti")) {
             return STATUS_PENALTIS;
         }
 
         // Aceita variações comuns
-        if (s.equals("pausa") || s.equals("pausado")) return STATUS_PAUSADA;
-        if (s.equals("acrescimo") || s.equals("acréscimo")) return STATUS_ACRESCIMO;
-        if (s.equals("1o tempo") || s.equals("1°tempo") || s.equals("1 tempo") || s.equals("primeiro tempo")) return STATUS_PRIMEIRO_TEMPO;
-        if (s.equals("2o tempo") || s.equals("2°tempo") || s.equals("2 tempo") || s.equals("segundo tempo")) return STATUS_SEGUNDO_TEMPO;
+        if (s.equals("pausa") || s.equals("pausado"))
+            return STATUS_PAUSADA;
+        if (s.equals("acrescimo") || s.equals("acréscimo"))
+            return STATUS_ACRESCIMO;
+        if (s.equals("1o tempo") || s.equals("1°tempo") || s.equals("1 tempo") || s.equals("primeiro tempo"))
+            return STATUS_PRIMEIRO_TEMPO;
+        if (s.equals("2o tempo") || s.equals("2°tempo") || s.equals("2 tempo") || s.equals("segundo tempo"))
+            return STATUS_SEGUNDO_TEMPO;
 
         return s;
     }
-
 
     /**
      * Monta um JSON estável (ordenado) com os dados necessários para a súmula.
@@ -470,7 +494,8 @@ public class PartidaService {
     @Transactional(readOnly = true)
     protected JsonNode buildSnapshotSumula(Partida p) {
         List<EventoPartida> eventos = eventoRepo.findByPartidaIdWithDetails(p.getId());
-        List<com.nkw.backapisumula.partidas.PartidaArbitro> arbitros = partidaArbitroRepo.findByPartidaIdWithArbitro(p.getId());
+        List<com.nkw.backapisumula.partidas.PartidaArbitro> arbitros = partidaArbitroRepo
+                .findByPartidaIdWithArbitro(p.getId());
 
         ObjectNode root = objectMapper.createObjectNode();
         root.put("partidaId", p.getId().toString());
@@ -487,7 +512,8 @@ public class PartidaService {
         if (p.getModalidade() != null) {
             ObjectNode modalidade = root.putObject("modalidade");
             modalidade.put("id", p.getModalidade().getId().toString());
-            modalidade.put("nome", p.getModalidade().getModalidade() != null ? p.getModalidade().getModalidade().getNome() : null);
+            modalidade.put("nome",
+                    p.getModalidade().getModalidade() != null ? p.getModalidade().getModalidade().getNome() : null);
             if (p.getModalidade().getModalidade() != null && p.getModalidade().getModalidade().getEsporte() != null) {
                 ObjectNode esporte = modalidade.putObject("esporte");
                 esporte.put("id", p.getModalidade().getModalidade().getEsporte().getId().toString());
@@ -524,7 +550,8 @@ public class PartidaService {
             ev.put("tempo", e.getTempoCronometro());
             // descricao: tenta descricaoDetalhada, depois payloadJson
             String descricao = e.getDescricaoDetalhada();
-            if (descricao == null && e.getPayloadJson() != null) descricao = e.getPayloadJson().toString();
+            if (descricao == null && e.getPayloadJson() != null)
+                descricao = e.getPayloadJson().toString();
             ev.put("descricao", descricao);
             if (e.getTipoEvento() != null) {
                 ObjectNode tipo = ev.putObject("tipoEvento");
@@ -552,36 +579,41 @@ public class PartidaService {
      * Retorna null por enquanto.
      */
     protected String generateSumulaPdfUrlPlaceholder(Partida p, JsonNode snapshot) {
-        // TODO: gerar PDF baseado no snapshot + upload em bucket (Supabase Storage)
         return null;
     }
 
-
     public static boolean isStatusFinalizada(String status) {
-        if (status == null) return false;
+        if (status == null)
+            return false;
         return STATUS_FINALIZADA.equalsIgnoreCase(status.trim());
     }
 
     public static boolean isStatusFechada(String status) {
-        if (status == null) return false;
+        if (status == null)
+            return false;
         return STATUS_FECHADA.equalsIgnoreCase(status.trim());
     }
 
     /**
-     * Consideramos "em andamento" qualquer status válido que não seja agendada/finalizada/fechada.
-     * Isso cobre: 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada e pênaltis.
+     * Consideramos "em andamento" qualquer status válido que não seja
+     * agendada/finalizada/fechada.
+     * Isso cobre: 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada e
+     * pênaltis.
      */
     public static boolean isStatusEmAndamento(String status) {
-        if (status == null) return false;
+        if (status == null)
+            return false;
         String s = status.trim().toLowerCase(Locale.ROOT);
         return !STATUS_AGENDADA.equals(s) && !STATUS_FINALIZADA.equals(s) && !STATUS_FECHADA.equals(s);
     }
 
     public void validateStatus(String status) {
-        if (status == null) return;
+        if (status == null)
+            return;
         String s = status.trim().toLowerCase(Locale.ROOT);
         if (!VALID_STATUS.contains(s)) {
-            throw new IllegalStateException("Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, pênaltis, finalizada, fechada.");
+            throw new IllegalStateException(
+                    "Status inválido. Use: agendada, 1° tempo, intervalo, 2° tempo, prorrogação, acréscimo, pausada, pênaltis, finalizada, fechada.");
         }
     }
 

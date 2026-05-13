@@ -198,7 +198,7 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFF85C39).withOpacity(0.2),
+                      color: const Color(0xFFF85C39).withValues(alpha: 0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -323,7 +323,7 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, -4),
                 ),
@@ -372,10 +372,10 @@ class _PresidenteSelectorModalState extends State<PresidenteSelectorModal>
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF85C39).withOpacity(0.07),
+                color: const Color(0xFFF85C39).withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xFFF85C39).withOpacity(0.2),
+                  color: const Color(0xFFF85C39).withValues(alpha: 0.2),
                 ),
               ),
               child: const Row(
@@ -605,7 +605,7 @@ class _ProfileTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFF85C39).withOpacity(0.07)
+              ? const Color(0xFFF85C39).withValues(alpha: 0.07)
               : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
@@ -615,7 +615,7 @@ class _ProfileTile extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFF85C39).withOpacity(0.12),
+                    color: const Color(0xFFF85C39).withValues(alpha: 0.12),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),

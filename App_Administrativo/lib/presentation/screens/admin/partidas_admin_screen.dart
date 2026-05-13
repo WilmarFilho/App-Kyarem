@@ -146,8 +146,9 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
     if (p.criadoPor != currentUserId) {
       return 'VocÃª nÃ£o pode editar partidas criadas por outros Ã¡rbitros.';
     }
-    if (s == 'finalizada' || s == 'fechada')
-      return 'Partida encerrada nÃ£o pode ser editada.';
+    if (s == 'finalizada' || s == 'fechada') {
+      return 'Partida encerrada não pode ser editada.';
+    }
     if (s == 'agendada') return '';
     return 'Partida em andamento nÃ£o pode ser editada.';
   }

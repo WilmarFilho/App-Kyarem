@@ -181,7 +181,7 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: cor.withOpacity(0.1),
+          color: cor.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icone, color: cor),
@@ -263,7 +263,7 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
     }
 
     final corHex =
-        '#${_selectedColor.value.toRadixString(16).substring(2, 8).toUpperCase()}';
+        '#${_selectedColor.toARGB32().toRadixString(16).substring(2, 8).toUpperCase()}';
 
     final payload = {
       'nome': _nomeController.text.trim(),
@@ -476,7 +476,7 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: _obterCorStatus().withOpacity(0.1),
+                            color: _obterCorStatus().withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -538,7 +538,7 @@ class _AtleticaFormScreenState extends State<AtleticaFormScreen> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          '#${_selectedColor.value.toRadixString(16).substring(2, 8).toUpperCase()}',
+                          '#${_selectedColor.toARGB32().toRadixString(16).substring(2, 8).toUpperCase()}',
                           style: const TextStyle(fontSize: 16),
                         ),
                         const Spacer(),

@@ -58,9 +58,9 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
             ).pushNamedAndRemoveUntil('/home', (route) => false);
           },
         ),
-        title: Text(
+        title: const Text(
           'Modalidades',
-          style: const TextStyle(fontFamily: 'Bebas Neue', fontSize: 22),
+          style: TextStyle(fontFamily: 'Bebas Neue', fontSize: 22),
         ),
         centerTitle: true,
         backgroundColor: AppColors.primary,

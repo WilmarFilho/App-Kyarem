@@ -392,7 +392,7 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                       SwitchListTile(
                         value: _ativo,
                         contentPadding: EdgeInsets.zero,
-                        activeColor: const Color(0xFFF85C39),
+                        activeThumbColor: const Color(0xFFF85C39),
                         title: const Text('Modalidade ativa'),
                         onChanged: (value) => setState(() => _ativo = value),
                       ),
@@ -650,7 +650,7 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF85C39).withOpacity(0.1),
+                        color: const Color(0xFFF85C39).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.check_circle_outline, color: Color(0xFFF85C39)),

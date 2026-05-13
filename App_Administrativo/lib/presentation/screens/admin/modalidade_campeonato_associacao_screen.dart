@@ -414,7 +414,7 @@ class _ModalidadeCampeonatoAssociacaoScreenState
           SwitchListTile(
             value: _cronometroParado,
             contentPadding: EdgeInsets.zero,
-            activeColor: const Color(0xFFF85C39),
+            activeThumbColor: const Color(0xFFF85C39),
             title: const Text('Cronômetro parado'),
             onChanged: (value) => setState(() => _cronometroParado = value),
           ),
@@ -454,14 +454,14 @@ class _ModalidadeCampeonatoAssociacaoScreenState
           SwitchListTile(
             value: _permiteProrrogacao,
             contentPadding: EdgeInsets.zero,
-            activeColor: const Color(0xFFF85C39),
+            activeThumbColor: const Color(0xFFF85C39),
             title: const Text('Permite prorrogação'),
             onChanged: (value) => setState(() => _permiteProrrogacao = value),
           ),
           SwitchListTile(
             value: _permitePenaltis,
             contentPadding: EdgeInsets.zero,
-            activeColor: const Color(0xFFF85C39),
+            activeThumbColor: const Color(0xFFF85C39),
             title: const Text('Permite pênaltis'),
             onChanged: (value) => setState(() => _permitePenaltis = value),
           ),
@@ -516,15 +516,27 @@ class _ModalidadeCampeonatoAssociacaoScreenState
               'Selecione um modelo para preencher `formato_fases_json` com uma estrutura inicial.',
           child: Column(
             children: [
-              ..._faseOptions.map(
-                (option) => RadioListTile<String>(
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: const Color(0xFFF85C39),
-                  title: Text(option.label),
-                  value: option.id,
-                  groupValue: _selectedFasePreset,
-                  onChanged: (value) =>
-                      setState(() => _selectedFasePreset = value ?? option.id),
+              RadioGroup<String>(
+                groupValue: _selectedFasePreset,
+                onChanged: (value) =>
+                    setState(() => _selectedFasePreset = value ?? _selectedFasePreset),
+                child: Column(
+                  children: _faseOptions
+                      .map(
+                        (option) => RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          fillColor:
+                              WidgetStateProperty.resolveWith<Color?>((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return const Color(0xFFF85C39);
+                            }
+                            return null;
+                          }),
+                          title: Text(option.label),
+                          value: option.id,
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               Align(

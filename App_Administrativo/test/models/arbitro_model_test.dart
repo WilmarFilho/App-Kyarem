@@ -70,7 +70,7 @@ void main() {
   });
 
   group('PartidaDoArbitro.fromMap', () {
-    Map<String, dynamic> _mapCompleto() => {
+    Map<String, dynamic> mapCompleto() => {
           'vinculoId': 'vinc-001',
           'funcao': 'Árbitro Principal',
           'vinculadoEm': '2025-04-01T10:00:00.000Z',
@@ -90,7 +90,7 @@ void main() {
         };
 
     test('deve criar PartidaDoArbitro com todos os campos', () {
-      final pda = PartidaDoArbitro.fromMap(_mapCompleto());
+      final pda = PartidaDoArbitro.fromMap(mapCompleto());
 
       expect(pda.vinculoId, 'vinc-001');
       expect(pda.funcao, 'Árbitro Principal');
@@ -105,7 +105,7 @@ void main() {
     });
 
     test('deve parsear datas corretamente', () {
-      final pda = PartidaDoArbitro.fromMap(_mapCompleto());
+      final pda = PartidaDoArbitro.fromMap(mapCompleto());
       expect(pda.vinculadoEm, DateTime.tryParse('2025-04-01T10:00:00.000Z'));
       expect(pda.agendadaPara, DateTime.tryParse('2025-05-10T15:00:00.000Z'));
       expect(pda.iniciadaEm, DateTime.tryParse('2025-05-10T15:05:00.000Z'));
@@ -126,7 +126,7 @@ void main() {
   });
 
   group('PartidaDoArbitro.isAtiva / isEncerrada', () {
-    PartidaDoArbitro _criarComStatus(String status) => PartidaDoArbitro(
+    PartidaDoArbitro criarComStatus(String status) => PartidaDoArbitro(
           vinculoId: 'v1',
           funcao: 'Árbitro Principal',
           partidaId: 'p1',
@@ -134,35 +134,35 @@ void main() {
         );
 
     test('"agendada" deve ser considerada ativa', () {
-      final p = _criarComStatus('agendada');
+      final p = criarComStatus('agendada');
       expect(p.isAtiva, isTrue);
       expect(p.isEncerrada, isFalse);
     });
 
     test('"em_andamento" deve ser considerada ativa', () {
-      final p = _criarComStatus('em_andamento');
+      final p = criarComStatus('em_andamento');
       expect(p.isAtiva, isTrue);
     });
 
     test('"finalizada" deve ser considerada encerrada', () {
-      final p = _criarComStatus('finalizada');
+      final p = criarComStatus('finalizada');
       expect(p.isAtiva, isFalse);
       expect(p.isEncerrada, isTrue);
     });
 
     test('"fechada" deve ser considerada encerrada', () {
-      final p = _criarComStatus('fechada');
+      final p = criarComStatus('fechada');
       expect(p.isAtiva, isFalse);
       expect(p.isEncerrada, isTrue);
     });
 
     test('status com letras maiúsculas "Finalizada" deve ser encerrada (case-insensitive)', () {
-      final p = _criarComStatus('Finalizada');
+      final p = criarComStatus('Finalizada');
       expect(p.isAtiva, isFalse);
     });
 
     test('"FECHADA" maiúsculo deve ser considerado encerrado', () {
-      final p = _criarComStatus('FECHADA');
+      final p = criarComStatus('FECHADA');
       expect(p.isEncerrada, isTrue);
     });
   });

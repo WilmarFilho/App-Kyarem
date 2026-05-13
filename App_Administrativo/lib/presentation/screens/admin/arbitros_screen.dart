@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/arbitro_model.dart';
 import '../../../services/admin_api_service.dart';
 import '../../../services/auth_service.dart';
@@ -449,14 +449,14 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                               ? Icons.admin_panel_settings
                               : Icons.gavel,
                           size: 12,
-                          color: Color(0xFFF85C39),
+                          color: const Color(0xFFF85C39),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           arbitro.role.toUpperCase() == 'ADMIN'
                               ? 'Administrador'
-                              : 'Ãrbitro',
-                          style: TextStyle(
+                              : 'Árbitro',
+                          style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFFF85C39),
                             fontWeight: FontWeight.bold,
@@ -617,8 +617,9 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                         onPressed: () async {
                           if (nomeCtrl.text.isEmpty ||
                               emailCtrl.text.isEmpty ||
-                              senhaCtrl.text.isEmpty)
+                              senhaCtrl.text.isEmpty) {
                             return;
+                          }
                           setState(() => loading = true);
                           final arbitro = await _api.criarEAssociarArbitro(
                             nome: nomeCtrl.text.trim(),
@@ -947,27 +948,29 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
                           subtitle: Text('Role: $role'),
                           trailing: ElevatedButton(
                             onPressed: () async {
+                              final navigator = Navigator.of(context);
+                              final messenger =
+                                  ScaffoldMessenger.of(context);
                               final ok = await widget.api.associarArbitro(
                                 u['id'],
                               );
-                              if (mounted) {
-                                if (ok) {
-                                  Navigator.pop(context);
-                                  widget.onVincular();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Vinculado com sucesso!'),
+                              if (!mounted) return;
+                              if (ok) {
+                                navigator.pop();
+                                widget.onVincular();
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Vinculado com sucesso!'),
+                                  ),
+                                );
+                              } else {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Erro ao vincular usuário.',
                                     ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Erro ao vincular usuÃ¡rio.',
-                                      ),
-                                    ),
-                                  );
-                                }
+                                  ),
+                                );
                               }
                             },
                             style: ElevatedButton.styleFrom(

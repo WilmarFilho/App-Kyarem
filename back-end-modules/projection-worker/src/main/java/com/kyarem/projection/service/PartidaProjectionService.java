@@ -726,6 +726,7 @@ public class PartidaProjectionService {
         log.info("Projeção partidas_historico para partida {} afetou {} linha(s)", partidaId, affected);
     }
 
+    @SuppressWarnings("null")
     private void upsertEventoPublico(UUID eventoId) {
         log.info("Atualizando projeção eventos_partida_publicos para evento {}", eventoId);
         String sql = buildEventosPublicosUpsertSql("WHERE ev.id = ?");
@@ -740,6 +741,7 @@ public class PartidaProjectionService {
         }
     }
 
+    @SuppressWarnings("null")
     private void syncEventosPublicosDaPartida(UUID partidaId) {
         log.info("Sincronizando eventos públicos da partida {}", partidaId);
         String sql = buildEventosPublicosUpsertSql("WHERE ev.partida_id = ?");

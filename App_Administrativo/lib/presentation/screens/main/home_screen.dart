@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Flags de permissão carregadas via getUserProfile()
   bool _isAdminRole = false;
-  bool _isPresidenteAtletica = false;
+  final bool _isPresidenteAtletica = false;
   bool _isArbitro = false;
 
   bool get _hasAdminAccess => _isAdminRole || _isArbitro;

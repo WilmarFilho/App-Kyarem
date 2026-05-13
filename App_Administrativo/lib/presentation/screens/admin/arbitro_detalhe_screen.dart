@@ -215,10 +215,10 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
             )
           : null,
       body: _isLoading
-          ? Stack(
+          ? const Stack(
               children: [
-                const GradientBackground(),
-                const Center(
+                GradientBackground(),
+                Center(
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
               ],

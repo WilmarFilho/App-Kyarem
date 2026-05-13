@@ -226,7 +226,7 @@ public class PartidasController {
                     p.getSnapshotSumula(),
                     p.getSumulaPdfUrl(),
                     p.getHashIntegridade(),
-                    p.getStatusAntesPausa(),
+                    p.getPeriodoAntesPausa(),
                     p.getCriadoPor());
         }
 
