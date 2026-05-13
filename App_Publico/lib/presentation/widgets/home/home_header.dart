@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../screens/main/search_screen.dart';
 
 class _WaveClipper extends CustomClipper<Path> {
@@ -60,7 +59,7 @@ class HomeHeader extends StatelessWidget {
       collapseProgress,
     );
 
-    final iconBadgeColor = Color.lerp(
+    Color.lerp(
       AppColors.primary.withValues(alpha: 0.08),
       Colors.white.withValues(alpha: 0.1),
       collapseProgress,
@@ -130,9 +129,8 @@ class HomeHeader extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => SearchScreen(
-                              onNavigateToTab: onNavigateToTab,
-                            ),
+                            builder: (_) =>
+                                SearchScreen(onNavigateToTab: onNavigateToTab),
                           ),
                         ),
                         child: Container(
@@ -168,17 +166,6 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderButton(IconData icon, VoidCallback onTap, Color bgColor) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-        child: Icon(icon, color: AppColors.primary, size: 20),
       ),
     );
   }

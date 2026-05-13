@@ -11,7 +11,6 @@ import 'resumo_estatistica_partida_screen.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
 import '../../../models/modalidade_model.dart';
 import '../../../services/modalidade_service.dart';
-import '../../../services/modalidade_service.dart';
 
 class JogoDetalhesScreen extends StatefulWidget {
   final String partidaId;
@@ -66,8 +65,6 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
 
   late final SupabaseClient supabase =
       widget.supabaseClient ?? Supabase.instance.client;
-  late final EventoService _eventoService =
-      widget.eventoService ?? EventoService();
   final _partidaController = StreamController<Map<String, dynamic>>.broadcast();
   final _eventosController =
       StreamController<List<Map<String, dynamic>>>.broadcast();
@@ -100,7 +97,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
     _carregarDadosIniciais();
 
     // 2. Conecta no Realtime nativo do Supabase
-    supabase.from('eventos_partida_publicos')
+    supabase
+        .from('eventos_partida_publicos')
         .stream(primaryKey: ['evento_id'])
         .eq('partida_id', widget.partidaId)
         .order('criado_em', ascending: false)
@@ -111,7 +109,8 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
           _eventosController.add(eventos);
         });
 
-    supabase.from('partidas_ao_vivo')
+    supabase
+        .from('partidas_ao_vivo')
         .stream(primaryKey: ['partida_id'])
         .eq('partida_id', widget.partidaId)
         .listen((partidas) {
@@ -311,7 +310,11 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
   }
 
   String _eventTypeCode(Map<String, dynamic> ev) {
-    return (ev['tipo_evento_codigo']?.toString() ?? ev['tipo_evento_nome']?.toString() ?? '').trim().toUpperCase();
+    return (ev['tipo_evento_codigo']?.toString() ??
+            ev['tipo_evento_nome']?.toString() ??
+            '')
+        .trim()
+        .toUpperCase();
   }
 
   /// Converte "MM:SS" → total em segundos
