@@ -23,6 +23,8 @@ public class Profile {
 
     private String telefone;
 
+    private String cpf;
+
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -68,6 +70,9 @@ public class Profile {
 
     public String getTelefone() { return telefone; }
     public void setTelefone(String telefone) { this.telefone = telefone; }
+
+    public String getCpf() { return cpf; }
+    public void setCpf(String cpf) { this.cpf = cpf; }
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }

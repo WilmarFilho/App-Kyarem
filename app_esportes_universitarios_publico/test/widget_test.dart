@@ -1,30 +1,15 @@
-// This is a basic Flutter widget test.
+// Widget smoke test for the Kyarem Public Sports App.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// This test verifies that the root widget builds without throwing.
+// More granular tests should be added per screen/feature as the app grows.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_esportes_universitarios_publico/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('KyaremPublicSportsApp smoke test', (WidgetTester tester) async {
+    // Build the root widget and verify it does not throw.
+    await tester.pumpWidget(const KyaremPublicSportsApp());
   });
 }

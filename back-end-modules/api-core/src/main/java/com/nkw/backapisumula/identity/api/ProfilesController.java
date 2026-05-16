@@ -90,6 +90,10 @@ public class ProfilesController {
         if (req.telefone() != null) {
             profile.setTelefone(req.telefone().isBlank() ? null : req.telefone().trim());
         }
+        if (req.cpf() != null) {
+            String cpfNormalizado = req.cpf().replaceAll("\\D", "");
+            profile.setCpf(cpfNormalizado.isBlank() ? null : cpfNormalizado);
+        }
         if (req.dataNascimento() != null) {
             profile.setDataNascimento(req.dataNascimento());
         }
@@ -108,7 +112,7 @@ public class ProfilesController {
         return AccessResponse.from(access);
     }
 
-    public record UpdateMeRequest(String nomeExibicao, String telefone, String avatarUrl, LocalDate dataNascimento, String genero) {}
+    public record UpdateMeRequest(String nomeExibicao, String telefone, String cpf, String avatarUrl, LocalDate dataNascimento, String genero) {}
 
     /** Atualiza apenas o avatar do usuário autenticado. */
     @PatchMapping("/me/avatar")
@@ -285,6 +289,7 @@ public class ProfilesController {
             String nomeExibicao,
             String fotoUrl,
             String telefone,
+            String cpf,
             LocalDate dataNascimento,
             String genero,
             String role,
@@ -296,6 +301,7 @@ public class ProfilesController {
                     p.getNomeExibicao(),
                     p.getFotoUrl(),
                     p.getTelefone(),
+                    p.getCpf(),
                     p.getDataNascimento(),
                     p.getGenero(),
                     p.getRole(),
@@ -310,6 +316,7 @@ public class ProfilesController {
             String fotoUrl,
             String telefone,
             String email,
+            String cpf,
             LocalDate dataNascimento,
             String genero,
             String role,
@@ -325,6 +332,7 @@ public class ProfilesController {
                     p.getFotoUrl(),
                     p.getTelefone(),
                     p.getEmail(),
+                    p.getCpf(),
                     p.getDataNascimento(),
                     p.getGenero(),
                     access.role(),
