@@ -38,9 +38,9 @@ class AppBottomNavigation extends StatelessWidget {
           label: 'Atléticas',
         ),
         NavigationDestination(
-          icon: Icon(Icons.person_outline_rounded),
-          selectedIcon: Icon(Icons.person_rounded),
-          label: 'Perfil',
+          icon: Icon(Icons.dynamic_feed_outlined),
+          selectedIcon: Icon(Icons.dynamic_feed_rounded),
+          label: 'Feed',
         ),
       ],
     );

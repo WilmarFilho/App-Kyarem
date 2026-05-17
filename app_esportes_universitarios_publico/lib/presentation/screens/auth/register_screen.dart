@@ -111,9 +111,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      title: 'Criar conta publica',
-      subtitle:
-          'Todo novo cadastro entra com role global USER. Presidentes, dirigentes e atletas ganham seus papeis depois, de forma contextual.',
+      title: '',
+      subtitle: '',
       child: ListView(
         children: [
           TextField(

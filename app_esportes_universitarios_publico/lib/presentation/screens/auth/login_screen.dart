@@ -52,7 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthException catch (e) {
       setState(() => _error = _translateAuthError(e));
     } catch (_) {
-      setState(() => _error = 'Nao foi possivel entrar agora. Tente novamente.');
+      setState(
+        () => _error = 'Nao foi possivel entrar agora. Tente novamente.',
+      );
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -86,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return AuthScaffold(
       title: 'Acesse o app geral',
       subtitle:
-          'Login publico para acompanhar campeonatos, seguir atleticas e gerir a sua atletica quando voce tiver permissao.',
+          'Acompanhe campeonatos, estatisticas, torça para as atleticas e etc.',
       child: ListView(
         children: [
           TextField(
@@ -124,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 12),
           TextButton(
             onPressed: () => Navigator.pushNamed(context, '/register'),
-            child: const Text('Criar conta com role USER'),
+            child: const Text('Criar conta'),
           ),
           TextButton(
             onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
