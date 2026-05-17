@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'Back-API-Kyarem/**'
+      - 'back-end-modules/**'
       - '.github/workflows/kyarem-deploy.yml'
 
   workflow_dispatch:   # Permite trigger manual pela UI do GitHub
@@ -64,8 +64,8 @@ jobs:
       - name: 🏗️ Build & Push — ${{ matrix.module }}
         uses: docker/build-push-action@v5
         with:
-          context: ./Back-API-Kyarem
-          file: ./Back-API-Kyarem/${{ matrix.module }}/Dockerfile
+          context: ./back-end-modules
+          file: ./back-end-modules/${{ matrix.module }}/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ steps.ghcr_namespace.outputs.repo }}/${{ matrix.module }}:latest
@@ -114,7 +114,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "Back-API-Kyarem/docker-compose.yml"
+          source: "back-end-modules/docker-compose.yml"
           target: "${{ secrets.VPS_DEPLOY_PATH }}"
           strip_components: 1
 
@@ -183,3 +183,4 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             docker image prune -f --filter "until=24h"
+

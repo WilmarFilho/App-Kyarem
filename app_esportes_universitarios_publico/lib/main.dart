@@ -25,10 +25,7 @@ const _supabaseAnonKey = String.fromEnvironment(
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: _supabaseUrl,
-    anonKey: _supabaseAnonKey,
-  );
+  await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
 
   Supabase.instance.client.auth.onAuthStateChange.listen((state) {
     if (state.event == AuthChangeEvent.passwordRecovery) {
@@ -73,7 +70,10 @@ class AuthGate extends StatelessWidget {
 
     return StreamBuilder<AuthState>(
       stream: authService.authChanges,
-      initialData: AuthState(AuthChangeEvent.initialSession, authService.currentSession),
+      initialData: AuthState(
+        AuthChangeEvent.initialSession,
+        authService.currentSession,
+      ),
       builder: (context, snapshot) {
         final session = snapshot.data?.session ?? authService.currentSession;
         if (session != null) {

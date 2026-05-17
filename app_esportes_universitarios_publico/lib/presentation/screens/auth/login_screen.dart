@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _error = _translateAuthError(e));
     } catch (_) {
       setState(() => _error = 'Nao foi possivel entrar agora. Tente novamente.');
     } finally {
@@ -58,6 +58,27 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  String _translateAuthError(AuthException error) {
+    final message = error.message.toLowerCase();
+
+    if (message.contains('invalid login credentials') ||
+        message.contains('invalid credentials') ||
+        message.contains('email not confirmed') ||
+        message.contains('invalid email or password')) {
+      return 'E-mail ou senha invalidos.';
+    }
+
+    if (message.contains('network') || message.contains('socket')) {
+      return 'Sem conexao no momento. Verifique sua internet e tente novamente.';
+    }
+
+    if (message.contains('too many requests')) {
+      return 'Muitas tentativas seguidas. Aguarde um pouco e tente novamente.';
+    }
+
+    return 'Nao foi possivel entrar com esses dados. Tente novamente.';
   }
 
   @override
