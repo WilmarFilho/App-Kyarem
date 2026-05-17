@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuração de segurança de rede para Android 7+ (API 24+).
+  Garante que conexões HTTPS com o Supabase e outros endpoints funcionem
+  corretamente em builds de release, sem bloqueios de certificado.
+-->
+<network-security-config>
+    <!-- Permite HTTPS para todos os domínios (apenas CAs do sistema confiáveis) -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+
+    <!-- Domínio do Supabase (substitua pelo seu projeto se necessário) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">supabase.co</domain>
+        <domain includeSubdomains="true">supabase.in</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

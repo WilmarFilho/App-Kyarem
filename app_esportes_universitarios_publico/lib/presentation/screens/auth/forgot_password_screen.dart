@@ -60,8 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return AuthScaffold(
       title: 'Recuperar senha',
-      subtitle:
-          'O Supabase continua responsavel apenas pela autenticacao deste app. Depois do login, o restante da operacao vai para o backend.',
+      subtitle: '',
       child: ListView(
         children: [
           TextField(
