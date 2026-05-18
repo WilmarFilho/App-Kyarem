@@ -113,7 +113,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     final ok = await _api.excluirModalidadeCatalogo(modalidade.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Modalidade excluÃ­da.' : 'Erro ao excluir.')),
+      SnackBar(content: Text(ok ? 'Modalidade excluída.' : 'Erro ao excluir.')),
     );
     if (ok) {
       await _carregar();
@@ -237,7 +237,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
               ),
             ),
             Text(
-              'CatÃ¡logo esportivo',
+              'Catálogo esportivo',
               style: TextStyle(fontSize: 12, color: Colors.white70),
             ),
           ],
@@ -408,7 +408,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
               ),
               const SizedBox(width: 8),
               const Text(
-                'Filtrar por gÃªnero',
+                'Filtrar por gênero',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const Spacer(),
@@ -472,7 +472,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,

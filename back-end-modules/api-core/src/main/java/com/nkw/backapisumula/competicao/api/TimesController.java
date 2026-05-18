@@ -10,13 +10,15 @@ import com.nkw.backapisumula.competicao.repo.CampeonatoModalidadeRepository;
 import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
 import com.nkw.backapisumula.competicao.repo.TimeAtleticaRepository;
 import com.nkw.backapisumula.competicao.repo.ModalidadeCatalogoRepository;
+import com.nkw.backapisumula.competicao.EquipeStaff;
+import com.nkw.backapisumula.competicao.repo.EquipeStaffRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,20 +37,23 @@ public class TimesController {
         private final ModalidadeCatalogoRepository modalidadeCatalogoRepository;
         private final CampeonatoModalidadeRepository campeonatoModalidadeRepository;
         private final EventPublisherService eventPublisherService;
+        private final EquipeStaffRepository equipeStaffRepository;
 
-        @PersistenceContext
+        @Autowired
         private EntityManager entityManager;
 
         public TimesController(TimeAtleticaRepository timeAtleticaRepository,
                         CampeonatoTimeRepository campeonatoTimeRepository,
                         ModalidadeCatalogoRepository modalidadeCatalogoRepository,
                         CampeonatoModalidadeRepository campeonatoModalidadeRepository,
-                        EventPublisherService eventPublisherService) {
+                        EventPublisherService eventPublisherService,
+                        EquipeStaffRepository equipeStaffRepository) {
                 this.timeAtleticaRepository = timeAtleticaRepository;
                 this.campeonatoTimeRepository = campeonatoTimeRepository;
                 this.modalidadeCatalogoRepository = modalidadeCatalogoRepository;
                 this.campeonatoModalidadeRepository = campeonatoModalidadeRepository;
                 this.eventPublisherService = eventPublisherService;
+                this.equipeStaffRepository = equipeStaffRepository;
         }
 
         @GetMapping("/atletica/{atleticaId}")
@@ -63,7 +68,7 @@ public class TimesController {
 
         @PostMapping("/atletica")
         @ResponseStatus(HttpStatus.CREATED)
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
+        @PreAuthorize("isAuthenticated()")
         public TimeAtleticaResponse createTimeAtletica(@Valid @RequestBody CreateTimeAtleticaRequest request) {
                 ModalidadeCatalogo modalidade = modalidadeCatalogoRepository.findById(request.modalidadeCatalogoId())
                                 .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
@@ -81,7 +86,7 @@ public class TimesController {
         }
 
         @PutMapping("/atletica/{timeId}")
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
+        @PreAuthorize("isAuthenticated()")
         public TimeAtleticaResponse updateTimeAtletica(@PathVariable UUID timeId,
                         @Valid @RequestBody UpdateTimeAtleticaRequest request) {
                 TimeAtletica time = timeAtleticaRepository.findById(timeId)
@@ -103,9 +108,19 @@ public class TimesController {
 
         @DeleteMapping("/atletica/{timeId}")
         @ResponseStatus(HttpStatus.NO_CONTENT)
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
+        @PreAuthorize("isAuthenticated()")
         public void deleteTimeAtletica(@PathVariable UUID timeId) {
                 timeAtleticaRepository.deleteById(timeId);
+        }
+
+        @PostMapping("/atletica/{timeId}/atletas")
+        @ResponseStatus(HttpStatus.CREATED)
+        @PreAuthorize("isAuthenticated()")
+        public void adicionarAtletasTimePermanente(@PathVariable UUID timeId,
+                        @Valid @RequestBody AddAtletasRequest request) {
+                // Feature descontinuada: A tabela operational.time_atletica_atletas foi removida (V25).
+                // O vínculo de atletas a times permanentes não é mais suportado no BD,
+                // devendo ser feito através de campeonato_atletas (por campeonato).
         }
 
         @GetMapping("/campeonato/{campeonatoId}")
@@ -120,7 +135,8 @@ public class TimesController {
 
         @PostMapping("/campeonato")
         @ResponseStatus(HttpStatus.CREATED)
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
+        @PreAuthorize("isAuthenticated()")
+        @Transactional
         public CampeonatoTimeResponse inscreverTimeNoCampeonato(@Valid @RequestBody InscricaoTimeRequest request) {
                 CampeonatoModalidade campeonatoModalidade = campeonatoModalidadeRepository
                                 .findById(request.campeonatoModalidadeId())
@@ -135,7 +151,20 @@ public class TimesController {
                 campeonatoTime.setCampeonatoModalidade(campeonatoModalidade);
                 campeonatoTime.setTime(timeAtletica);
                 campeonatoTime.setStatus("CONFIRMADA");
-                campeonatoTime.setCampeonatoAtleticaId(UUID.randomUUID());
+                UUID campeonatoAtleticaId;
+                try {
+                        campeonatoAtleticaId = (UUID) entityManager.createNativeQuery(
+                                        "SELECT id FROM operational.campeonato_atleticas WHERE campeonato_id = :campeonatoId AND atletica_id = :atleticaId")
+                                        .setParameter("campeonatoId", campeonatoModalidade.getCampeonato().getId())
+                                        .setParameter("atleticaId", timeAtletica.getAtletica().getId())
+                                        .getSingleResult();
+                } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new IllegalStateException("A atlética não está inscrita neste campeonato. Erro real: " + e.getMessage(), e);
+                }
+
+                campeonatoTime.setCampeonatoAtleticaId(campeonatoAtleticaId);
+                campeonatoTime.setCriadoEm(OffsetDateTime.now());
 
                 CampeonatoTime saved = campeonatoTimeRepository.save(campeonatoTime);
                 eventPublisherService.publish(
@@ -152,10 +181,17 @@ public class TimesController {
 
         @DeleteMapping("/campeonato/{campeonatoTimeId}")
         @ResponseStatus(HttpStatus.NO_CONTENT)
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president')")
+        @PreAuthorize("isAuthenticated()")
+        @Transactional
         public void removerTimeDoCampeonato(@PathVariable UUID campeonatoTimeId) {
                 CampeonatoTime time = campeonatoTimeRepository.findById(campeonatoTimeId)
                                 .orElseThrow(() -> new IllegalStateException("Time do campeonato não encontrado."));
+
+                entityManager.createNativeQuery("DELETE FROM operational.campeonato_atletas WHERE campeonato_time_id = :timeId")
+                                .setParameter("timeId", campeonatoTimeId).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM operational.equipes_staff WHERE campeonato_time_id = :timeId")
+                                .setParameter("timeId", campeonatoTimeId).executeUpdate();
+
                 eventPublisherService.publish(
                                 "CampeonatoTime",
                                 campeonatoTimeId.toString(),
@@ -169,7 +205,7 @@ public class TimesController {
 
         @PatchMapping("/campeonato/{campeonatoTimeId}/atletas/{atletaId}/camisa")
         @Transactional
-        @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director','ROLE_president','ROLE_referee')")
+        @PreAuthorize("isAuthenticated()")
         @ResponseStatus(HttpStatus.NO_CONTENT)
         public void atualizarNumeroCamisa(
                         @PathVariable UUID campeonatoTimeId,
@@ -247,10 +283,38 @@ public class TimesController {
                 }).toList();
         }
 
+        @PostMapping("/campeonato/{campeonatoTimeId}/staff")
+        @ResponseStatus(HttpStatus.CREATED)
+        @PreAuthorize("isAuthenticated()")
+        public EquipeStaffResponse adicionarStaff(@PathVariable UUID campeonatoTimeId,
+                        @Valid @RequestBody AddStaffRequest request) {
+                CampeonatoTime ct = campeonatoTimeRepository.findById(campeonatoTimeId)
+                                .orElseThrow(() -> new IllegalStateException("Equipe do campeonato não encontrada."));
+
+                EquipeStaff staff = new EquipeStaff();
+                staff.setCampeonatoTime(ct);
+                staff.setUserId(request.userId());
+                staff.setNome(request.nome());
+                staff.setCargo(request.cargo());
+                staff.setCriadoEm(OffsetDateTime.now());
+
+                return EquipeStaffResponse.from(equipeStaffRepository.save(staff));
+        }
+
+        @GetMapping("/campeonato/{campeonatoTimeId}/staff")
+        @Transactional(readOnly = true)
+        public List<EquipeStaffResponse> listStaffDoCampeonatoTime(@PathVariable UUID campeonatoTimeId) {
+                return equipeStaffRepository.findAll().stream()
+                                .filter(s -> s.getCampeonatoTime() != null && campeonatoTimeId.equals(s.getCampeonatoTime().getId()))
+                                .map(EquipeStaffResponse::from)
+                                .toList();
+        }
+
         public record CreateTimeAtleticaRequest(
                         @NotNull UUID atleticaId,
                         @NotNull UUID modalidadeCatalogoId,
-                        @NotBlank String nome) {
+                        @NotBlank String nome,
+                        List<UUID> atletaIds) {
         }
 
         public record UpdateTimeAtleticaRequest(
@@ -325,5 +389,29 @@ public class TimesController {
 
         public record AtualizarNumeroCamisaRequest(
                         @Min(value = 0, message = "Número da camisa deve ser maior ou igual a 0.") @Max(value = 999, message = "Número da camisa deve ser menor ou igual a 999.") Integer numeroCamisa) {
+        }
+
+        public record AddAtletasRequest(
+                        @NotNull List<UUID> atletaIds) {
+        }
+
+        public record AddStaffRequest(
+                        UUID userId,
+                        @NotBlank String nome,
+                        @NotBlank String cargo) {
+        }
+
+        public record EquipeStaffResponse(
+                        UUID id,
+                        UUID userId,
+                        String nome,
+                        String cargo) {
+                public static EquipeStaffResponse from(EquipeStaff staff) {
+                        return new EquipeStaffResponse(
+                                        staff.getId(),
+                                        staff.getUserId(),
+                                        staff.getNome(),
+                                        staff.getCargo());
+                }
         }
 }

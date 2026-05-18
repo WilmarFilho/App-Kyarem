@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
@@ -12,6 +12,7 @@ import 'package:kyarem_eventos/models/equipe_staff_model.dart';
 import 'package:kyarem_eventos/models/esporte_model.dart';
 import 'package:kyarem_eventos/models/modalidade_campeonato_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AdminApiService {
   final Dio _dio;
@@ -25,7 +26,7 @@ class AdminApiService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
+              baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
               connectTimeout: const Duration(seconds: 10),
             ),
           ),
@@ -100,7 +101,7 @@ class AdminApiService {
     }
   }
 
-  // ============== ATLÃ‰TICAS ==============
+  // ============== ATLÉTICAS ==============
   Future<Atletica?> buscarAtletica(String id) async {
     try {
       final res = await _dio.get('/atleticas/$id');
@@ -111,7 +112,7 @@ class AdminApiService {
     }
   }
 
-  /// Busca a atlÃ©tica cujo [presidenteId] corresponde ao [userId] logado.
+  /// Busca a atlética cujo [presidenteId] corresponde ao [userId] logado.
   /// Usado para descobrir o atleticaId do presidente sem precisar de coluna extra no Supabase.
   Future<String?> buscarAtleticaDoPresidente(String userId) async {
     try {
@@ -458,7 +459,7 @@ class AdminApiService {
       final equipeId =
           data['equipe_id']?.toString() ?? data['equipeId']?.toString();
       if (equipeId == null || equipeId.isEmpty) {
-        throw ArgumentError('equipe_id Ã© obrigatÃ³rio para criar staff.');
+        throw ArgumentError('equipe_id é obrigatório para criar staff.');
       }
 
       final payload = {'nome': data['nome'], 'cargo': data['cargo']};
@@ -600,9 +601,9 @@ class AdminApiService {
     }
   }
 
-  /// Busca uma modalidade especÃ­fica pelo ID.
+  /// Busca uma modalidade específica pelo ID.
   /// Retorna o map com id, campeonatoId, campeonatoNome, esporteNome, nome.
-  /// Endpoint: GET /api/v1/modalidades/{id} (pÃºblico).
+  /// Endpoint: GET /api/v1/modalidades/{id} (público).
   Future<Map<String, dynamic>?> buscarModalidade(String modalidadeId) async {
     try {
       final res = await _dio.get('/modalidades/$modalidadeId');
@@ -664,10 +665,10 @@ class AdminApiService {
     }
   }
 
-  // ============== ÃRBITROS ==============
+  // ============== ÁRBITROS ==============
 
   /// POST /api/v1/arbitros
-  /// Vincula um usuÃ¡rio existente ao quadro de arbitragem.
+  /// Vincula um usuário existente ao quadro de arbitragem.
   Future<bool> associarArbitro(String userId) async {
     try {
       await _dio.post('/arbitros', data: {'userId': userId});
@@ -679,7 +680,7 @@ class AdminApiService {
   }
 
   /// POST /api/v1/arbitros/criar
-  /// Cria um novo usuÃ¡rio auth e jÃ¡ o vincula ao quadro de arbitragem.
+  /// Cria um novo usuário auth e já o vincula ao quadro de arbitragem.
   Future<Arbitro?> criarEAssociarArbitro({
     required String nome,
     required String email,
@@ -697,7 +698,7 @@ class AdminApiService {
     }
   }
 
-  /// GET /api/v1/arbitros â€” lista todos os Ã¡rbitros (role='arbitro').
+  /// GET /api/v1/arbitros â€” lista todos os árbitros (role='arbitro').
   Future<List<Arbitro>> listarArbitros() async {
     try {
       final res = await _dio.get('/arbitros');
@@ -709,7 +710,7 @@ class AdminApiService {
   }
 
   /// GET /api/v1/arbitros/{arbitroId}/partidas
-  /// Retorna todas as partidas (ativas e encerradas) vinculadas ao Ã¡rbitro.
+  /// Retorna todas as partidas (ativas e encerradas) vinculadas ao árbitro.
   Future<List<PartidaDoArbitro>> listarPartidasDoArbitro(
     String arbitroId,
   ) async {
@@ -725,7 +726,7 @@ class AdminApiService {
   }
 
   /// POST /api/v1/partidas/{partidaId}/arbitros
-  /// Vincula um Ã¡rbitro a uma partida com a funÃ§Ã£o informada.
+  /// Vincula um árbitro a uma partida com a função informada.
   Future<bool> vincularArbitro(
     String partidaId,
     String arbitroId,
@@ -744,7 +745,7 @@ class AdminApiService {
   }
 
   /// DELETE /api/v1/partidas/{partidaId}/arbitros/{vinculoId}
-  /// Remove o vÃ­nculo de Ã¡rbitro de uma partida.
+  /// Remove o vínculo de árbitro de uma partida.
   Future<bool> desvincularArbitro(String partidaId, String vinculoId) async {
     try {
       await _dio.delete('/partidas/$partidaId/arbitros/$vinculoId');
@@ -758,7 +759,7 @@ class AdminApiService {
   // ============== UPLOAD DE IMAGENS ==============
 
   /// Faz upload do escudo do campeonato via multipart.
-  /// Retorna a URL pÃºblica da imagem ou null em caso de erro.
+  /// Retorna a URL pública da imagem ou null em caso de erro.
   Future<String?> uploadEscudoCampeonato(File imageFile) async {
     try {
       final fileName = p.basename(imageFile.path);
@@ -776,7 +777,7 @@ class AdminApiService {
   }
 
   /// Faz upload da foto do atleta via multipart.
-  /// Retorna a URL pÃºblica da imagem ou null em caso de erro.
+  /// Retorna a URL pública da imagem ou null em caso de erro.
   Future<String?> uploadFotoAtleta(File imageFile) async {
     try {
       final fileName = p.basename(imageFile.path);
@@ -793,8 +794,8 @@ class AdminApiService {
     }
   }
 
-  /// Faz upload do escudo da atlÃ©tica via multipart.
-  /// Retorna a URL pÃºblica da imagem ou null em caso de erro.
+  /// Faz upload do escudo da atlética via multipart.
+  /// Retorna a URL pública da imagem ou null em caso de erro.
   Future<String?> uploadEscudoAtletica(File imageFile) async {
     try {
       final fileName = p.basename(imageFile.path);

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthService {
   final SupabaseClient? _supabaseOverride;
@@ -18,7 +19,7 @@ class AuthService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
+              baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
               connectTimeout: const Duration(seconds: 10),
             ),
           );

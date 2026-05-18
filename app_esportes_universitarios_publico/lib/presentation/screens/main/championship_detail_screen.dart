@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
-import 'championships_tab.dart';
+import '../../../../models/campeonato.dart';
 
 class ChampionshipDetailScreen extends StatelessWidget {
   const ChampionshipDetailScreen({
@@ -9,7 +9,7 @@ class ChampionshipDetailScreen extends StatelessWidget {
     required this.championship,
   });
 
-  final ChampionshipMock championship;
+  final Campeonato championship;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +18,7 @@ class ChampionshipDetailScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text(championship.name),
+          title: Text(championship.nome),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Geral'),
@@ -37,12 +37,19 @@ class ChampionshipDetailScreen extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
-                child: Image.network(
-                  championship.imageUrl,
-                  width: double.infinity,
-                  height: 170,
-                  fit: BoxFit.cover,
-                ),
+                child: championship.escudoUrl != null && championship.escudoUrl!.isNotEmpty
+                    ? Image.network(
+                        championship.escudoUrl!,
+                        width: double.infinity,
+                        height: 170,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        width: double.infinity,
+                        height: 170,
+                        color: AppColors.surface,
+                        child: const Icon(Icons.emoji_events, size: 64, color: AppColors.textMuted),
+                      ),
               ),
             ),
             Expanded(
@@ -50,16 +57,16 @@ class ChampionshipDetailScreen extends StatelessWidget {
                 children: [
                   _DetailList(
                     sections: [
-                      'Local: ${championship.location}',
-                      'Período: ${championship.dateLabel}',
-                      championship.description,
+                      'Local: Sede a definir',
+                      'Período: ${championship.dataInicio ?? "A definir"}',
+                      'Edição: ${championship.edicao ?? "Não informada"}',
                     ],
                   ),
-                  const _DetailList(
+                  _DetailList(
                     sections: [
-                      '18 modalidades mapeadas',
-                      '64 partidas previstas',
-                      'Média de 1.240 torcedores por arena',
+                      '${championship.modalidades.length} modalidades mapeadas',
+                      'Partidas a definir',
+                      'Média de público: N/A',
                     ],
                   ),
                   const _DetailList(

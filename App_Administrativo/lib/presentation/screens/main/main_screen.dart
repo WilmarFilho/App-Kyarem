@@ -84,6 +84,31 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Aguarda o perfil ser carregado antes de renderizar o app
+    // para evitar flickering/tela branca ao inicializar.
+    if (!_perfilCarregado) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF1B2B4B),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 24),
+              Text(
+                'Carregando...',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0F0),
       body: Stack(

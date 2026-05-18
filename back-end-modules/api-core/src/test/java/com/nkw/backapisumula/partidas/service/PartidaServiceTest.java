@@ -164,6 +164,7 @@ class PartidaServiceTest {
         when(equipeRepo.findById(EQUIPE_A_ID)).thenReturn(Optional.of(eqA));
         when(equipeRepo.findById(EQUIPE_B_ID)).thenReturn(Optional.of(eqB));
         when(repo.save(any(Partida.class))).thenReturn(esperada);
+        when(repo.findById(esperada.getId())).thenReturn(Optional.of(esperada));
         // EventPublisherService.publish é void — sem stubbing necessário
         doNothing().when(eventPublisherService).publish(anyString(), anyString(), anyString(), any(Map.class));
 
@@ -298,8 +299,8 @@ class PartidaServiceTest {
     }
 
     @Test
-    void end_partidaNaoFinalizada_lancaIllegalStateException() {
-        when(repo.findById(PARTIDA_ID)).thenReturn(Optional.of(partida("1° tempo")));
+    void end_partidaAgendada_lancaIllegalStateException() {
+        when(repo.findById(PARTIDA_ID)).thenReturn(Optional.of(partida("agendada")));
 
         assertThrows(IllegalStateException.class,
                 () -> service.end(PARTIDA_ID, USUARIO_ID, false));

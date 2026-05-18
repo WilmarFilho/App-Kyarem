@@ -60,7 +60,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Tem certeza que deseja excluir "$nome"?\nEssa aÃ§Ã£o nÃ£o pode ser desfeita.',
+          'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.',
         ),
         actions: [
           TextButton(
@@ -87,7 +87,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              sucesso ? 'Campeonato excluÃ­do!' : 'Erro ao excluir.',
+              sucesso ? 'Campeonato excluído!' : 'Erro ao excluir.',
             ),
             backgroundColor: sucesso ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -601,7 +601,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,

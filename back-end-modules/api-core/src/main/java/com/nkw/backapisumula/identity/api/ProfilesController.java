@@ -212,6 +212,20 @@ public class ProfilesController {
     }
 
     /**
+     * Busca perfis por nome de exibição ou email.
+     * GET /api/v1/profiles/search?query=...
+     */
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public List<ProfileResponse> searchProfiles(@RequestParam String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        List<Profile> profiles = profileService.searchByNameOrEmail(query);
+        return profiles.stream().limit(50).map(ProfileResponse::from).toList();
+    }
+
+    /**
      * Cria um novo usuário base no Supabase Auth.
      * Pela nova arquitetura, o cadastro nasce como USER e os papéis
      * contextuais são atribuídos posteriormente.

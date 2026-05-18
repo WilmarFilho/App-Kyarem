@@ -25,6 +25,9 @@ public class EquipeStaff {
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private Profile user;
 
+    @Transient
+    private String nome;
+
     private String cargo;
 
     @Column(name = "criado_em")
@@ -42,16 +45,13 @@ public class EquipeStaff {
     public Profile getUser() { return user; }
     public void setUser(Profile user) { this.user = user; }
 
-    @Transient
     public String getNome() {
-        if (user == null) {
-            return null;
-        }
-        if (user.getNomeExibicao() != null && !user.getNomeExibicao().isBlank()) {
-            return user.getNomeExibicao();
-        }
-        return user.getNomeCompleto();
+        if (nome != null && !nome.isBlank()) return nome;
+        if (user != null && user.getNomeExibicao() != null) return user.getNomeExibicao();
+        if (user != null) return user.getNome();
+        return null;
     }
+    public void setNome(String nome) { this.nome = nome; }
 
     public String getCargo() { return cargo; }
     public void setCargo(String cargo) { this.cargo = cargo; }

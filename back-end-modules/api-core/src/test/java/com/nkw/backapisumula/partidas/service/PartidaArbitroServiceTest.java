@@ -126,7 +126,7 @@ class PartidaArbitroServiceTest {
 
         assertEquals(PARTIDA_ID, resultado.getPartida().getId());
         assertEquals(ARBITRO_ID, resultado.getArbitro().getId());
-        assertEquals("fiscal", resultado.getFuncao());
+        assertEquals("FISCAL", resultado.getFuncao());
     }
 
     @Test

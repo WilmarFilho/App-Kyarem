@@ -27,6 +27,15 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     @Query("""
             select p
             from Profile p
+            where lower(p.nomeExibicao) like lower(concat('%', :query, '%'))
+               or lower(p.email) like lower(concat('%', :query, '%'))
+            order by p.nomeExibicao asc
+            """)
+    List<Profile> searchByNameOrEmail(@Param("query") String query);
+
+    @Query("""
+            select p
+            from Profile p
             join QuadroArbitro qa on qa.userId = p.id
             where qa.status = 'ATIVO'
             order by p.nomeExibicao asc

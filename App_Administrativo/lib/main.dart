@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'presentation/screens/main/main_screen.dart';
@@ -18,6 +19,9 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Carregar variáveis de ambiente
+  await dotenv.load(fileName: ".env");
 
   // Inicializar Firebase (deve ser antes de tudo)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

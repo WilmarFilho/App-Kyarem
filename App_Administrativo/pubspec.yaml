@@ -36,6 +36,7 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   firebase_messaging: ^16.2.0
   flutter_local_notifications: ^21.0.0
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +70,7 @@ flutter:
     - assets/images/meteor.svg
     - assets/images/icon.png 
     - assets/images/splash.png 
+    - .env
 
   fonts:
     - family: Bebas Neue

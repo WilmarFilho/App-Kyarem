@@ -12,6 +12,9 @@ public interface AtleticaMembroRepository extends JpaRepository<AtleticaMembro, 
     @EntityGraph(attributePaths = {"user"})
     List<AtleticaMembro> findByAtletica_IdOrderByCriadoEmAsc(UUID atleticaId);
 
+    @EntityGraph(attributePaths = {"atletica"})
+    List<AtleticaMembro> findByUser_IdAndStatusOrderByCriadoEmAsc(UUID userId, String status);
+
     boolean existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatus(
             UUID atleticaId,
             UUID userId,

@@ -79,7 +79,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Excluir atlÃ©tica?'),
+        title: const Text('Excluir atlética?'),
         content: Text('Deseja excluir "${atletica.nome}"?'),
         actions: [
           TextButton(
@@ -98,7 +98,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
     final ok = await _api.excluirAtletica(atletica.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'AtlÃ©tica excluÃ­da.' : 'Erro ao excluir.')),
+      SnackBar(content: Text(ok ? 'Atlética excluída.' : 'Erro ao excluir.')),
     );
     if (ok) {
       await _carregar();
@@ -215,7 +215,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'ATLÃ‰TICAS',
+              'ATLÉTICAS',
               style: TextStyle(
                 fontFamily: 'Bebas Neue',
                 fontSize: 22,
@@ -223,7 +223,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
               ),
             ),
             Text(
-              'GestÃ£o administrativa',
+              'Gestão administrativa',
               style: TextStyle(fontSize: 12, color: Colors.white70),
             ),
           ],
@@ -238,7 +238,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
               children: [
                 const Center(
                   child: Text(
-                    'Nenhuma atlÃ©tica cadastrada',
+                    'Nenhuma atlética cadastrada',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
@@ -254,7 +254,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                       child: _atleticasFiltradas.isEmpty
                           ? const Center(
                               child: Text(
-                                'Nenhuma atlÃ©tica neste filtro',
+                                'Nenhuma atlética neste filtro',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -469,7 +469,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         children: [
           Expanded(
             child: Text(
-              'PÃ¡gina ${_paginaAtual + 1} de $_totalPaginas',
+              'Página ${_paginaAtual + 1} de $_totalPaginas',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,

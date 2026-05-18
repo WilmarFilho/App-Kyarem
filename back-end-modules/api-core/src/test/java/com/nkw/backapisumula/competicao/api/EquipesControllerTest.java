@@ -2,6 +2,7 @@ package com.nkw.backapisumula.competicao.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nkw.backapisumula.common.log.ApplicationLogService;
+import com.nkw.backapisumula.competicao.Campeonato;
 import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.nkw.backapisumula.competicao.TimeAtletica;
@@ -9,6 +10,7 @@ import com.nkw.backapisumula.competicao.repo.CampeonatoModalidadeRepository;
 import com.nkw.backapisumula.competicao.repo.CampeonatoTimeRepository;
 import com.nkw.backapisumula.competicao.repo.ModalidadeCatalogoRepository;
 import com.nkw.backapisumula.competicao.repo.TimeAtleticaRepository;
+import com.nkw.backapisumula.competicao.repo.EquipeStaffRepository;
 import com.nkw.backapisumula.identity.repo.ProfileRepository;
 import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import jakarta.persistence.EntityManager;
@@ -55,6 +57,8 @@ class EquipesControllerTest {
         @MockitoBean
         private CampeonatoModalidadeRepository campeonatoModalidadeRepository;
         @MockitoBean
+        private EquipeStaffRepository equipeStaffRepository;
+        @MockitoBean
         private ApplicationLogService applicationLogService;
         @MockitoBean
         private JwtDecoder jwtDecoder;
@@ -77,6 +81,9 @@ class EquipesControllerTest {
                 TimeAtletica t = new TimeAtletica();
                 t.setId(TIME_ATLETICA_ID);
                 t.setNome("Falcões do Norte");
+                com.nkw.backapisumula.cadastros.Atletica a = new com.nkw.backapisumula.cadastros.Atletica();
+                a.setId(ATLETICA_ID);
+                t.setAtletica(a);
                 t.setCriadoEm(OffsetDateTime.now());
                 return t;
         }
@@ -118,7 +125,7 @@ class EquipesControllerTest {
         @Test
         void createTimeAtletica_semAutenticacao_retorna4xx() throws Exception {
                 String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
-                                ATLETICA_ID, MODALIDADE_ID, "Falcões"));
+                                ATLETICA_ID, MODALIDADE_ID, "Falcões", null));
 
                 mockMvc.perform(post("/api/v1/times/atletica")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -142,7 +149,7 @@ class EquipesControllerTest {
                 when(timeAtleticaRepository.save(any())).thenReturn(timeAtletica());
 
                 String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
-                                ATLETICA_ID, MODALIDADE_ID, "Falcões"));
+                                ATLETICA_ID, MODALIDADE_ID, "Falcões", null));
 
                 mockMvc.perform(post("/api/v1/times/atletica")
                                 .with(csrf())
@@ -159,7 +166,7 @@ class EquipesControllerTest {
                 when(timeAtleticaRepository.save(any())).thenReturn(timeAtletica());
 
                 String body = objectMapper.writeValueAsString(new TimesController.CreateTimeAtleticaRequest(
-                                ATLETICA_ID, MODALIDADE_ID, "Falcões do Norte"));
+                                ATLETICA_ID, MODALIDADE_ID, "Falcões do Norte", null));
 
                 mockMvc.perform(post("/api/v1/times/atletica")
                                 .with(csrf())
@@ -203,9 +210,19 @@ class EquipesControllerTest {
                 CampeonatoModalidade cm = new CampeonatoModalidade();
                 cm.setId(MODALIDADE_ID);
 
+                Campeonato campeonato = new Campeonato();
+                campeonato.setId(CAMPEONATO_ID);
+                cm.setCampeonato(campeonato);
+
                 when(campeonatoModalidadeRepository.findById(MODALIDADE_ID)).thenReturn(Optional.of(cm));
                 when(timeAtleticaRepository.findById(TIME_ATLETICA_ID)).thenReturn(Optional.of(timeAtletica()));
                 when(campeonatoTimeRepository.save(any())).thenReturn(campeonatoTime());
+
+                jakarta.persistence.Query queryMock = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+                when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(queryMock);
+                when(queryMock.setParameter(org.mockito.ArgumentMatchers.anyString(), any())).thenReturn(queryMock);
+                when(queryMock.getSingleResult()).thenReturn(UUID.randomUUID());
+
 
                 String body = objectMapper.writeValueAsString(new TimesController.InscricaoTimeRequest(
                                 MODALIDADE_ID, TIME_ATLETICA_ID, "Falcões do Norte"));
@@ -225,6 +242,12 @@ class EquipesControllerTest {
         @WithMockUser(roles = "admin")
         void removerTimeCampeonato_roleAdmin_retorna204() throws Exception {
                 when(campeonatoTimeRepository.findById(CAMPEONATO_TIME_ID)).thenReturn(Optional.of(campeonatoTime()));
+                
+                jakarta.persistence.Query queryMock = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+                when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(queryMock);
+                when(queryMock.setParameter(org.mockito.ArgumentMatchers.anyString(), any())).thenReturn(queryMock);
+                when(queryMock.executeUpdate()).thenReturn(1);
+
                 mockMvc.perform(delete("/api/v1/times/campeonato/{id}", CAMPEONATO_TIME_ID).with(csrf()))
                                 .andExpect(status().isNoContent());
         }

@@ -30,3 +30,9 @@
 # Regras gerais recomendadas para projetos Flutter com R8
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Ignorar classes ausentes do Play Store Core (referenciadas internamente pela Flutter Engine para Split/Deferred Components)
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+

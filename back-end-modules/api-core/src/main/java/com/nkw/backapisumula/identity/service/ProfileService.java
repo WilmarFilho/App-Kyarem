@@ -31,6 +31,10 @@ public class ProfileService {
         return hydrateRoles(repo.findAllByOrderByNomeExibicaoAsc());
     }
 
+    public List<Profile> searchByNameOrEmail(String query) {
+        return hydrateRoles(repo.searchByNameOrEmail(query));
+    }
+
     public List<Profile> listByRole(String role) {
         if ("REFEREE".equalsIgnoreCase(role) || "ARBITRO_COMUM".equalsIgnoreCase(role)) {
             return listArbitros();

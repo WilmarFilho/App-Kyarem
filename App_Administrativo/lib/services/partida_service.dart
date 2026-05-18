@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart'; // ← ADD: flutter pub add uuid
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:kyarem_eventos/models/partida_model.dart';
 import 'package:kyarem_eventos/models/atletica_equipe_model.dart';
@@ -33,7 +34,7 @@ class PartidaService {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: 'https://kyarem.nkwflow.com/api/v1',
+              baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
               connectTimeout: const Duration(seconds: 5),
             ),
           ),

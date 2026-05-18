@@ -1,15 +1,13 @@
+// ignore_for_file: unnecessary_underscores
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
-import 'athletics_tab.dart';
+import '../../../../models/atletica.dart';
 
 class AthleticDetailScreen extends StatelessWidget {
-  const AthleticDetailScreen({
-    super.key,
-    required this.athletic,
-  });
+  const AthleticDetailScreen({super.key, required this.athletic});
 
-  final AthleticMock athletic;
+  final Atletica athletic;
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +35,34 @@ class AthleticDetailScreen extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
-                child: Image.network(
-                  athletic.imageUrl,
-                  width: double.infinity,
-                  height: 170,
-                  fit: BoxFit.cover,
-                ),
+                child:
+                    athletic.escudoUrl != null && athletic.escudoUrl!.isNotEmpty
+                    ? Image.network(
+                        athletic.escudoUrl!,
+                        width: double.infinity,
+                        height: 170,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, _) => Container(
+                          width: double.infinity,
+                          height: 170,
+                          color: AppColors.surface,
+                          child: const Icon(
+                            Icons.shield,
+                            size: 64,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: double.infinity,
+                        height: 170,
+                        color: AppColors.surface,
+                        child: const Icon(
+                          Icons.shield,
+                          size: 64,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
               ),
             ),
             Expanded(
@@ -50,8 +70,8 @@ class AthleticDetailScreen extends StatelessWidget {
                 children: [
                   _DetailList(
                     sections: [
-                      'Campus: ${athletic.campus}',
-                      athletic.description,
+                      'Sigla: ${athletic.sigla ?? "Não informada"}',
+                      'Status: ${athletic.status}',
                       'Histórico recente em campeonatos universitários e presença de torcida.',
                     ],
                   ),

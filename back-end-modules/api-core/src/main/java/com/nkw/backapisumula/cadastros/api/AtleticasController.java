@@ -39,14 +39,12 @@ public class AtleticasController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_admin')")
     @Transactional(readOnly = true)
     public List<AtleticaResponse> list() {
         return service.list().stream().map(AtleticaResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_admin')")
     @Transactional(readOnly = true)
     public AtleticaResponse get(@PathVariable UUID id) {
         return AtleticaResponse.from(service.getOrThrow(id));
@@ -73,9 +71,23 @@ public class AtleticasController {
         return AtleticaResponse.from(service.create(a));
     }
 
+    @GetMapping("/minhas")
+    @Transactional(readOnly = true)
+    public List<MinhaAtleticaResponse> listMinhas(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return membroService.listByUser(userId).stream()
+                .map(MinhaAtleticaResponse::from)
+                .toList();
+    }
+
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_admin')")
-    public AtleticaResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateAtleticaRequest req) {
+    public AtleticaResponse update(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateAtleticaRequest req
+    ) {
+        checkManagerPermission(id, jwt);
+
         Atletica patch = new Atletica();
         patch.setNome(req.nome());
         patch.setSigla(req.sigla());
@@ -93,20 +105,20 @@ public class AtleticasController {
     }
 
     @GetMapping("/{id}/membros")
-    @PreAuthorize("hasAuthority('ROLE_admin')")
     @Transactional(readOnly = true)
-    public List<AtleticaMembroResponse> listMembros(@PathVariable UUID id) {
+    public List<AtleticaMembroResponse> listMembros(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        checkManagerPermission(id, jwt);
         return membroService.list(id).stream().map(AtleticaMembroResponse::from).toList();
     }
 
     @PostMapping("/{id}/membros")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('ROLE_admin')")
     public AtleticaMembroResponse associateMembro(
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody AssociateAtleticaMembroRequest req
     ) {
+        checkManagerPermission(id, jwt);
         AtleticaMembro membro = membroService.associateExistingUser(
                 id,
                 req.userId(),
@@ -116,14 +128,31 @@ public class AtleticasController {
         return AtleticaMembroResponse.from(membro);
     }
 
+    @PostMapping("/{id}/membros/associar-por-email")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AtleticaMembroResponse associateMembroByEmail(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody AssociateMembroByEmailRequest req
+    ) {
+        checkManagerPermission(id, jwt);
+        AtleticaMembro membro = membroService.associateExistingUserByEmail(
+                id,
+                req.email(),
+                req.papelCodigo(),
+                UUID.fromString(jwt.getSubject())
+        );
+        return AtleticaMembroResponse.from(membro);
+    }
+
     @PostMapping("/{id}/membros/criar-user")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('ROLE_admin')")
     public AtleticaMembroResponse createUserAndAssociateMembro(
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateAtleticaMembroUserRequest req
     ) {
+        checkManagerPermission(id, jwt);
         AtleticaMembro membro = membroService.createUserAndAssociate(
                 id,
                 req.nomeExibicao(),
@@ -151,6 +180,20 @@ public class AtleticasController {
         return java.util.Map.of("url", publicUrl);
     }
 
+    private void checkManagerPermission(UUID id, Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        boolean isAdmin = jwt.getClaimAsStringList("roles") != null && jwt.getClaimAsStringList("roles").contains("admin");
+        
+        if (!isAdmin) {
+            boolean isManager = membroService.listByUser(userId).stream()
+                    .anyMatch(m -> m.getAtletica() != null && m.getAtletica().getId().equals(id) && 
+                            ("PRESIDENT".equalsIgnoreCase(m.getPapelCodigo()) || "DIRECTOR".equalsIgnoreCase(m.getPapelCodigo())));
+            if (!isManager) {
+                throw new org.springframework.security.access.AccessDeniedException("Acesso negado: você não tem permissão para gerenciar esta atlética.");
+            }
+        }
+    }
+
     public record CreateAtleticaRequest(
             @NotBlank String nome,
             String sigla,
@@ -169,6 +212,11 @@ public class AtleticasController {
 
     public record AssociateAtleticaMembroRequest(
             @NotNull UUID userId,
+            @NotBlank String papelCodigo
+    ) {}
+
+    public record AssociateMembroByEmailRequest(
+            @NotBlank @Email String email,
             @NotBlank String papelCodigo
     ) {}
 
@@ -191,6 +239,26 @@ public class AtleticasController {
             return new AtleticaResponse(
                     a.getId(), a.getNome(), a.getSigla(),
                     a.getCorPrincipal(), a.getEscudoUrl(), a.getStatus()
+            );
+        }
+    }
+
+    public record MinhaAtleticaResponse(
+            UUID id,
+            UUID atleticaId,
+            String atleticaNome,
+            String atleticaEscudoUrl,
+            String papelCodigo,
+            String status
+    ) {
+        static MinhaAtleticaResponse from(AtleticaMembro m) {
+            return new MinhaAtleticaResponse(
+                    m.getId(),
+                    m.getAtletica() != null ? m.getAtletica().getId() : null,
+                    m.getAtletica() != null ? m.getAtletica().getNome() : null,
+                    m.getAtletica() != null ? m.getAtletica().getEscudoUrl() : null,
+                    m.getPapelCodigo(),
+                    m.getStatus()
             );
         }
     }

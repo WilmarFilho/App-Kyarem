@@ -52,6 +52,10 @@ public class AtleticaMembroService {
                 .toList();
     }
 
+    public List<AtleticaMembro> listByUser(UUID userId) {
+        return membroRepository.findByUser_IdAndStatusOrderByCriadoEmAsc(userId, STATUS_ATIVO);
+    }
+
     @Transactional
     public AtleticaMembro associateExistingUser(
             UUID atleticaId,
@@ -64,13 +68,32 @@ public class AtleticaMembroService {
         Profile profile = profileRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("Usuário não encontrado."));
 
+        return associateProfile(atletica, profile, papelCodigo, actorUserId);
+    }
+
+    @Transactional
+    public AtleticaMembro associateExistingUserByEmail(
+            UUID atleticaId,
+            String email,
+            String papelCodigo,
+            UUID actorUserId
+    ) {
+        Atletica atletica = atleticaRepository.findById(atleticaId)
+                .orElseThrow(() -> new IllegalStateException("Atlética não encontrada."));
+        Profile profile = profileRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Nenhum usuário encontrado com este e-mail."));
+
+        return associateProfile(atletica, profile, papelCodigo, actorUserId);
+    }
+
+    private AtleticaMembro associateProfile(Atletica atletica, Profile profile, String papelCodigo, UUID actorUserId) {
         String normalizedPapel = normalizePapel(papelCodigo);
         validatePapel(normalizedPapel);
-        validatePresidentConstraint(atleticaId, normalizedPapel);
+        validatePresidentConstraint(atletica.getId(), normalizedPapel);
 
         if (membroRepository.existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatus(
-                atleticaId,
-                userId,
+                atletica.getId(),
+                profile.getId(),
                 normalizedPapel,
                 STATUS_ATIVO
         )) {
@@ -152,12 +175,15 @@ public class AtleticaMembroService {
 
     private void validatePapel(String papelCodigo) {
         if (!isSupportedPapel(papelCodigo)) {
-            throw new IllegalStateException("Somente PRESIDENT e DIRECTOR podem ser geridos por este fluxo.");
+            throw new IllegalStateException("Papel inválido ou não suportado por este fluxo.");
         }
     }
 
     private boolean isSupportedPapel(String papelCodigo) {
-        return "PRESIDENT".equalsIgnoreCase(papelCodigo) || "DIRECTOR".equalsIgnoreCase(papelCodigo);
+        return "PRESIDENT".equalsIgnoreCase(papelCodigo) 
+            || "DIRECTOR".equalsIgnoreCase(papelCodigo)
+            || "ATHLETE".equalsIgnoreCase(papelCodigo)
+            || "COACH".equalsIgnoreCase(papelCodigo);
     }
 
     private String normalizePapel(String papelCodigo) {

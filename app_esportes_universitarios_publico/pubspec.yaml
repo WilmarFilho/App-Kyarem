@@ -12,6 +12,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^8.0.2
   supabase_flutter: ^2.12.0
+  http: ^1.6.0
+  flutter_dotenv: ^6.0.1
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +41,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env
     - assets/images/.gitkeep
     - assets/images/icon.png
     - assets/images/splash.png

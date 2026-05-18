@@ -1,64 +1,61 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
+import '../../../../models/campeonato.dart';
+import '../../../../services/campeonato_service.dart';
 import 'championship_detail_screen.dart';
 
-class ChampionshipMock {
-  final String name;
-  final String description;
-  final String location;
-  final String dateLabel;
-  final String imageUrl;
-
-  const ChampionshipMock({
-    required this.name,
-    required this.description,
-    required this.location,
-    required this.dateLabel,
-    required this.imageUrl,
-  });
-}
-
-const _championships = [
-  ChampionshipMock(
-    name: 'Copa Universitária Sudeste',
-    description:
-        'Competições intensas entre atléticas da região, com confrontos decisivos e torcida pesada.',
-    location: 'São Paulo, SP',
-    dateLabel: '12 a 18 de Julho',
-    imageUrl: 'https://picsum.photos/seed/champ-sudeste/900/500',
-  ),
-  ChampionshipMock(
-    name: 'Liga Paulista Universitária',
-    description:
-        'Calendário completo de modalidades coletivas com classificações atualizadas ao longo da semana.',
-    location: 'Campinas, SP',
-    dateLabel: '03 a 09 de Agosto',
-    imageUrl: 'https://picsum.photos/seed/champ-paulista/900/500',
-  ),
-  ChampionshipMock(
-    name: 'Open Universitário Nacional',
-    description:
-        'Encontro nacional com foco em jogos eliminatórios, atletas em destaque e cobertura completa.',
-    location: 'Belo Horizonte, MG',
-    dateLabel: '20 a 26 de Setembro',
-    imageUrl: 'https://picsum.photos/seed/champ-open/900/500',
-  ),
-];
-
-class ChampionshipsTab extends StatelessWidget {
+class ChampionshipsTab extends StatefulWidget {
   const ChampionshipsTab({super.key});
 
-  void _openDetail(BuildContext context, ChampionshipMock championship) {
+  @override
+  State<ChampionshipsTab> createState() => _ChampionshipsTabState();
+}
+
+class _ChampionshipsTabState extends State<ChampionshipsTab> {
+  final _service = CampeonatoService();
+  List<Campeonato> _campeonatos = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final data = await _service.getCampeonatos();
+      setState(() {
+        _campeonatos = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar campeonatos: $e')),
+        );
+      }
+    }
+  }
+
+  void _openDetail(Campeonato campeonato) {
+    // Note: ChampionshipDetailScreen might need to be updated to receive Campeonato instead of ChampionshipMock.
+    // For now, if it still expects a mock or if we haven't updated it, it will fail. Let's assume we update it too.
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ChampionshipDetailScreen(championship: championship),
+        builder: (_) => ChampionshipDetailScreen(championship: campeonato),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       children: [
@@ -78,15 +75,26 @@ class ChampionshipsTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        ..._championships.map(
-          (championship) => Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _ChampionshipCard(
-              championship: championship,
-              onTap: () => _openDetail(context, championship),
+        if (_campeonatos.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: Center(
+              child: Text(
+                'Nenhum campeonato encontrado.',
+                style: TextStyle(color: AppColors.textMuted, fontFamily: 'Poppins'),
+              ),
+            ),
+          )
+        else
+          ..._campeonatos.map(
+            (championship) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _ChampionshipCard(
+                championship: championship,
+                onTap: () => _openDetail(championship),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -98,7 +106,7 @@ class _ChampionshipCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final ChampionshipMock championship;
+  final Campeonato championship;
   final VoidCallback onTap;
 
   @override
@@ -128,12 +136,19 @@ class _ChampionshipCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
-                child: Image.network(
-                  championship.imageUrl,
-                  width: double.infinity,
-                  height: 160,
-                  fit: BoxFit.cover,
-                ),
+                child: championship.escudoUrl != null && championship.escudoUrl!.isNotEmpty
+                    ? Image.network(
+                        championship.escudoUrl!,
+                        width: double.infinity,
+                        height: 160,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        width: double.infinity,
+                        height: 160,
+                        color: AppColors.surface,
+                        child: const Icon(Icons.emoji_events, size: 64, color: AppColors.textMuted),
+                      ),
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -141,7 +156,7 @@ class _ChampionshipCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      championship.name,
+                      championship.nome,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 16,
@@ -151,7 +166,7 @@ class _ChampionshipCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      championship.description,
+                      championship.edicao ?? 'Edição não informada',
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
@@ -168,9 +183,9 @@ class _ChampionshipCard extends StatelessWidget {
                           color: AppColors.secondary,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          championship.location,
-                          style: const TextStyle(
+                        const Text(
+                          'Sede a definir',
+                          style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -179,7 +194,7 @@ class _ChampionshipCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         Text(
-                          championship.dateLabel,
+                          championship.dataInicio ?? 'A definir',
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 11,
