@@ -187,6 +187,20 @@ public class PartidaProjectionService {
 
     private void deleteCampeonato(UUID campeonatoId) {
         if (campeonatoId != null) {
+            jdbcTemplate.update("""
+                    DELETE FROM public.eventos_partida_publicos
+                    WHERE partida_id IN (
+                        SELECT partida_id FROM public.partidas_ao_vivo WHERE campeonato_id = ?
+                        UNION
+                        SELECT partida_id FROM public.partidas_historico WHERE campeonato_id = ?
+                    )
+                    """, campeonatoId, campeonatoId);
+            jdbcTemplate.update("DELETE FROM public.partidas_ao_vivo WHERE campeonato_id = ?", campeonatoId);
+            jdbcTemplate.update("DELETE FROM public.partidas_historico WHERE campeonato_id = ?", campeonatoId);
+            jdbcTemplate.update("DELETE FROM public.campeonato_atletas_publicos WHERE campeonato_id = ?", campeonatoId);
+            jdbcTemplate.update("DELETE FROM public.campeonato_times_publicos WHERE campeonato_id = ?", campeonatoId);
+            jdbcTemplate.update("DELETE FROM public.campeonato_atleticas_publicos WHERE campeonato_id = ?", campeonatoId);
+            jdbcTemplate.update("DELETE FROM public.modalidades_vitrine WHERE campeonato_id = ?", campeonatoId);
             jdbcTemplate.update("DELETE FROM public.campeonatos_vitrine WHERE campeonato_id = ?", campeonatoId);
         }
     }

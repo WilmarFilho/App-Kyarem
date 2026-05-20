@@ -11,6 +11,7 @@ class FakeAdminApiService extends AdminApiService {
   final List<Atletica> atleticas;
   final List<Equipe> equipes;
   final String? atleticaDoPresidenteId;
+  final List<String> campeonatosExcluidos = [];
 
   FakeAdminApiService({
     this.campeonatos = const [],
@@ -25,7 +26,10 @@ class FakeAdminApiService extends AdminApiService {
   Future<List<Campeonato>> listarCampeonatos() async => campeonatos;
 
   @override
-  Future<bool> excluirCampeonato(String id) async => true;
+  Future<bool> excluirCampeonato(String id) async {
+    campeonatosExcluidos.add(id);
+    return true;
+  }
 
   @override
   Future<Campeonato?> criarCampeonato(Map<String, dynamic> data) async =>

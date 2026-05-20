@@ -63,6 +63,7 @@ public class CampeonatoService {
     public void delete(UUID id) {
         Campeonato c = getOrThrow(id);
         repo.delete(c);
+        repo.flush();
         eventPublisherService.publish("Campeonato", id.toString(), "CampeonatoExcluido", java.util.Map.of());
     }
 

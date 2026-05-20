@@ -51,35 +51,78 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
   }
 
   Future<void> _deletarCampeonato(String id, String nome) async {
+    final nomeController = TextEditingController();
     final confirmar = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Excluir Campeonato?',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Tem certeza que deseja excluir "$nome"?\nEssa ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+            title: const Text(
+              'Excluir campeonato?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Você está prestes a excluir "$nome". Essa ação vai remover também modalidades, times, atletas inscritos, partidas e demais dados vinculados.',
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Para confirmar, digite exatamente o nome do campeonato:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  nome,
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nomeController,
+                  autofocus: true,
+                  onChanged: (_) => setDialogState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do campeonato',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: nomeController.text.trim() == nome.trim()
+                    ? () => Navigator.pop(context, true)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  disabledBackgroundColor: Colors.red.shade200,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Excluir',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
+    nomeController.dispose();
 
     if (confirmar == true) {
       final sucesso = await _apiService.excluirCampeonato(id);
@@ -468,10 +511,11 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
                     const SizedBox(height: 8),
                     IconButton(
                       icon: Icon(
-                        Icons.delete_rounded,
-                        color: Colors.red.shade400,
-                        size: 22,
-                      ),
+                          Icons.delete_rounded,
+                          color: Colors.red.shade400,
+                          size: 22,
+                        ),
+                      tooltip: 'Excluir ${c.nome}',
                       onPressed: () => _deletarCampeonato(c.id, c.nome),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
