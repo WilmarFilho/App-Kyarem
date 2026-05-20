@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
-import 'package:kyarem_eventos/models/modalidade_campeonato_model.dart';
 import 'package:kyarem_eventos/services/admin_api_service.dart';
 
 import 'modalidade_detalhe_screen.dart';
@@ -517,7 +516,10 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                 _filtroModo == _FiltroModo.genero
                     ? 'Filtrar por gênero'
                     : 'Filtrar por campeonato',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               const Spacer(),
               Text(

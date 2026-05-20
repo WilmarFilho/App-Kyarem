@@ -23,8 +23,6 @@ public class AtleticaMembroService {
 
     private static final String STATUS_CONVOCADO = "CONVOCADO";
     private static final String STATUS_ATIVO = "ATIVO";
-    private static final String STATUS_RECUSADO = "RECUSADO";
-
     private final AtleticaMembroRepository membroRepository;
     private final AtleticaRepository atleticaRepository;
     private final ProfileRepository profileRepository;
@@ -38,8 +36,7 @@ public class AtleticaMembroService {
             ProfileRepository profileRepository,
             SupabaseAdminUserService adminUserService,
             UsuarioRoleGlobalRepository usuarioRoleGlobalRepository,
-            EventPublisherService eventPublisherService
-    ) {
+            EventPublisherService eventPublisherService) {
         this.membroRepository = membroRepository;
         this.atleticaRepository = atleticaRepository;
         this.profileRepository = profileRepository;
@@ -63,8 +60,7 @@ public class AtleticaMembroService {
             UUID atleticaId,
             UUID userId,
             String papelCodigo,
-            UUID actorUserId
-    ) {
+            UUID actorUserId) {
         Atletica atletica = atleticaRepository.findById(atleticaId)
                 .orElseThrow(() -> new IllegalStateException("Atlética não encontrada."));
         Profile profile = profileRepository.findById(userId)
@@ -78,8 +74,7 @@ public class AtleticaMembroService {
             UUID atleticaId,
             String email,
             String papelCodigo,
-            UUID actorUserId
-    ) {
+            UUID actorUserId) {
         Atletica atletica = atleticaRepository.findById(atleticaId)
                 .orElseThrow(() -> new IllegalStateException("Atlética não encontrada."));
         Profile profile = profileRepository.findByEmail(email)
@@ -97,13 +92,12 @@ public class AtleticaMembroService {
                 atletica.getId(),
                 profile.getId(),
                 normalizedPapel,
-                STATUS_ATIVO
-        ) || membroRepository.existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatusIn(
-                atletica.getId(),
-                profile.getId(),
-                normalizedPapel,
-                List.of(STATUS_CONVOCADO, STATUS_ATIVO)
-        )) {
+                STATUS_ATIVO)
+                || membroRepository.existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatusIn(
+                        atletica.getId(),
+                        profile.getId(),
+                        normalizedPapel,
+                        List.of(STATUS_CONVOCADO, STATUS_ATIVO))) {
             throw new IllegalStateException("Esse usuário já está vinculado a esta atlética com esse papel.");
         }
 
@@ -117,8 +111,7 @@ public class AtleticaMembroService {
             String email,
             String senha,
             String papelCodigo,
-            UUID actorUserId
-    ) {
+            UUID actorUserId) {
         UUID userId = adminUserService.createAuthUser(email, senha, nomeExibicao, "USER");
 
         Profile profile = null;
@@ -204,10 +197,10 @@ public class AtleticaMembroService {
     }
 
     private boolean isSupportedPapel(String papelCodigo) {
-        return "PRESIDENT".equalsIgnoreCase(papelCodigo) 
-            || "DIRECTOR".equalsIgnoreCase(papelCodigo)
-            || "ATHLETE".equalsIgnoreCase(papelCodigo)
-            || "COACH".equalsIgnoreCase(papelCodigo);
+        return "PRESIDENT".equalsIgnoreCase(papelCodigo)
+                || "DIRECTOR".equalsIgnoreCase(papelCodigo)
+                || "ATHLETE".equalsIgnoreCase(papelCodigo)
+                || "COACH".equalsIgnoreCase(papelCodigo);
     }
 
     private String normalizePapel(String papelCodigo) {
@@ -219,8 +212,7 @@ public class AtleticaMembroService {
                 && membroRepository.existsByAtletica_IdAndPapelCodigoAndStatusIn(
                         atleticaId,
                         "PRESIDENT",
-                        List.of(STATUS_CONVOCADO, STATUS_ATIVO)
-                )) {
+                        List.of(STATUS_CONVOCADO, STATUS_ATIVO))) {
             throw new IllegalStateException("Essa atlética já possui um presidente ativo ou convocado.");
         }
     }
@@ -228,8 +220,7 @@ public class AtleticaMembroService {
     private void publishProfileProjection(Profile profile, String eventType) {
         eventPublisherService.publish("Profile", profile.getId().toString(), eventType, java.util.Map.of(
                 "profileId", profile.getId().toString(),
-                "status", profile.getStatus() == null ? "" : profile.getStatus()
-        ));
+                "status", profile.getStatus() == null ? "" : profile.getStatus()));
     }
 
     private void publishAtleticaMembroProjection(AtleticaMembro membro, String eventType) {
@@ -238,7 +229,6 @@ public class AtleticaMembroService {
                 "atleticaId", membro.getAtletica() != null ? membro.getAtletica().getId().toString() : "",
                 "userId", membro.getUser() != null ? membro.getUser().getId().toString() : "",
                 "papelCodigo", membro.getPapelCodigo() == null ? "" : membro.getPapelCodigo(),
-                "status", membro.getStatus() == null ? "" : membro.getStatus()
-        ));
+                "status", membro.getStatus() == null ? "" : membro.getStatus()));
     }
 }
