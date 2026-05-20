@@ -11,7 +11,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -164,6 +166,17 @@ public class AtleticasController {
         return AtleticaMembroResponse.from(membro);
     }
 
+    @DeleteMapping("/{id}/membros/{membroId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeMembro(
+            @PathVariable UUID id,
+            @PathVariable UUID membroId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        checkManagerPermission(id, jwt);
+        membroService.remove(id, membroId);
+    }
+
     @PostMapping("/upload-escudo")
     @PreAuthorize("hasAuthority('ROLE_admin')")
     public java.util.Map<String, String> uploadEscudo(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
@@ -182,7 +195,10 @@ public class AtleticasController {
 
     private void checkManagerPermission(UUID id, Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
-        boolean isAdmin = jwt.getClaimAsStringList("roles") != null && jwt.getClaimAsStringList("roles").contains("admin");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null
+                && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_admin".equals(authority.getAuthority()));
         
         if (!isAdmin) {
             boolean isManager = membroService.listByUser(userId).stream()

@@ -21,7 +21,9 @@ import java.util.UUID;
 @Service
 public class AtleticaMembroService {
 
+    private static final String STATUS_CONVOCADO = "CONVOCADO";
     private static final String STATUS_ATIVO = "ATIVO";
+    private static final String STATUS_RECUSADO = "RECUSADO";
 
     private final AtleticaMembroRepository membroRepository;
     private final AtleticaRepository atleticaRepository;
@@ -96,6 +98,11 @@ public class AtleticaMembroService {
                 profile.getId(),
                 normalizedPapel,
                 STATUS_ATIVO
+        ) || membroRepository.existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatusIn(
+                atletica.getId(),
+                profile.getId(),
+                normalizedPapel,
+                List.of(STATUS_CONVOCADO, STATUS_ATIVO)
         )) {
             throw new IllegalStateException("Esse usuário já está vinculado a esta atlética com esse papel.");
         }
@@ -150,12 +157,29 @@ public class AtleticaMembroService {
         return associateExistingUser(atleticaId, userId, papelCodigo, actorUserId);
     }
 
+    @Transactional
+    public void remove(UUID atleticaId, UUID membroId) {
+        AtleticaMembro membro = membroRepository.findById(membroId)
+                .orElseThrow(() -> new IllegalStateException("Vínculo não encontrado."));
+
+        if (membro.getAtletica() == null || !atleticaId.equals(membro.getAtletica().getId())) {
+            throw new IllegalStateException("O vínculo informado não pertence a esta atlética.");
+        }
+
+        if (!isSupportedPapel(membro.getPapelCodigo())) {
+            throw new IllegalStateException("Este tipo de vínculo não pode ser gerenciado por este fluxo.");
+        }
+
+        publishAtleticaMembroProjection(membro, "AtleticaMembroRemovido");
+        membroRepository.delete(membro);
+    }
+
     private AtleticaMembro saveMember(Atletica atletica, Profile profile, String papelCodigo, UUID actorUserId) {
         AtleticaMembro membro = new AtleticaMembro();
         membro.setAtletica(atletica);
         membro.setUser(profile);
         membro.setPapelCodigo(papelCodigo);
-        membro.setStatus(STATUS_ATIVO);
+        membro.setStatus(STATUS_CONVOCADO);
         membro.setCriadoPor(actorUserId);
         membro.setCriadoEm(OffsetDateTime.now());
         AtleticaMembro saved = membroRepository.save(membro);
@@ -192,8 +216,12 @@ public class AtleticaMembroService {
 
     private void validatePresidentConstraint(UUID atleticaId, String papelCodigo) {
         if ("PRESIDENT".equalsIgnoreCase(papelCodigo)
-                && membroRepository.existsByAtletica_IdAndPapelCodigoAndStatus(atleticaId, "PRESIDENT", STATUS_ATIVO)) {
-            throw new IllegalStateException("Essa atlética já possui um presidente ativo.");
+                && membroRepository.existsByAtletica_IdAndPapelCodigoAndStatusIn(
+                        atleticaId,
+                        "PRESIDENT",
+                        List.of(STATUS_CONVOCADO, STATUS_ATIVO)
+                )) {
+            throw new IllegalStateException("Essa atlética já possui um presidente ativo ou convocado.");
         }
     }
 

@@ -23,4 +23,17 @@ public interface AtleticaMembroRepository extends JpaRepository<AtleticaMembro, 
     );
 
     boolean existsByAtletica_IdAndPapelCodigoAndStatus(UUID atleticaId, String papelCodigo, String status);
+
+    boolean existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatusIn(
+            UUID atleticaId,
+            UUID userId,
+            String papelCodigo,
+            java.util.Collection<String> statuses
+    );
+
+    boolean existsByAtletica_IdAndPapelCodigoAndStatusIn(
+            UUID atleticaId,
+            String papelCodigo,
+            java.util.Collection<String> statuses
+    );
 }

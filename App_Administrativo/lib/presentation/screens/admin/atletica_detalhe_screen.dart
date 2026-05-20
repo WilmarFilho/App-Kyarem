@@ -15,6 +15,7 @@ class AtleticaDetalheScreen extends StatefulWidget {
 class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
   final AdminApiService _api = AdminApiService();
   bool _isLoading = true;
+  String? _removingMemberId;
   List<AtleticaMembro> _membros = [];
 
   List<AtleticaMembro> get _presidentes => _membros
@@ -22,6 +23,9 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
       .toList();
   List<AtleticaMembro> get _dirigentes =>
       _membros.where((m) => m.papelCodigo.toUpperCase() == 'DIRECTOR').toList();
+  bool get _temPresidenteEmAberto => _presidentes.any(
+    (m) => m.statusNormalizado == 'CONVOCADO' || m.statusNormalizado == 'ATIVO',
+  );
 
   @override
   void initState() {
@@ -169,6 +173,14 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
       if (!mounted) return;
       if (membro != null) {
         await _carregar();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${membro.papelLabel} criado e convocado com sucesso.',
+            ),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Não foi possível criar o usuário.')),
@@ -178,6 +190,62 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
       nomeCtrl.dispose();
       emailCtrl.dispose();
       senhaCtrl.dispose();
+    }
+  }
+
+  Future<void> _desvincularMembro(AtleticaMembro member) async {
+    final roleLabel = member.papelCodigo.toUpperCase() == 'PRESIDENT'
+        ? 'presidente'
+        : 'dirigente';
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Desvincular membro?'),
+        content: Text(
+          'Deseja desvincular ${member.nomeExibicao} da função de $roleLabel desta atlética?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+            ),
+            child: const Text(
+              'Desvincular',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || !mounted) return;
+
+    setState(() => _removingMemberId = member.id);
+    final ok = await _api.removerMembroAtletica(
+      atleticaId: widget.atletica.id,
+      membroId: member.id,
+    );
+    if (!mounted) return;
+
+    setState(() => _removingMemberId = null);
+    if (ok) {
+      await _carregar();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${member.papelLabel} desvinculado com sucesso.'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível desvincular o membro.')),
+      );
     }
   }
 
@@ -222,6 +290,11 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
                   members: _presidentes,
                   actionLabel: 'Adicionar presidente',
                   onAdd: () => _abrirFluxoAdicionar('PRESIDENT'),
+                  canAdd: !_temPresidenteEmAberto,
+                  emptyMessage: 'Nenhum presidente vinculado no momento.',
+                  helperMessage: _temPresidenteEmAberto
+                      ? 'A atlética já possui um presidente ativo ou convocado.'
+                      : null,
                 ),
                 const SizedBox(height: 18),
                 _buildSection(
@@ -229,6 +302,8 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
                   members: _dirigentes,
                   actionLabel: 'Adicionar dirigente',
                   onAdd: () => _abrirFluxoAdicionar('DIRECTOR'),
+                  canAdd: true,
+                  emptyMessage: 'Nenhum dirigente vinculado ainda.',
                 ),
               ],
             ),
@@ -243,6 +318,7 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 28,
@@ -298,6 +374,9 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
     required List<AtleticaMembro> members,
     required String actionLabel,
     required VoidCallback onAdd,
+    required bool canAdd,
+    required String emptyMessage,
+    String? helperMessage,
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -318,17 +397,36 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
                 ),
               ),
               const Spacer(),
-              TextButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(actionLabel),
-              ),
+              if (canAdd)
+                TextButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(actionLabel),
+                ),
             ],
           ),
           const SizedBox(height: 12),
+          if (helperMessage != null) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF85C39).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                helperMessage,
+                style: const TextStyle(
+                  color: Color(0xFFF85C39),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           if (members.isEmpty)
             Text(
-              'Nenhum vínculo cadastrado ainda.',
+              emptyMessage,
               style: TextStyle(color: Colors.grey.shade600),
             )
           else
@@ -339,6 +437,10 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
   }
 
   Widget _buildMemberTile(AtleticaMembro member) {
+    final canRemove = member.papelCodigo.toUpperCase() == 'PRESIDENT' ||
+        member.papelCodigo.toUpperCase() == 'DIRECTOR';
+    final isRemoving = _removingMemberId == member.id;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -371,27 +473,90 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
                     member.email!,
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF85C39).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        member.papelLabel,
+                        style: const TextStyle(
+                          color: Color(0xFFF85C39),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _statusColor(member).withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        member.statusLabel,
+                        style: TextStyle(
+                          color: _statusColor(member),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF85C39).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              member.papelLabel,
-              style: const TextStyle(
-                color: Color(0xFFF85C39),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          if (canRemove) ...[
+            const SizedBox(width: 8),
+            isRemoving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFF85C39),
+                    ),
+                  )
+                : IconButton(
+                    onPressed: () => _desvincularMembro(member),
+                    tooltip: 'Desvincular ${member.nomeExibicao}',
+                    icon: Icon(
+                      Icons.person_remove_rounded,
+                      color: Colors.red.shade400,
+                    ),
+                  ),
+          ],
         ],
       ),
     );
+  }
+
+  Color _statusColor(AtleticaMembro member) {
+    switch (member.statusNormalizado) {
+      case 'CONVOCADO':
+        return Colors.orange.shade700;
+      case 'ATIVO':
+        return Colors.green.shade700;
+      case 'RECUSADO':
+        return Colors.red.shade700;
+      case 'INATIVO':
+        return Colors.grey.shade700;
+      default:
+        return Colors.blueGrey.shade700;
+    }
   }
 }
 
@@ -480,7 +645,7 @@ class _AssociarMembroExistenteViewState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${_papelLabel[0].toUpperCase()}${_papelLabel.substring(1)} associado com sucesso!',
+            '${_papelLabel[0].toUpperCase()}${_papelLabel.substring(1)} convocado com sucesso!',
           ),
         ),
       );

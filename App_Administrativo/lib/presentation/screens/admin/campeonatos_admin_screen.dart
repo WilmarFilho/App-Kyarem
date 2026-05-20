@@ -234,12 +234,6 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _carregarCampeonatos,
-          ),
-        ],
       ),
       body: _isLoading
           ? const Center(
@@ -313,13 +307,13 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.5),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _animController,
-          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _animController,
+                curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: FloatingActionButton.extended(
           onPressed: () => _abrirFormulario(),
           backgroundColor: const Color(0xFFF85C39),
@@ -447,10 +441,10 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
                     const SizedBox(height: 8),
                     IconButton(
                       icon: Icon(
-                          Icons.delete_rounded,
-                          color: Colors.red.shade400,
-                          size: 22,
-                        ),
+                        Icons.delete_rounded,
+                        color: Colors.red.shade400,
+                        size: 22,
+                      ),
                       tooltip: 'Excluir ${c.nome}',
                       onPressed: () => _deletarCampeonato(c.id, c.nome),
                       padding: EdgeInsets.zero,
@@ -471,7 +465,11 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.emoji_events_outlined, size: 72, color: Colors.black26),
+          const Icon(
+            Icons.emoji_events_outlined,
+            size: 72,
+            color: Colors.black26,
+          ),
           const SizedBox(height: 16),
           Text(
             title ?? 'Nenhum campeonato',
@@ -540,6 +538,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
                 return ChoiceChip(
                   selected: isSelected,
                   label: Text('${item.label} (${item.count})'),
+                  checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : item.color,
                     fontWeight: FontWeight.w700,
@@ -657,7 +656,8 @@ class _DeleteCampeonatoDialog extends StatefulWidget {
   const _DeleteCampeonatoDialog({required this.nome});
 
   @override
-  State<_DeleteCampeonatoDialog> createState() => _DeleteCampeonatoDialogState();
+  State<_DeleteCampeonatoDialog> createState() =>
+      _DeleteCampeonatoDialogState();
 }
 
 class _DeleteCampeonatoDialogState extends State<_DeleteCampeonatoDialog> {
@@ -733,13 +733,9 @@ class _DeleteCampeonatoDialogState extends State<_DeleteCampeonatoDialog> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text(
-            'Excluir',
-            style: TextStyle(color: Colors.white),
-          ),
+          child: const Text('Excluir', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
   }
 }
-

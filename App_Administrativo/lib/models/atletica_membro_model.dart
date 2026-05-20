@@ -32,6 +32,23 @@ class AtleticaMembro {
     }
   }
 
+  String get statusNormalizado => status.trim().toUpperCase();
+
+  String get statusLabel {
+    switch (statusNormalizado) {
+      case 'CONVOCADO':
+        return 'Convocado';
+      case 'ATIVO':
+        return 'Ativo';
+      case 'RECUSADO':
+        return 'Recusado';
+      case 'INATIVO':
+        return 'Inativo';
+      default:
+        return status;
+    }
+  }
+
   factory AtleticaMembro.fromMap(Map<String, dynamic> map) {
     return AtleticaMembro(
       id: map['id']?.toString() ?? '',

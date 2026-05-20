@@ -235,12 +235,6 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _carregar,
-          ),
-        ],
       ),
       body: SafeArea(
         bottom: false,
@@ -269,7 +263,10 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                       decoration: InputDecoration(
                         hintText: 'Buscar árbitro...',
                         hintStyle: TextStyle(color: Colors.grey.shade400),
-                        prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Colors.grey.shade400,
+                        ),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
                                 icon: Icon(
@@ -282,7 +279,9 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -300,11 +299,17 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                       ? _buildEmpty()
                       : Column(
                           children: [
+                            const SizedBox(height: 12),
                             _buildStatusFilterBar(),
                             const SizedBox(height: 12),
                             Expanded(
                               child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  100,
+                                ),
                                 physics: const BouncingScrollPhysics(),
                                 itemCount: _filtradosPaginados.length,
                                 itemBuilder: (context, index) {
@@ -324,7 +329,9 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                                         begin: const Offset(0, 0.15),
                                         end: Offset.zero,
                                       ).animate(anim),
-                                      child: _buildCard(_filtradosPaginados[index]),
+                                      child: _buildCard(
+                                        _filtradosPaginados[index],
+                                      ),
                                     ),
                                   );
                                 },
@@ -733,6 +740,7 @@ class _ArbitrosScreenState extends State<ArbitrosAdminScreen>
                 return ChoiceChip(
                   selected: isSelected,
                   label: Text('${item.label} (${item.count})'),
+                  checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : item.color,
                     fontWeight: FontWeight.w700,
@@ -949,8 +957,7 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
                           trailing: ElevatedButton(
                             onPressed: () async {
                               final navigator = Navigator.of(context);
-                              final messenger =
-                                  ScaffoldMessenger.of(context);
+                              final messenger = ScaffoldMessenger.of(context);
                               final ok = await widget.api.associarArbitro(
                                 u['id'],
                               );
@@ -966,9 +973,7 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
                               } else {
                                 messenger.showSnackBar(
                                   const SnackBar(
-                                    content: Text(
-                                      'Erro ao vincular usuário.',
-                                    ),
+                                    content: Text('Erro ao vincular usuário.'),
                                   ),
                                 );
                               }
@@ -991,4 +996,3 @@ class _VincularExistenteViewState extends State<_VincularExistenteView> {
     );
   }
 }
-

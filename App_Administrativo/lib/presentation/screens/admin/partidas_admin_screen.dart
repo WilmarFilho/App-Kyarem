@@ -179,10 +179,10 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case '1Â° tempo':
-      case '1Âº tempo':
-      case '2Â° tempo':
-      case '2Âº tempo':
+      case '1° tempo':
+      case '1º tempo':
+      case '2° tempo':
+      case '2º tempo':
       case 'intervalo':
       case 'prorrogação':
       case 'acréscimo':
@@ -202,12 +202,12 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
 
   String _statusLabel(String status) {
     switch (status.toLowerCase()) {
-      case '1Â° tempo':
-      case '1Âº tempo':
-        return '1Â° Tempo';
-      case '2Â° tempo':
-      case '2Âº tempo':
-        return '2Â° Tempo';
+      case '1° tempo':
+      case '1º tempo':
+        return '1° Tempo';
+      case '2° tempo':
+      case '2º tempo':
+        return '2° Tempo';
       case 'intervalo':
         return 'Intervalo';
       case 'prorrogação':
@@ -290,10 +290,10 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
   String _statusKey(String status) {
     final normalized = status.trim().toLowerCase();
     switch (normalized) {
-      case '1Âº tempo':
-        return '1Â° tempo';
-      case '2Âº tempo':
-        return '2Â° tempo';
+      case '1º tempo':
+        return '1° tempo';
+      case '2º tempo':
+        return '2° tempo';
       default:
         return normalized;
     }
@@ -392,12 +392,6 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _carregarPartidas,
-          ),
-        ],
       ),
       // FAB só aparece dentro do body após carregar
       body: _isLoading
@@ -409,11 +403,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
               children: [
                 _buildEmptyState(),
                 if (widget.canEdit)
-                  Positioned(
-                    right: 16,
-                    bottom: 88,
-                    child: _buildFab(),
-                  ),
+                  Positioned(right: 16, bottom: 88, child: _buildFab()),
               ],
             )
           : Stack(
@@ -429,7 +419,12 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                                   'Tente outro filtro para ver mais resultados.',
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                100,
+                              ),
                               itemCount: _partidasPaginadas.length,
                               itemBuilder: (context, index) {
                                 final delay = index * 0.08;
@@ -460,11 +455,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                   ],
                 ),
                 if (widget.canEdit)
-                  Positioned(
-                    right: 16,
-                    bottom: 88,
-                    child: _buildFab(),
-                  ),
+                  Positioned(right: 16, bottom: 88, child: _buildFab()),
               ],
             ),
     );
@@ -477,23 +468,20 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
         curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.5),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _animController,
-          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _animController,
+                curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: FloatingActionButton.extended(
           onPressed: () => _abrirFormulario(),
           backgroundColor: const Color(0xFFF85C39),
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
             'Nova Partida',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -549,6 +537,7 @@ class _PartidasAdminScreenState extends State<PartidasAdminScreen>
                 return ChoiceChip(
                   selected: isSelected,
                   label: Text('${item.label} (${item.count})'),
+                  checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : item.color,
                     fontWeight: FontWeight.w700,
@@ -982,4 +971,3 @@ class _StatusOption {
     required this.color,
   });
 }
-

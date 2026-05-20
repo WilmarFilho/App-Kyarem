@@ -309,13 +309,13 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
         curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.5),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _animController,
-          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _animController,
+                curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: FloatingActionButton.extended(
           onPressed: () => _abrirFormulario(),
           backgroundColor: const Color(0xFFF85C39),
@@ -428,6 +428,7 @@ class _AtleticasAdminScreenState extends State<AtleticasAdminScreen>
                 return ChoiceChip(
                   selected: isSelected,
                   label: Text('${item.label} (${item.count})'),
+                  checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : item.color,
                     fontWeight: FontWeight.w700,
@@ -538,4 +539,3 @@ class _StatusOption {
     required this.color,
   });
 }
-

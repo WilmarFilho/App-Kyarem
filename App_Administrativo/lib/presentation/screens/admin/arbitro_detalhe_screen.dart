@@ -193,12 +193,6 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
             fontSize: 18,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _carregar,
-          ),
-        ],
       ),
       floatingActionButton: widget.canEdit
           ? FloatingActionButton.extended(
@@ -218,9 +212,7 @@ class _ArbitroDetalheScreenState extends State<ArbitroDetalheScreen>
           ? const Stack(
               children: [
                 GradientBackground(),
-                Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                ),
+                Center(child: CircularProgressIndicator(color: Colors.white)),
               ],
             )
           : Column(

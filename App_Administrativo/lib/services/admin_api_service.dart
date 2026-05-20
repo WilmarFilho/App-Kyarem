@@ -229,6 +229,19 @@ class AdminApiService {
     }
   }
 
+  Future<bool> removerMembroAtletica({
+    required String atleticaId,
+    required String membroId,
+  }) async {
+    try {
+      await _dio.delete('/atleticas/$atleticaId/membros/$membroId');
+      return true;
+    } catch (e) {
+      debugPrint("Erro removerMembroAtletica: $e");
+      return false;
+    }
+  }
+
   // ============== EQUIPES ==============
   Future<List<Equipe>> listarEquipes({
     String? campeonatoId,

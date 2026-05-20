@@ -919,7 +919,9 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF4F0),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF85C39).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFFF85C39).withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -945,9 +947,7 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
               _buildRuleChip(
                 permiteProrrogacao ? 'Com prorrogação' : 'Sem prorrogação',
               ),
-              _buildRuleChip(
-                permitePenaltis ? 'Com pênaltis' : 'Sem pênaltis',
-              ),
+              _buildRuleChip(permitePenaltis ? 'Com pênaltis' : 'Sem pênaltis'),
             ],
           ),
         ],

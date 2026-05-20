@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kyarem_eventos/models/campeonato_model.dart';
 import 'package:kyarem_eventos/models/modalidade_catalogo_model.dart';
+import 'package:kyarem_eventos/models/modalidade_campeonato_model.dart';
 import 'package:kyarem_eventos/services/admin_api_service.dart';
 
 import 'modalidade_detalhe_screen.dart';
@@ -19,9 +21,13 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
   static const int _itensPorPagina = 8;
   late final AdminApiService _api = widget.apiService ?? AdminApiService();
   List<ModalidadeCatalogo> _modalidades = [];
+  List<Campeonato> _campeonatosEmAndamento = [];
+  Map<String, Set<String>> _campeonatosPorModalidade = {};
   bool _isLoading = true;
   late AnimationController _animController;
+  _FiltroModo _filtroModo = _FiltroModo.genero;
   String _generoSelecionado = 'TODAS';
+  String _campeonatoSelecionado = 'TODOS';
   int _paginaAtual = 0;
 
   @override
@@ -43,9 +49,39 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
   Future<void> _carregar() async {
     setState(() => _isLoading = true);
     final lista = await _api.listarModalidadesCatalogo();
+    final campeonatos = await _api.listarCampeonatos();
+    final associacoes = await Future.wait(
+      lista.map(
+        (modalidade) => _api.listarAssociacoesModalidadeCatalogo(modalidade.id),
+      ),
+    );
     if (!mounted) return;
+    final campeonatosPorModalidade = <String, Set<String>>{};
+    for (var i = 0; i < lista.length; i++) {
+      final modalidade = lista[i];
+      final itens = associacoes[i];
+      campeonatosPorModalidade[modalidade.id] = itens
+          .map((item) => item.campeonatoId)
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    }
+    final campeonatosEmAndamento =
+        campeonatos
+            .where(
+              (campeonato) => _statusCampeonato(campeonato) == 'em_andamento',
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()),
+          );
     setState(() {
       _modalidades = lista.cast<ModalidadeCatalogo>();
+      _campeonatosPorModalidade = campeonatosPorModalidade;
+      _campeonatosEmAndamento = campeonatosEmAndamento;
+      if (_campeonatoSelecionado != 'TODOS' &&
+          !_campeonatosEmAndamento.any((c) => c.id == _campeonatoSelecionado)) {
+        _campeonatoSelecionado = 'TODOS';
+      }
       _isLoading = false;
       _paginaAtual = 0;
     });
@@ -62,6 +98,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         builder: (_) => ModalidadeFormScreen(modalidade: modalidade),
       ),
     );
+    if (!mounted) return;
     if (result != null) {
       await _carregar();
       if (isNew && mounted) {
@@ -85,9 +122,8 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         builder: (_) => ModalidadeDetalheScreen(modalidade: modalidade),
       ),
     );
-    if (mounted) {
-      await _carregar();
-    }
+    if (!mounted) return;
+    await _carregar();
   }
 
   Future<void> _deletar(ModalidadeCatalogo modalidade) async {
@@ -149,10 +185,14 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
       final label = genero == 'indefinido'
           ? 'Indefinido'
           : genero
-              .replaceAll('_', ' ')
-              .split(' ')
-              .map((w) => w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1).toLowerCase())
-              .join(' ');
+                .replaceAll('_', ' ')
+                .split(' ')
+                .map(
+                  (w) => w.isEmpty
+                      ? ''
+                      : w[0].toUpperCase() + w.substring(1).toLowerCase(),
+                )
+                .join(' ');
       options.add(
         _StatusOption(
           value: genero,
@@ -166,12 +206,50 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     return options;
   }
 
+  List<_StatusOption> get _campeonatoOptions {
+    final options = <_StatusOption>[
+      _StatusOption(
+        value: 'TODOS',
+        label: 'Todos',
+        count: _modalidades.length,
+        color: const Color(0xFFF85C39),
+      ),
+    ];
+
+    for (final campeonato in _campeonatosEmAndamento) {
+      final count = _modalidades.where((modalidade) {
+        final ids =
+            _campeonatosPorModalidade[modalidade.id] ?? const <String>{};
+        return ids.contains(campeonato.id);
+      }).length;
+
+      options.add(
+        _StatusOption(
+          value: campeonato.id,
+          label: campeonato.nome,
+          count: count,
+          color: const Color(0xFFF85C39),
+        ),
+      );
+    }
+
+    return options;
+  }
+
   List<ModalidadeCatalogo> get _modalidadesFiltradas {
-    if (_generoSelecionado == 'TODAS') return _modalidades;
-    return _modalidades.where((m) {
-      final g = m.genero.trim();
-      final val = g.isEmpty ? 'indefinido' : g.toLowerCase();
-      return val == _generoSelecionado;
+    if (_filtroModo == _FiltroModo.genero) {
+      if (_generoSelecionado == 'TODAS') return _modalidades;
+      return _modalidades.where((m) {
+        final g = m.genero.trim();
+        final val = g.isEmpty ? 'indefinido' : g.toLowerCase();
+        return val == _generoSelecionado;
+      }).toList();
+    }
+
+    if (_campeonatoSelecionado == 'TODOS') return _modalidades;
+    return _modalidades.where((modalidade) {
+      final ids = _campeonatosPorModalidade[modalidade.id] ?? const <String>{};
+      return ids.contains(_campeonatoSelecionado);
     }).toList();
   }
 
@@ -197,6 +275,27 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     setState(() {
       _generoSelecionado = genero;
       _paginaAtual = 0;
+    });
+  }
+
+  void _selecionarCampeonato(String campeonatoId) {
+    if (_campeonatoSelecionado == campeonatoId) return;
+    setState(() {
+      _campeonatoSelecionado = campeonatoId;
+      _paginaAtual = 0;
+    });
+  }
+
+  void _alterarFiltroModo(_FiltroModo modo) {
+    if (_filtroModo == modo) return;
+    setState(() {
+      _filtroModo = modo;
+      _paginaAtual = 0;
+      if (modo == _FiltroModo.campeonato &&
+          _campeonatoSelecionado == 'TODOS' &&
+          _campeonatoOptions.length > 1) {
+        _campeonatoSelecionado = _campeonatoOptions[1].value;
+      }
     });
   }
 
@@ -256,11 +355,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
-                Positioned(
-                  right: 16,
-                  bottom: 88,
-                  child: _buildFab(),
-                ),
+                Positioned(right: 16, bottom: 88, child: _buildFab()),
               ],
             )
           : Stack(
@@ -270,17 +365,26 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                     _buildStatusFilterBar(),
                     Expanded(
                       child: _modalidadesFiltradas.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
-                                'Nenhuma modalidade neste filtro',
-                                style: TextStyle(
+                                _filtroModo == _FiltroModo.campeonato &&
+                                        _campeonatosEmAndamento.isEmpty
+                                    ? 'Nenhum campeonato em andamento para filtrar'
+                                    : 'Nenhuma modalidade neste filtro',
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                100,
+                              ),
                               itemCount: _modalidadesPaginadas.length,
                               itemBuilder: (context, index) {
                                 final animation = CurvedAnimation(
@@ -298,7 +402,9 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                                       begin: const Offset(0, 0.15),
                                       end: Offset.zero,
                                     ).animate(animation),
-                                    child: _buildCard(_modalidadesPaginadas[index]),
+                                    child: _buildCard(
+                                      _modalidadesPaginadas[index],
+                                    ),
                                   ),
                                 );
                               },
@@ -307,11 +413,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                     if (_modalidadesFiltradas.isNotEmpty) _buildPaginationBar(),
                   ],
                 ),
-                Positioned(
-                  right: 16,
-                  bottom: 88,
-                  child: _buildFab(),
-                ),
+                Positioned(right: 16, bottom: 88, child: _buildFab()),
               ],
             ),
     );
@@ -324,13 +426,13 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.5),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _animController,
-          curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _animController,
+                curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: FloatingActionButton.extended(
           onPressed: () => _abrirFormulario(),
           backgroundColor: const Color(0xFFF85C39),
@@ -383,6 +485,10 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
   }
 
   Widget _buildStatusFilterBar() {
+    final filtros = _filtroModo == _FiltroModo.genero
+        ? _statusOptions
+        : _campeonatoOptions;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -407,8 +513,10 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                 color: Color(0xFFF85C39),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Filtrar por gênero',
+              Text(
+                _filtroModo == _FiltroModo.genero
+                    ? 'Filtrar por gênero'
+                    : 'Filtrar por campeonato',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const Spacer(),
@@ -419,18 +527,48 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
             ],
           ),
           const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF85C39).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildFiltroModoButton(
+                    label: 'Filtro por Gênero',
+                    isSelected: _filtroModo == _FiltroModo.genero,
+                    onTap: () => _alterarFiltroModo(_FiltroModo.genero),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildFiltroModoButton(
+                    label: 'Filtro por Campeonato',
+                    isSelected: _filtroModo == _FiltroModo.campeonato,
+                    onTap: () => _alterarFiltroModo(_FiltroModo.campeonato),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             height: 42,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _statusOptions.length,
+              itemCount: filtros.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final item = _statusOptions[index];
-                final isSelected = item.value == _generoSelecionado;
+                final item = filtros[index];
+                final isSelected = _filtroModo == _FiltroModo.genero
+                    ? item.value == _generoSelecionado
+                    : item.value == _campeonatoSelecionado;
                 return ChoiceChip(
                   selected: isSelected,
                   label: Text('${item.label} (${item.count})'),
+                  checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : item.color,
                     fontWeight: FontWeight.w700,
@@ -445,7 +583,9 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  onSelected: (_) => _selecionarGenero(item.value),
+                  onSelected: (_) => _filtroModo == _FiltroModo.genero
+                      ? _selecionarGenero(item.value)
+                      : _selecionarCampeonato(item.value),
                 );
               },
             ),
@@ -453,6 +593,38 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildFiltroModoButton({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isSelected ? const Color(0xFFF85C39) : Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFFF85C39),
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _statusCampeonato(Campeonato campeonato) {
+    final status = campeonato.status?.trim() ?? '';
+    return status.isEmpty ? 'indefinido' : status.toLowerCase();
   }
 
   Widget _buildPaginationBar() {
@@ -542,3 +714,4 @@ class _StatusOption {
   });
 }
 
+enum _FiltroModo { genero, campeonato }

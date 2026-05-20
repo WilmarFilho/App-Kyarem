@@ -104,18 +104,10 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
     },
   };
   final Map<String, List<_MotorOption>> _motorOptionsBySport = const {
-    'futsal': [
-      _MotorOption('FUTSAL_V1', 'Futsal'),
-    ],
-    'volei': [
-      _MotorOption('VOLEI_V1', 'Volei'),
-    ],
-    'basquete': [
-      _MotorOption('BASQUETE_V1', 'Basquete'),
-    ],
-    'handebol': [
-      _MotorOption('HANDEBOL_V1', 'Handebol'),
-    ],
+    'futsal': [_MotorOption('FUTSAL_V1', 'Futsal')],
+    'volei': [_MotorOption('VOLEI_V1', 'Volei')],
+    'basquete': [_MotorOption('BASQUETE_V1', 'Basquete')],
+    'handebol': [_MotorOption('HANDEBOL_V1', 'Handebol')],
     'futebol': [
       _MotorOption('SOCIETY_V1', 'Society'),
       _MotorOption('FUTEBOL_CAMPO_V1', 'Futebol de campo'),
@@ -144,7 +136,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
   @override
   void initState() {
     super.initState();
-    _nomeController = TextEditingController(text: widget.modalidade?.nome ?? '');
+    _nomeController = TextEditingController(
+      text: widget.modalidade?.nome ?? '',
+    );
     _descricaoController = TextEditingController(
       text: widget.modalidade?.genero ?? '',
     );
@@ -167,8 +161,8 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
   Future<void> _carregar() async {
     final esportes = await _api.listarEsportes();
     if (!mounted) return;
-    final esporteInicial = _selectedEsporteId ??
-        (esportes.isNotEmpty ? esportes.first.id : null);
+    final esporteInicial =
+        _selectedEsporteId ?? (esportes.isNotEmpty ? esportes.first.id : null);
     setState(() {
       _esportes = esportes;
       _selectedEsporteId = esporteInicial;
@@ -199,7 +193,10 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
 
     final result = widget.modalidade == null
         ? await _api.criarModalidadeCatalogo(payload)
-        : await _api.atualizarModalidadeCatalogo(widget.modalidade!.id, payload);
+        : await _api.atualizarModalidadeCatalogo(
+            widget.modalidade!.id,
+            payload,
+          );
 
     if (!mounted) return;
     setState(() => _isSaving = false);
@@ -208,9 +205,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Erro ao salvar modalidade.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Erro ao salvar modalidade.')));
   }
 
   @override
@@ -275,34 +272,57 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                               _mostrarModalSelecao(
                                 context: context,
                                 titulo: 'Selecione o Esporte',
-                                opcoes: _esportes.map((e) => _OpcaoSelect(valor: e.id, rotulo: e.nome)).toList(),
+                                opcoes: _esportes
+                                    .map(
+                                      (e) => _OpcaoSelect(
+                                        valor: e.id,
+                                        rotulo: e.nome,
+                                      ),
+                                    )
+                                    .toList(),
                                 selecionado: _selectedEsporteId,
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedEsporteId = value;
-                                    _selectedMotorRegras = _resolverMotorInicial(
-                                      esporteId: value,
-                                      currentMotor: _selectedMotorRegras,
-                                    );
+                                    _selectedMotorRegras =
+                                        _resolverMotorInicial(
+                                          esporteId: value,
+                                          currentMotor: _selectedMotorRegras,
+                                        );
                                   });
                                 },
                               );
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey.shade300),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    _esportes.cast<Esporte?>().firstWhere((e) => e?.id == _selectedEsporteId, orElse: () => null)?.nome ?? 'Selecione',
+                                    _esportes
+                                            .cast<Esporte?>()
+                                            .firstWhere(
+                                              (e) =>
+                                                  e?.id == _selectedEsporteId,
+                                              orElse: () => null,
+                                            )
+                                            ?.nome ??
+                                        'Selecione',
                                     style: const TextStyle(fontSize: 16),
                                   ),
-                                  const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Colors.black54,
+                                  ),
                                 ],
                               ),
                             ),
@@ -316,8 +336,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                           'Nome da modalidade',
                           helper: 'Ex.: Futsal, Society, Volei de Areia.',
                         ),
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? 'Obrigatorio' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Obrigatorio'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -327,8 +348,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                           helper:
                               'Texto livre para explicar a modalidade no catalogo.',
                         ),
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? 'Obrigatorio' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Obrigatorio'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       _buildSectionTitle('Configuracao da sumula'),
@@ -349,26 +371,51 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                               _mostrarModalSelecao(
                                 context: context,
                                 titulo: 'Selecione o Modelo',
-                                opcoes: _motorOptionsForSelectedSport.map((m) => _OpcaoSelect(valor: m.value, rotulo: m.label)).toList(),
+                                opcoes: _motorOptionsForSelectedSport
+                                    .map(
+                                      (m) => _OpcaoSelect(
+                                        valor: m.value,
+                                        rotulo: m.label,
+                                      ),
+                                    )
+                                    .toList(),
                                 selecionado: _selectedMotorRegras,
-                                onChanged: (value) => setState(() => _selectedMotorRegras = value),
+                                onChanged: (value) => setState(
+                                  () => _selectedMotorRegras = value,
+                                ),
                               );
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey.shade300),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    _motorOptionsForSelectedSport.cast<_MotorOption?>().firstWhere((m) => m?.value == _selectedMotorRegras, orElse: () => null)?.label ?? 'Selecione',
+                                    _motorOptionsForSelectedSport
+                                            .cast<_MotorOption?>()
+                                            .firstWhere(
+                                              (m) =>
+                                                  m?.value ==
+                                                  _selectedMotorRegras,
+                                              orElse: () => null,
+                                            )
+                                            ?.label ??
+                                        'Selecione',
                                     style: const TextStyle(fontSize: 16),
                                   ),
-                                  const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Colors.black54,
+                                  ),
                                 ],
                               ),
                             ),
@@ -382,8 +429,8 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                           onPressed: _selectedMotorRegras == null
                               ? null
                               : () => _mostrarPreviewRegras(
-                                    _selectedMotorRegras!,
-                                  ),
+                                  _selectedMotorRegras!,
+                                ),
                           icon: const Icon(Icons.visibility_outlined),
                           label: const Text('Ver regras que serao preenchidas'),
                         ),
@@ -409,9 +456,13 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                             ),
                           ),
                           child: _isSaving
-                              ? const CircularProgressIndicator(color: Colors.white)
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
                               : Text(
-                                  isEditing ? 'Salvar alterações' : 'Criar modalidade',
+                                  isEditing
+                                      ? 'Salvar alterações'
+                                      : 'Criar modalidade',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -451,7 +502,8 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
     required String? currentMotor,
   }) {
     final options = _optionsByEsporteId(esporteId);
-    if (currentMotor != null && options.any((item) => item.value == currentMotor)) {
+    if (currentMotor != null &&
+        options.any((item) => item.value == currentMotor)) {
       return currentMotor;
     }
     return options.first.value;
@@ -545,9 +597,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
             const SizedBox(height: 16),
             Text(
               'Regras base do modelo',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -559,7 +611,9 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
             ),
             const SizedBox(height: 16),
             if (regras.isEmpty)
-              const Text('Esse modelo nao possui regras padrao mapeadas na tela.')
+              const Text(
+                'Esse modelo nao possui regras padrao mapeadas na tela.',
+              )
             else
               Container(
                 width: double.infinity,
@@ -636,7 +690,10 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
               padding: const EdgeInsets.all(20),
               child: Text(
                 titulo,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Flexible(
@@ -653,12 +710,17 @@ class _ModalidadeFormScreenState extends State<ModalidadeFormScreen> {
                         color: const Color(0xFFF85C39).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check_circle_outline, color: Color(0xFFF85C39)),
+                      child: const Icon(
+                        Icons.check_circle_outline,
+                        color: Color(0xFFF85C39),
+                      ),
                     ),
                     title: Text(
                       opcao.rotulo,
                       style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     trailing: isSelected
