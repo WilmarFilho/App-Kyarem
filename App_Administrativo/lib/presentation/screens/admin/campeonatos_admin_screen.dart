@@ -39,8 +39,10 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
   }
 
   Future<void> _carregarCampeonatos() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     final lista = await _apiService.listarCampeonatos();
+    if (!mounted) return;
     setState(() {
       _campeonatos = lista;
       _isLoading = false;
@@ -51,96 +53,29 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
   }
 
   Future<void> _deletarCampeonato(String id, String nome) async {
-    final nomeController = TextEditingController();
     final confirmar = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text(
-              'Excluir campeonato?',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Você está prestes a excluir "$nome". Essa ação vai remover também modalidades, times, atletas inscritos, partidas e demais dados vinculados.',
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Para confirmar, digite exatamente o nome do campeonato:',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  nome,
-                  style: TextStyle(
-                    color: Colors.red.shade700,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nomeController,
-                  autofocus: true,
-                  onChanged: (_) => setDialogState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do campeonato',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: nomeController.text.trim() == nome.trim()
-                    ? () => Navigator.pop(context, true)
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade600,
-                  disabledBackgroundColor: Colors.red.shade200,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Excluir',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (context) => _DeleteCampeonatoDialog(nome: nome),
     );
-    nomeController.dispose();
 
     if (confirmar == true) {
       final sucesso = await _apiService.excluirCampeonato(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              sucesso ? 'Campeonato excluído!' : 'Erro ao excluir.',
-            ),
-            backgroundColor: sucesso ? Colors.green : Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            sucesso
+                ? 'Campeonato excluído!'
+                : 'Erro ao excluir. O servidor retornou falha ao processar a exclusão.',
           ),
-        );
-        if (sucesso) _carregarCampeonatos();
-      }
+          backgroundColor: sucesso ? Colors.green : Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      if (sucesso) _carregarCampeonatos();
     }
   }
 
@@ -151,6 +86,7 @@ class _CampeonatosAdminScreenState extends State<CampeonatosAdminScreen>
         builder: (_) => CampeonatoFormScreen(campeonato: campeonato),
       ),
     );
+    if (!mounted) return;
     if (result is Campeonato) {
       setState(() {
         final index = _campeonatos.indexWhere((item) => item.id == result.id);
@@ -713,5 +649,97 @@ class _StatusOption {
     required this.count,
     required this.color,
   });
+}
+
+class _DeleteCampeonatoDialog extends StatefulWidget {
+  final String nome;
+
+  const _DeleteCampeonatoDialog({required this.nome});
+
+  @override
+  State<_DeleteCampeonatoDialog> createState() => _DeleteCampeonatoDialogState();
+}
+
+class _DeleteCampeonatoDialogState extends State<_DeleteCampeonatoDialog> {
+  late final TextEditingController _nomeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nomeConfere = _nomeController.text.trim() == widget.nome.trim();
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        'Excluir campeonato?',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Você está prestes a excluir "${widget.nome}". Essa ação vai remover também modalidades, times, atletas inscritos, partidas e demais dados vinculados.',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Para confirmar, digite exatamente o nome do campeonato:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.nome,
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nomeController,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'Nome do campeonato',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: nomeConfere ? () => Navigator.pop(context, true) : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red.shade600,
+            disabledBackgroundColor: Colors.red.shade200,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text(
+            'Excluir',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
