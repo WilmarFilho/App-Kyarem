@@ -82,6 +82,15 @@ public class AtleticasController {
                 .toList();
     }
 
+    @GetMapping("/convites/minhas")
+    @Transactional(readOnly = true)
+    public List<MinhaAtleticaResponse> listMeusConvites(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return membroService.listConvitesByUser(userId).stream()
+                .map(MinhaAtleticaResponse::from)
+                .toList();
+    }
+
     @PutMapping("/{id}")
     public AtleticaResponse update(
             @PathVariable UUID id,
@@ -160,6 +169,7 @@ public class AtleticasController {
                 req.nomeExibicao(),
                 req.email(),
                 req.senha(),
+                req.cpf(),
                 req.papelCodigo(),
                 UUID.fromString(jwt.getSubject())
         );
@@ -175,6 +185,30 @@ public class AtleticasController {
     ) {
         checkManagerPermission(id, jwt);
         membroService.remove(id, membroId);
+    }
+
+    @PostMapping("/membros/{membroId}/aceitar")
+    public AtleticaMembroResponse aceitarConvite(
+            @PathVariable UUID membroId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        AtleticaMembro membro = membroService.acceptInvite(
+                membroId,
+                UUID.fromString(jwt.getSubject())
+        );
+        return AtleticaMembroResponse.from(membro);
+    }
+
+    @PostMapping("/membros/{membroId}/recusar")
+    public AtleticaMembroResponse recusarConvite(
+            @PathVariable UUID membroId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        AtleticaMembro membro = membroService.rejectInvite(
+                membroId,
+                UUID.fromString(jwt.getSubject())
+        );
+        return AtleticaMembroResponse.from(membro);
     }
 
     @PostMapping("/upload-escudo")
@@ -240,6 +274,7 @@ public class AtleticasController {
             @NotBlank String nomeExibicao,
             @NotBlank @Email String email,
             @NotBlank @Size(min = 6) String senha,
+            String cpf,
             @NotBlank String papelCodigo
     ) {}
 
@@ -265,7 +300,8 @@ public class AtleticasController {
             String atleticaNome,
             String atleticaEscudoUrl,
             String papelCodigo,
-            String status
+            String status,
+            OffsetDateTime criadoEm
     ) {
         static MinhaAtleticaResponse from(AtleticaMembro m) {
             return new MinhaAtleticaResponse(
@@ -274,7 +310,8 @@ public class AtleticasController {
                     m.getAtletica() != null ? m.getAtletica().getNome() : null,
                     m.getAtletica() != null ? m.getAtletica().getEscudoUrl() : null,
                     m.getPapelCodigo(),
-                    m.getStatus()
+                    m.getStatus(),
+                    m.getCriadoEm()
             );
         }
     }

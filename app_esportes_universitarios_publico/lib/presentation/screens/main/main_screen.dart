@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../services/auth_service.dart';
+import '../../../services/atletica_service.dart';
 import '../../widgets/layout/app_bottom_navigation.dart';
 import 'athletics_tab.dart';
 import 'championships_tab.dart';
@@ -19,14 +20,17 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   late final AuthService _authService = widget.authService ?? AuthService();
+  final AtleticaService _atleticaService = AtleticaService();
   late final PageController _pageController;
   int _currentIndex = 0;
   bool _isNavigatingFromTab = false;
+  bool _hasPendingInvite = false;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    _loadInvites();
   }
 
   @override
@@ -60,7 +64,21 @@ class _MainScreenState extends State<MainScreen> {
       MaterialPageRoute(
         builder: (_) => ProfileTab(authService: _authService),
       ),
-    );
+    ).then((_) => _loadInvites());
+  }
+
+  Future<void> _loadInvites() async {
+    try {
+      final invites = await _atleticaService.getMeusConvites();
+      final hasPendingInvite = invites.any(
+        (invite) => invite.status.trim().toUpperCase() == 'CONVOCADO',
+      );
+      if (!mounted) return;
+      setState(() => _hasPendingInvite = hasPendingInvite);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _hasPendingInvite = false);
+    }
   }
 
   @override
@@ -74,10 +92,22 @@ class _MainScreenState extends State<MainScreen> {
               onPageChanged: _onPageChanged,
               physics: const BouncingScrollPhysics(),
               children: [
-                HomeTab(onProfileTap: _goToProfileTab),
-                const ChampionshipsTab(),
-                const AthleticsTab(),
-                const FeedTab(),
+                FeedTab(
+                  onProfileTap: _goToProfileTab,
+                  hasPendingInvite: _hasPendingInvite,
+                ),
+                HomeTab(
+                  onProfileTap: _goToProfileTab,
+                  hasPendingInvite: _hasPendingInvite,
+                ),
+                ChampionshipsTab(
+                  onProfileTap: _goToProfileTab,
+                  hasPendingInvite: _hasPendingInvite,
+                ),
+                AthleticsTab(
+                  onProfileTap: _goToProfileTab,
+                  hasPendingInvite: _hasPendingInvite,
+                ),
               ],
             ),
           ],

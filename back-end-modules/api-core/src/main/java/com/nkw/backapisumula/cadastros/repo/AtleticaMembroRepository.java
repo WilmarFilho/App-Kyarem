@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface AtleticaMembroRepository extends JpaRepository<AtleticaMembro, UUID> {
@@ -14,6 +15,12 @@ public interface AtleticaMembroRepository extends JpaRepository<AtleticaMembro, 
 
     @EntityGraph(attributePaths = {"atletica"})
     List<AtleticaMembro> findByUser_IdAndStatusOrderByCriadoEmAsc(UUID userId, String status);
+
+    @EntityGraph(attributePaths = {"atletica"})
+    List<AtleticaMembro> findByUser_IdOrderByCriadoEmDesc(UUID userId);
+
+    @EntityGraph(attributePaths = {"atletica", "user"})
+    Optional<AtleticaMembro> findDetailedById(UUID id);
 
     boolean existsByAtletica_IdAndUser_IdAndPapelCodigoAndStatus(
             UUID atleticaId,

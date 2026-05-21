@@ -7,7 +7,6 @@ import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/auth/reset_password_screen.dart';
 import 'presentation/screens/main/main_screen.dart';
-import 'services/auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -47,42 +46,20 @@ class KyaremPublicSportsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+
     return MaterialApp(
       title: 'Kyarem Esportes',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       theme: buildAppTheme(),
+      initialRoute: session != null ? '/home' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/reset-password': (context) => const ResetPasswordScreen(),
         '/home': (context) => const MainScreen(),
-      },
-      home: const AuthGate(),
-    );
-  }
-}
-
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authService = AuthService();
-
-    return StreamBuilder<AuthState>(
-      stream: authService.authChanges,
-      initialData: AuthState(
-        AuthChangeEvent.initialSession,
-        authService.currentSession,
-      ),
-      builder: (context, snapshot) {
-        final session = snapshot.data?.session ?? authService.currentSession;
-        if (session != null) {
-          return const MainScreen();
-        }
-        return const LoginScreen();
       },
     );
   }

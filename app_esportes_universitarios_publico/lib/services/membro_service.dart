@@ -16,7 +16,10 @@ class MembroService {
     }
   }
 
-  Future<AtleticaMembro> criarUsuarioEAssociar(String atleticaId, Map<String, dynamic> data) async {
+  Future<AtleticaMembro> criarUsuarioEAssociar(
+    String atleticaId,
+    Map<String, dynamic> data,
+  ) async {
     final response = await _apiClient.post(
       '/atleticas/$atleticaId/membros/criar-user',
       data,
@@ -29,7 +32,10 @@ class MembroService {
     }
   }
 
-  Future<AtleticaMembro> associarUsuarioExistente(String atleticaId, Map<String, dynamic> data) async {
+  Future<AtleticaMembro> associarUsuarioExistente(
+    String atleticaId,
+    Map<String, dynamic> data,
+  ) async {
     final response = await _apiClient.post(
       '/atleticas/$atleticaId/membros/associar-por-email',
       data,

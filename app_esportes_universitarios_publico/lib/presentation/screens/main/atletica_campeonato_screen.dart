@@ -29,8 +29,7 @@ class AtleticaCampeonatoScreen extends StatefulWidget {
       _AtleticaCampeonatoScreenState();
 }
 
-class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen>
-    with SingleTickerProviderStateMixin {
+class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen> {
   final _campeonatoService = CampeonatoService();
   final _timeService = TimeService();
 
@@ -45,19 +44,13 @@ class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen>
   // Times já inscritos neste campeonato (de qualquer atlética)
   List<CampeonatoTime> _timesInscritos = [];
 
-  late TabController _tabController;
+  _CampeonatoView _selectedView = _CampeonatoView.meusTimes;
+  String _selectedModalidadeFilter = 'ALL';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadData();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -106,6 +99,46 @@ class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen>
     } catch (_) {
       return null;
     }
+  }
+
+  List<_CampeonatoFilterOption> get _modalidadeFilters {
+    final seen = <String>{};
+    final options = <_CampeonatoFilterOption>[
+      const _CampeonatoFilterOption(value: 'ALL', label: 'Todas'),
+    ];
+
+    for (final modalidade in _modalidadesCampeonato) {
+      if (!seen.add(modalidade.id)) continue;
+      options.add(
+        _CampeonatoFilterOption(
+          value: modalidade.id,
+          label: modalidade.modalidadeNome,
+        ),
+      );
+    }
+    return options;
+  }
+
+  List<TimeAtletica> get _timesPermanentesFiltrados {
+    if (_selectedModalidadeFilter == 'ALL') return _timesPermanentes;
+    return _timesPermanentes.where((time) {
+      final modalidade = _modalidadeDoCampeonatoParaTime(time);
+      return modalidade?.id == _selectedModalidadeFilter;
+    }).toList();
+  }
+
+  List<CampeonatoTime> get _timesInscritosFiltrados {
+    if (_selectedModalidadeFilter == 'ALL') return _timesInscritos;
+    return _timesInscritos.where((time) {
+      if ((time.campeonatoModalidadeId ?? '').isNotEmpty) {
+        return time.campeonatoModalidadeId == _selectedModalidadeFilter;
+      }
+      final modalidade = _modalidadesCampeonato.where(
+        (m) => m.id == _selectedModalidadeFilter,
+      );
+      return modalidade.isNotEmpty &&
+          time.modalidadeNome == modalidade.first.modalidadeNome;
+    }).toList();
   }
 
   Future<void> _inscreverTime(TimeAtletica time) async {
@@ -176,93 +209,176 @@ class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen>
 
   @override
   Widget build(BuildContext context) {
+    final hasTimes = _timesPermanentesFiltrados.isNotEmpty;
+    final hasInscritos = _timesInscritosFiltrados.isNotEmpty;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.white,
+        shadowColor: Colors.transparent,
         centerTitle: true,
-        title: Column(
-          children: [
-            Text(
-              widget.campeonato.nome,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            Text(
-              widget.minhaAtletica.atleticaNome ?? 'Atlética',
-              style: const TextStyle(
-                color: AppColors.textMuted,
-                fontFamily: 'Poppins',
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-        iconTheme: const IconThemeData(color: AppColors.primary),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.secondary,
-          unselectedLabelColor: AppColors.textMuted,
-          indicatorColor: AppColors.secondary,
-          labelStyle: const TextStyle(
+        title: Text(
+          widget.campeonato.nome,
+          style: const TextStyle(
+            color: AppColors.primary,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            fontSize: 16,
           ),
-          tabs: const [
-            Tab(text: 'Meus Times'),
-            Tab(text: 'Inscritos'),
-          ],
         ),
+        iconTheme: const IconThemeData(color: AppColors.primary),
       ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.secondary),
             )
-          : TabBarView(
-              controller: _tabController,
-              children: [_buildTimesTab(), _buildInscritosTab()],
+          : Column(
+              children: [
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+                  child: Column(
+                    children: [
+                      _buildContentToggle(),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _buildFilterTags(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _selectedView == _CampeonatoView.meusTimes
+                      ? hasTimes
+                          ? _buildTimesTab()
+                          : _buildEmptyState(
+                              _timesPermanentes.isEmpty
+                                  ? 'Você não tem times cadastrados.\nCrie times em "Equipes Permanentes".'
+                                  : 'Nenhum time encontrado para esse filtro.',
+                              Icons.group_off,
+                            )
+                      : hasInscritos
+                      ? _buildInscritosTab()
+                      : _buildEmptyState(
+                          _timesInscritos.isEmpty
+                              ? 'Nenhum time inscrito neste campeonato.'
+                              : 'Nenhum inscrito encontrado para esse filtro.',
+                          Icons.emoji_events_outlined,
+                        ),
+                ),
+              ],
             ),
+    );
+  }
+
+  Widget _buildContentToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _CampeonatoTopSegmentButton(
+              label: 'Meus Times',
+              icon: Icons.shield_rounded,
+              selected: _selectedView == _CampeonatoView.meusTimes,
+              onTap: () {
+                setState(() => _selectedView = _CampeonatoView.meusTimes);
+              },
+            ),
+          ),
+          Expanded(
+            child: _CampeonatoTopSegmentButton(
+              label: 'Inscritos',
+              icon: Icons.emoji_events_rounded,
+              selected: _selectedView == _CampeonatoView.inscritos,
+              onTap: () {
+                setState(() => _selectedView = _CampeonatoView.inscritos);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTags() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _modalidadeFilters.map((option) {
+          final selected = option.value == _selectedModalidadeFilter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              selected: selected,
+              label: Text(option.label),
+              onSelected: (_) {
+                setState(() => _selectedModalidadeFilter = option.value);
+              },
+              selectedColor: AppColors.secondary.withValues(alpha: 0.14),
+              checkmarkColor: AppColors.secondary,
+              side: BorderSide(
+                color: selected
+                    ? AppColors.secondary
+                    : const Color(0xFFD7E0EA),
+              ),
+              labelStyle: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.secondary : AppColors.textMuted,
+              ),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: AppColors.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontFamily: 'Poppins',
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   // ─── Aba 1: times permanentes da atlética ───────────────────────────────────
   Widget _buildTimesTab() {
-    if (_timesPermanentes.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.group_off, size: 64, color: AppColors.textMuted),
-              const SizedBox(height: 16),
-              const Text(
-                'Você não tem times cadastrados.\nCrie times em "Equipes Permanentes".',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _timesPermanentes.length,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      itemCount: _timesPermanentesFiltrados.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
-        final time = _timesPermanentes[i];
+        final time = _timesPermanentesFiltrados[i];
         final jaInscrito = _timesInscritos.any(
           (ct) => ct.timeAtleticaId == time.id,
         );
@@ -306,21 +422,12 @@ class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen>
 
   // ─── Aba 2: times já inscritos ───────────────────────────────────────────────
   Widget _buildInscritosTab() {
-    if (_timesInscritos.isEmpty) {
-      return const Center(
-        child: Text(
-          'Nenhum time inscrito neste campeonato.',
-          style: TextStyle(color: AppColors.textMuted, fontFamily: 'Poppins'),
-        ),
-      );
-    }
-
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _timesInscritos.length,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      itemCount: _timesInscritosFiltrados.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
-        final ct = _timesInscritos[i];
+        final ct = _timesInscritosFiltrados[i];
         return _InscritoCard(
           campeonatoTime: ct,
           onVerAtletas: () => _showAtletasSheet(ct),
@@ -341,6 +448,68 @@ class _AtleticaCampeonatoScreenState extends State<AtleticaCampeonatoScreen>
         minhaAtletica: widget.minhaAtletica,
         timeService: _timeService,
         membroService: MembroService(),
+      ),
+    );
+  }
+}
+
+enum _CampeonatoView { meusTimes, inscritos }
+
+class _CampeonatoFilterOption {
+  final String value;
+  final String label;
+
+  const _CampeonatoFilterOption({
+    required this.value,
+    required this.label,
+  });
+}
+
+class _CampeonatoTopSegmentButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CampeonatoTopSegmentButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? AppColors.secondary : AppColors.textMuted,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: selected ? AppColors.secondary : AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

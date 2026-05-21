@@ -23,6 +23,7 @@ public class AtleticaMembroService {
 
     private static final String STATUS_CONVOCADO = "CONVOCADO";
     private static final String STATUS_ATIVO = "ATIVO";
+    private static final String STATUS_RECUSADO = "RECUSADO";
     private final AtleticaMembroRepository membroRepository;
     private final AtleticaRepository atleticaRepository;
     private final ProfileRepository profileRepository;
@@ -53,6 +54,12 @@ public class AtleticaMembroService {
 
     public List<AtleticaMembro> listByUser(UUID userId) {
         return membroRepository.findByUser_IdAndStatusOrderByCriadoEmAsc(userId, STATUS_ATIVO);
+    }
+
+    public List<AtleticaMembro> listConvitesByUser(UUID userId) {
+        return membroRepository.findByUser_IdOrderByCriadoEmDesc(userId).stream()
+                .filter(membro -> isManagerPapel(membro.getPapelCodigo()))
+                .toList();
     }
 
     @Transactional
@@ -110,9 +117,15 @@ public class AtleticaMembroService {
             String nomeExibicao,
             String email,
             String senha,
+            String cpf,
             String papelCodigo,
             UUID actorUserId) {
-        UUID userId = adminUserService.createAuthUser(email, senha, nomeExibicao, "USER");
+        UUID userId = adminUserService.createAuthUser(
+                email,
+                senha,
+                nomeExibicao,
+                cpf,
+                "USER");
 
         Profile profile = null;
         for (int i = 0; i < 3; i++) {
@@ -131,6 +144,7 @@ public class AtleticaMembroService {
             profile.setId(userId);
             profile.setNomeExibicao(nomeExibicao);
             profile.setEmail(email);
+            profile.setCpf(normalizeCpf(cpf));
             profile.setStatus("ATIVO");
             profile.setCriadoEm(OffsetDateTime.now());
             profile.setAtualizadoEm(OffsetDateTime.now());
@@ -139,6 +153,7 @@ public class AtleticaMembroService {
         } else {
             profile.setNomeExibicao(nomeExibicao);
             profile.setEmail(email);
+            profile.setCpf(normalizeCpf(cpf));
             profile.setStatus("ATIVO");
             profile.setAtualizadoEm(OffsetDateTime.now());
             profileRepository.save(profile);
@@ -165,6 +180,40 @@ public class AtleticaMembroService {
 
         publishAtleticaMembroProjection(membro, "AtleticaMembroRemovido");
         membroRepository.delete(membro);
+    }
+
+    @Transactional
+    public AtleticaMembro acceptInvite(UUID membroId, UUID userId) {
+        AtleticaMembro membro = membroRepository.findDetailedById(membroId)
+                .orElseThrow(() -> new IllegalStateException("Convocação não encontrada."));
+
+        validateInviteOwnership(membro, userId);
+
+        if (!STATUS_CONVOCADO.equalsIgnoreCase(membro.getStatus())) {
+            throw new IllegalStateException("Somente convocações pendentes podem ser aceitas.");
+        }
+
+        membro.setStatus(STATUS_ATIVO);
+        AtleticaMembro saved = membroRepository.save(membro);
+        publishAtleticaMembroProjection(saved, "AtleticaMembroAtualizado");
+        return membroRepository.findDetailedById(saved.getId()).orElse(saved);
+    }
+
+    @Transactional
+    public AtleticaMembro rejectInvite(UUID membroId, UUID userId) {
+        AtleticaMembro membro = membroRepository.findDetailedById(membroId)
+                .orElseThrow(() -> new IllegalStateException("Convocação não encontrada."));
+
+        validateInviteOwnership(membro, userId);
+
+        if (!STATUS_CONVOCADO.equalsIgnoreCase(membro.getStatus())) {
+            throw new IllegalStateException("Somente convocações pendentes podem ser recusadas.");
+        }
+
+        membro.setStatus(STATUS_RECUSADO);
+        AtleticaMembro saved = membroRepository.save(membro);
+        publishAtleticaMembroProjection(saved, "AtleticaMembroAtualizado");
+        return membroRepository.findDetailedById(saved.getId()).orElse(saved);
     }
 
     private AtleticaMembro saveMember(Atletica atletica, Profile profile, String papelCodigo, UUID actorUserId) {
@@ -203,8 +252,23 @@ public class AtleticaMembroService {
                 || "COACH".equalsIgnoreCase(papelCodigo);
     }
 
+    private boolean isManagerPapel(String papelCodigo) {
+        return "PRESIDENT".equalsIgnoreCase(papelCodigo)
+                || "DIRECTOR".equalsIgnoreCase(papelCodigo);
+    }
+
     private String normalizePapel(String papelCodigo) {
         return papelCodigo == null ? "" : papelCodigo.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private void validateInviteOwnership(AtleticaMembro membro, UUID userId) {
+        if (membro.getUser() == null || !userId.equals(membro.getUser().getId())) {
+            throw new IllegalStateException("Essa convocação não pertence ao usuário autenticado.");
+        }
+
+        if (!isManagerPapel(membro.getPapelCodigo())) {
+            throw new IllegalStateException("Este vínculo não pode ser respondido por este fluxo.");
+        }
     }
 
     private void validatePresidentConstraint(UUID atleticaId, String papelCodigo) {
@@ -230,5 +294,13 @@ public class AtleticaMembroService {
                 "userId", membro.getUser() != null ? membro.getUser().getId().toString() : "",
                 "papelCodigo", membro.getPapelCodigo() == null ? "" : membro.getPapelCodigo(),
                 "status", membro.getStatus() == null ? "" : membro.getStatus()));
+    }
+
+    private String normalizeCpf(String cpf) {
+        if (cpf == null) {
+            return null;
+        }
+        String normalized = cpf.replaceAll("\\D", "");
+        return normalized.isBlank() ? null : normalized;
     }
 }

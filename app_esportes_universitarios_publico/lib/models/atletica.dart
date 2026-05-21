@@ -38,6 +38,7 @@ class MinhaAtletica {
   final String? atleticaEscudoUrl;
   final String papelCodigo;
   final String status;
+  final String? criadoEm;
 
   MinhaAtletica({
     required this.id,
@@ -46,6 +47,7 @@ class MinhaAtletica {
     this.atleticaEscudoUrl,
     required this.papelCodigo,
     required this.status,
+    this.criadoEm,
   });
 
   factory MinhaAtletica.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,7 @@ class MinhaAtletica {
       atleticaEscudoUrl: json['atleticaEscudoUrl'] as String?,
       papelCodigo: json['papelCodigo'] as String,
       status: json['status'] as String,
+      criadoEm: json['criadoEm'] as String?,
     );
   }
 }

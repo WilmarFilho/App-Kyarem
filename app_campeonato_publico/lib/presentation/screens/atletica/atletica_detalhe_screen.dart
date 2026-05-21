@@ -6,6 +6,7 @@ import '../../../models/campeonato_atletica_publica_model.dart';
 import '../../../models/campeonato_time_publico_model.dart';
 import '../../../services/atletica_public_service.dart';
 import '../../widgets/layout/gradient_background.dart';
+import '../../widgets/public/atletica_torcidometro_card.dart';
 
 class AtleticaDetalheScreen extends StatefulWidget {
   final CampeonatoAtleticaPublica atletica;
@@ -95,6 +96,9 @@ class _AtleticaDetalheScreenState extends State<AtleticaDetalheScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildStatsGrid(data.stats),
+                            const SizedBox(height: 28),
+                            const SizedBox(height: 4),
+                            AtleticaTorcidometroCard(atletica: widget.atletica),
                             const SizedBox(height: 28),
                             _buildSectionTitle('TIMES INSCRITOS'),
                             const SizedBox(height: 12),

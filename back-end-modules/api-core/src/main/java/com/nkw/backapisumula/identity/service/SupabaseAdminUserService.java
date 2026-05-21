@@ -34,7 +34,12 @@ public class SupabaseAdminUserService {
      * @param role         papel inicial colocado no metadata do usuário
      * @return UUID do usuário criado
      */
-    public UUID createAuthUser(String email, String password, String nomeExibicao, String role) {
+    public UUID createAuthUser(
+            String email,
+            String password,
+            String nomeExibicao,
+            String cpf,
+            String role) {
         String url = supabaseUrl + "/auth/v1/admin/users";
 
         HttpHeaders headers = new HttpHeaders();
@@ -42,13 +47,18 @@ public class SupabaseAdminUserService {
         headers.setBearerAuth(supabaseServiceRoleKey);
         headers.set("apikey", supabaseServiceRoleKey);
 
+        Map<String, Object> userMetadata = new java.util.HashMap<>();
+        userMetadata.put("nome_exibicao", nomeExibicao);
+        userMetadata.put("role", role);
+        if (cpf != null && !cpf.replaceAll("\\D", "").isBlank()) {
+            userMetadata.put("cpf", cpf.replaceAll("\\D", ""));
+        }
+
         Map<String, Object> body = Map.of(
                 "email", email,
                 "password", password,
                 "email_confirm", true,
-                "user_metadata", Map.of(
-                        "nome_exibicao", nomeExibicao,
-                        "role", role));
+                "user_metadata", userMetadata);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
         ResponseEntity<com.fasterxml.jackson.databind.JsonNode> response = restTemplate.postForEntity(url, request, com.fasterxml.jackson.databind.JsonNode.class);

@@ -37,4 +37,19 @@ class AtleticaMembro {
       criadoEm: json['criadoEm'],
     );
   }
+
+  String get papelLabel {
+    switch (papelCodigo.toUpperCase()) {
+      case 'ATHLETE':
+        return 'Atleta';
+      case 'DIRECTOR':
+        return 'Diretor';
+      case 'PRESIDENT':
+        return 'Presidente';
+      case 'COACH':
+        return 'Técnico';
+      default:
+        return papelCodigo;
+    }
+  }
 }

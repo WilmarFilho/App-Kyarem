@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
+import '../../widgets/layout/main_top_bar.dart';
 
 class _FeedComment {
   final String author;
@@ -140,108 +141,115 @@ const _feedPosts = [
 ];
 
 class FeedTab extends StatelessWidget {
-  const FeedTab({super.key});
+  const FeedTab({
+    super.key,
+    required this.onProfileTap,
+    required this.hasPendingInvite,
+  });
+
+  final VoidCallback onProfileTap;
+  final bool hasPendingInvite;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
       children: [
-        Row(
-          children: [
-            Text(
-              'Feed',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.primary,
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.tune_rounded,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ],
+        MainTopBar(
+          onProfileTap: onProfileTap,
+          hasPendingInvite: hasPendingInvite,
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Acompanhe comentários, bastidores, fotos e reações das atléticas em tempo real.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.textMuted,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0A2342), Color(0xFF194B8F)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                'Feed',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Acompanhe comentários, bastidores, fotos e reações das atléticas em tempo real.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0A2342), Color(0xFF194B8F)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
                   children: [
-                    const Text(
-                      'Clima do evento',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFAFC7F3),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Clima do evento',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFAFC7F3),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Torcida aquecida, quadras lotando e muita postagem nova subindo agora.',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: const [
+                              _StatusChip(label: '128 posts hoje'),
+                              _StatusChip(label: '36 fotos novas'),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Torcida aquecida, quadras lotando e muita postagem nova subindo agora.',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: 16),
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.dynamic_feed_rounded,
+                        size: 28,
                         color: Colors.white,
-                        height: 1.35,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: const [
-                        _StatusChip(label: '128 posts hoje'),
-                        _StatusChip(label: '36 fotos novas'),
-                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(
-                  Icons.dynamic_feed_rounded,
-                  size: 28,
-                  color: Colors.white,
-                ),
-              ),
+              const SizedBox(height: 18),
+              ..._feedPosts.map((post) => _FeedPostCard(post: post)),
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        ..._feedPosts.map((post) => _FeedPostCard(post: post)),
       ],
     );
   }

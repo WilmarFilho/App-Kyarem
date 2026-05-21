@@ -29,6 +29,37 @@ class AtleticaService {
     }
   }
 
+  Future<List<MinhaAtletica>> getMeusConvites() async {
+    final response = await _apiClient.get('/atleticas/convites/minhas');
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => MinhaAtletica.fromJson(json)).toList();
+    } else {
+      throw Exception('Falha ao carregar seus convites');
+    }
+  }
+
+  Future<MinhaAtletica> aceitarConvite(String membroId) async {
+    final response = await _apiClient.post('/atleticas/membros/$membroId/aceitar', {});
+
+    if (response.statusCode == 200) {
+      return MinhaAtletica.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Falha ao aceitar convocação');
+    }
+  }
+
+  Future<MinhaAtletica> recusarConvite(String membroId) async {
+    final response = await _apiClient.post('/atleticas/membros/$membroId/recusar', {});
+
+    if (response.statusCode == 200) {
+      return MinhaAtletica.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Falha ao recusar convocação');
+    }
+  }
+
   Future<Atletica> getAtletica(String id) async {
     final response = await _apiClient.get('/atleticas/$id');
 

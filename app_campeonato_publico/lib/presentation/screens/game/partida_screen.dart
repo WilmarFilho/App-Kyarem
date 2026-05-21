@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
 import '../../../services/evento_service.dart';
 import '../../../services/firebase_messaging_service.dart';
+import '../../widgets/public/live_chat_sheet.dart';
+import '../../widgets/public/partida_torcidometro_sheet.dart';
 import 'atletas_partida_screen.dart';
 import 'resumo_estatistica_partida_screen.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
@@ -406,102 +408,102 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
           ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ), // Espaçamento nas laterais da tela
-        child: Row(
-          children: [
-            // BOTÃO 1: ATLETAS
-            Expanded(
-              child: FloatingActionButton.extended(
-                heroTag: "btn_atletas",
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AtletasPartidaScreen(
-                        partidaId: widget.partidaId,
-                        timeA: widget.timeA,
-                        timeB: widget.timeB,
-                        escudoA: widget.escudoTimeA,
-                        escudoB: widget.escudoTimeB,
-                      ),
-                    ),
-                  );
-                },
-                backgroundColor: const Color(0xFFF2561D), // Laranja padronizado
-                foregroundColor: Colors.white,
-                elevation: 4,
-                icon: const Icon(Icons.group_outlined, size: 20),
-                label: const Text(
-                  'Atletas',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // BOTÃO 2: RESUMO
-            Expanded(
-              child: FloatingActionButton.extended(
-                heroTag: "btn_estatisticas",
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ResumoEstatisticaPartidaScreen(
-                        partidaId: widget.partidaId,
-                        timeA: widget.timeA,
-                        timeB: widget.timeB,
-                        escudoA: widget.escudoTimeA,
-                        escudoB: widget.escudoTimeB,
-                      ),
-                    ),
-                  );
-                },
-                backgroundColor: const Color(0xFFF2561D),
-                foregroundColor: Colors.white,
-                elevation: 4,
-                icon: const Icon(Icons.analytics_outlined, size: 20),
-                label: const Text(
-                  'Resumo',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // BOTÃO 3: MAIS PARTIDAS
-            Expanded(
-              child: FloatingActionButton.extended(
-                heroTag: "btn_mais_partidas",
-                onPressed: () {
-                  if (_modalidadeObject != null) {
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _BottomActionChip(
+                  label: 'Atletas',
+                  icon: Icons.group_outlined,
+                  onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PartidasModalidadeScreen(
-                          modalidade: _modalidadeObject!,
+                        builder: (context) => AtletasPartidaScreen(
+                          partidaId: widget.partidaId,
+                          timeA: widget.timeA,
+                          timeB: widget.timeB,
+                          escudoA: widget.escudoTimeA,
+                          escudoB: widget.escudoTimeB,
                         ),
                       ),
                     );
-                  } else {
-                    Navigator.pop(context);
-                  }
-                },
-                backgroundColor: const Color(0xFFF2561D),
-                foregroundColor: Colors.white,
-                elevation: 4,
-                icon: const Icon(Icons.sports_soccer, size: 20),
-                label: const Text(
-                  '+ Jogos',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  },
                 ),
-              ),
+                _BottomActionChip(
+                  label: 'Resumo',
+                  icon: Icons.analytics_outlined,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ResumoEstatisticaPartidaScreen(
+                          partidaId: widget.partidaId,
+                          timeA: widget.timeA,
+                          timeB: widget.timeB,
+                          escudoA: widget.escudoTimeA,
+                          escudoB: widget.escudoTimeB,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _BottomActionChip(
+                  label: '+ Jogos',
+                  icon: Icons.sports_soccer,
+                  onTap: () {
+                    if (_modalidadeObject != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PartidasModalidadeScreen(
+                            modalidade: _modalidadeObject!,
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+                _BottomActionChip(
+                  label: 'Chat ao vivo',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => LiveChatSheet(partidaId: widget.partidaId),
+                    );
+                  },
+                ),
+                _BottomActionChip(
+                  label: 'Torcidômetro',
+                  icon: Icons.campaign_outlined,
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => PartidaTorcidometroSheet(
+                        partidaId: widget.partidaId,
+                        timeA: widget.timeA,
+                        timeB: widget.timeB,
+                        escudoTimeA: widget.escudoTimeA,
+                        escudoTimeB: widget.escudoTimeB,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -859,6 +861,48 @@ class _JogoDetalhesScreenState extends State<JogoDetalhesScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BottomActionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _BottomActionChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: SizedBox(
+        height: 48,
+        child: ElevatedButton.icon(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF2561D),
+            foregroundColor: Colors.white,
+            elevation: 2,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          icon: Icon(icon, size: 18),
+          label: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
       ),
     );
   }

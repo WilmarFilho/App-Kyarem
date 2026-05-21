@@ -3,10 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/campeonato.dart';
 import '../../../../services/campeonato_service.dart';
+import '../../widgets/layout/main_top_bar.dart';
 import 'championship_detail_screen.dart';
 
 class ChampionshipsTab extends StatefulWidget {
-  const ChampionshipsTab({super.key});
+  const ChampionshipsTab({
+    super.key,
+    required this.onProfileTap,
+    required this.hasPendingInvite,
+  });
+
+  final VoidCallback onProfileTap;
+  final bool hasPendingInvite;
 
   @override
   State<ChampionshipsTab> createState() => _ChampionshipsTabState();
@@ -57,44 +65,56 @@ class _ChampionshipsTabState extends State<ChampionshipsTab> {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
       children: [
-        Text(
-          'Campeonatos',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
+        MainTopBar(
+          onProfileTap: widget.onProfileTap,
+          hasPendingInvite: widget.hasPendingInvite,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Campeonatos',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Explore os campeonatos ativos e entre em cada um para ver visão geral, estatísticas e atletas.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (_campeonatos.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: Center(
+                    child: Text(
+                      'Nenhum campeonato encontrado.',
+                      style: TextStyle(color: AppColors.textMuted, fontFamily: 'Poppins'),
+                    ),
+                  ),
+                )
+              else
+                ..._campeonatos.map(
+                  (championship) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _ChampionshipCard(
+                      championship: championship,
+                      onTap: () => _openDetail(championship),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Explore os campeonatos ativos e entre em cada um para ver visão geral, estatísticas e atletas.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.textMuted,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 20),
-        if (_campeonatos.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 40),
-            child: Center(
-              child: Text(
-                'Nenhum campeonato encontrado.',
-                style: TextStyle(color: AppColors.textMuted, fontFamily: 'Poppins'),
-              ),
-            ),
-          )
-        else
-          ..._campeonatos.map(
-            (championship) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _ChampionshipCard(
-                championship: championship,
-                onTap: () => _openDetail(championship),
-              ),
-            ),
-          ),
       ],
     );
   }

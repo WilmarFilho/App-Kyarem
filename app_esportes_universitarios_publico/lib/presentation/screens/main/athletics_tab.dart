@@ -3,11 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/atletica.dart';
 import '../../../../services/atletica_service.dart';
+import '../../widgets/layout/main_top_bar.dart';
 import 'athletic_detail_screen.dart';
 import 'atletica_management_screen.dart';
 
 class AthleticsTab extends StatefulWidget {
-  const AthleticsTab({super.key});
+  const AthleticsTab({
+    super.key,
+    required this.onProfileTap,
+    required this.hasPendingInvite,
+  });
+
+  final VoidCallback onProfileTap;
+  final bool hasPendingInvite;
 
   @override
   State<AthleticsTab> createState() => _AthleticsTabState();
@@ -91,74 +99,80 @@ class _AthleticsTabState extends State<AthleticsTab> {
         });
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Atléticas',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                ),
-                if (minhasAtleticasPresidencia.isNotEmpty)
-                  IconButton(
-                    onPressed: () {
-                      // Se for presidente de mais de uma, pode abrir um modal, mas vamos assumir que abre a primeira por enquanto
-                      _openManagement(
-                        context,
-                        minhasAtleticasPresidencia.first,
-                      );
-                    },
-                    icon: const Icon(Icons.settings, color: AppColors.primary),
-                    tooltip: 'Gerenciar Minha Atlética',
-                  ),
-              ],
+            MainTopBar(
+              onProfileTap: widget.onProfileTap,
+              hasPendingInvite: widget.hasPendingInvite,
+              trailing: minhasAtleticasPresidencia.isNotEmpty
+                  ? MainTopBarIconButton(
+                      icon: Icons.settings,
+                      onTap: () {
+                        _openManagement(
+                          context,
+                          minhasAtleticasPresidencia.first,
+                        );
+                      },
+                    )
+                  : null,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Encontre atléticas, entre em cada perfil e navegue entre visão geral, estatísticas e atletas.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textMuted,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            if (atleticas.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Text(
-                    'Nenhuma atlética encontrada.',
-                    style: TextStyle(color: AppColors.textMuted),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Atléticas',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ),
-              )
-            else
-              ...atleticas.map((atletica) {
-                final isManaged = managedIds.contains(atletica.id);
-                final papel = isManaged 
-                    ? minhasAtleticasPresidencia.firstWhere((m) => m.atleticaId == atletica.id).papelCodigo 
-                    : null;
-                
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _AthleticCard(
-                    athletic: atletica,
-                    isManaged: isManaged,
-                    papel: papel,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AthleticDetailScreen(athletic: atletica),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Encontre atléticas, entre em cada perfil e navegue entre visão geral, estatísticas e atletas.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  if (atleticas.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text(
+                          'Nenhuma atlética encontrada.',
+                          style: TextStyle(color: AppColors.textMuted),
+                        ),
+                      ),
+                    )
+                  else
+                    ...atleticas.map((atletica) {
+                      final isManaged = managedIds.contains(atletica.id);
+                      final papel = isManaged 
+                          ? minhasAtleticasPresidencia.firstWhere((m) => m.atleticaId == atletica.id).papelCodigo 
+                          : null;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _AthleticCard(
+                          athletic: atletica,
+                          isManaged: isManaged,
+                          papel: papel,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AthleticDetailScreen(athletic: atletica),
+                              ),
+                            );
+                          },
                         ),
                       );
-                    },
-                  ),
-                );
-              }),
+                    }),
+                ],
+              ),
+            ),
           ],
         );
       },
