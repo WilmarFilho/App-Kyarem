@@ -7,10 +7,12 @@ import '../../../../core/app_colors.dart';
 import '../../../../models/atletica.dart';
 import '../../../../models/atletica_membro.dart';
 import '../../../../models/campeonato.dart';
+import '../../../../models/modalidade_catalogo.dart';
 import '../../../../models/time_atletica.dart';
 import '../../../../models/user_profile.dart';
 import '../../../../services/campeonato_service.dart';
 import '../../../../services/membro_service.dart';
+import '../../../../services/modalidade_service.dart';
 import '../../../../services/profile_service.dart';
 import '../../../../services/time_service.dart';
 
@@ -26,6 +28,7 @@ class AtleticaRosterScreen extends StatefulWidget {
 class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
   final _membroService = MembroService();
   final _campeonatoService = CampeonatoService();
+  final _modalidadeService = ModalidadeService();
   final _timeService = TimeService();
 
   bool _isLoading = true;
@@ -346,7 +349,6 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
     bool shouldShowErrors = false;
     List<Campeonato> campeonatos = [];
     List<CampeonatoModalidade> modalidadesDoCampeonato = [];
-
     final atletasDisponiveis = _membros
         .where((m) => m.papelCodigo.toUpperCase() == 'ATHLETE')
         .toList();
@@ -614,7 +616,8 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
                                                   alpha: 0.12,
                                                 )
                                               : Colors.white,
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
                                           border: Border.all(
                                             color: isSelected
                                                 ? AppColors.secondary
@@ -727,21 +730,14 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
 
                                 setModalState(() => isSaving = true);
                                 try {
-                                  final novoTime = await _timeService.createTime({
+                                  await _timeService.createTime({
                                     'atleticaId':
                                         widget.minhaAtletica.atleticaId,
                                     'modalidadeCatalogoId':
                                         selectedModalidade!.modalidadeId,
                                     'nome': nomeController.text.trim(),
+                                    'atletaIds': selectedAtletaIds,
                                   });
-
-                                  if (selectedAtletaIds.isNotEmpty) {
-                                    await _timeService
-                                        .adicionarAtletasTimePermanente(
-                                          novoTime.id,
-                                          selectedAtletaIds,
-                                        );
-                                  }
 
                                   if (ctx.mounted) Navigator.of(ctx).pop(true);
                                   if (!mounted) return;
@@ -776,6 +772,391 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
                             : const Icon(Icons.shield_rounded),
                         label: const Text(
                           'CRIAR TIME',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    await _loadData();
+  }
+
+  Future<void> _showEditarTimeModal(TimeAtletica time) async {
+    final formKey = GlobalKey<FormState>();
+    final nomeController = TextEditingController(text: time.nome);
+    bool isSaving = false;
+    bool shouldShowErrors = false;
+    ModalidadeCatalogo? selectedModalidade;
+    List<ModalidadeCatalogo> modalidadesCatalogo = [];
+    List<String> selectedAtletaIds = [];
+    final atletasDisponiveis = _membros
+        .where((m) => m.papelCodigo.toUpperCase() == 'ATHLETE')
+        .toList();
+
+    try {
+      final results = await Future.wait([
+        _modalidadeService.getModalidadesCatalogo(),
+        _timeService.getAtletasTimePermanente(time.id),
+      ]);
+      modalidadesCatalogo = results[0] as List<ModalidadeCatalogo>;
+      final atletasDoTime = results[1] as List<TimeAtleticaAtleta>;
+      selectedAtletaIds = atletasDoTime.map((atleta) => atleta.id).toList();
+      for (final modalidade in modalidadesCatalogo) {
+        if (modalidade.id == time.modalidadeCatalogoId) {
+          selectedModalidade = modalidade;
+          break;
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar dados do time: $e')),
+      );
+      return;
+    }
+
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return SafeArea(
+              top: false,
+              child: Container(
+                height: MediaQuery.of(ctx).size.height * 0.88,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                  top: 20,
+                  left: 20,
+                  right: 20,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD9E0EA),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Editar time permanente',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Atualize modalidade, nome e os atletas vinculados a este time.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildTextField(
+                        controller: nomeController,
+                        label: 'Nome do Time',
+                        hintText: 'Ex: Futsal Principal',
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Campo obrigatório'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSelectorField(
+                        label: 'Modalidade do time',
+                        value: selectedModalidade == null
+                            ? null
+                            : '${selectedModalidade!.nome} • ${_generoLabel(selectedModalidade!.genero)}',
+                        hintText: 'Escolha a modalidade',
+                        icon: Icons.sports_volleyball_rounded,
+                        onTap: () async {
+                          final result =
+                              await _showSelectionSheet<ModalidadeCatalogo>(
+                                ctx,
+                                title: 'Selecione a modalidade',
+                                items: modalidadesCatalogo,
+                                selected: selectedModalidade,
+                                itemBuilder: (modalidade, isSelected) {
+                                  return _SelectionTile(
+                                    title: modalidade.nome,
+                                    subtitle: _generoLabel(modalidade.genero),
+                                    selected: isSelected,
+                                  );
+                                },
+                              );
+
+                          if (result == null) return;
+                          setModalState(() => selectedModalidade = result);
+                        },
+                        validator: () => selectedModalidade == null
+                            ? (shouldShowErrors
+                                  ? 'Selecione uma modalidade'
+                                  : null)
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Text(
+                            'Atletas do Time',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${selectedAtletaIds.length} selecionado(s)',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            border: Border.all(color: const Color(0xFFE8EDF5)),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: atletasDisponiveis.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'Nenhum atleta disponível na atlética.',
+                                    style: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  itemCount: atletasDisponiveis.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (context, index) {
+                                    final atleta = atletasDisponiveis[index];
+                                    final atletaId = atleta.userId;
+                                    final isSelected = selectedAtletaIds
+                                        .contains(atletaId);
+
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(16),
+                                      onTap: () {
+                                        setModalState(() {
+                                          if (isSelected) {
+                                            selectedAtletaIds.remove(atletaId);
+                                          } else {
+                                            selectedAtletaIds.add(atletaId);
+                                          }
+                                        });
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 160,
+                                        ),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.secondary.withValues(
+                                                  alpha: 0.12,
+                                                )
+                                              : Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.secondary
+                                                : const Color(0xFFE2E8F0),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 22,
+                                              backgroundColor:
+                                                  AppColors.surface,
+                                              backgroundImage:
+                                                  atleta.fotoUrl != null
+                                                  ? NetworkImage(
+                                                      atleta.fotoUrl!,
+                                                    )
+                                                  : null,
+                                              child: atleta.fotoUrl == null
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      color:
+                                                          AppColors.textMuted,
+                                                    )
+                                                  : null,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    atleta.nomeExibicao ??
+                                                        atleta.email ??
+                                                        'Atleta',
+                                                    style: const TextStyle(
+                                                      fontFamily: 'Poppins',
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color:
+                                                          AppColors.primary,
+                                                    ),
+                                                  ),
+                                                  if (atleta.email?.isNotEmpty ==
+                                                      true)
+                                                    Text(
+                                                      atleta.email!,
+                                                      style: const TextStyle(
+                                                        fontFamily: 'Poppins',
+                                                        color:
+                                                            AppColors.textMuted,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                            AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 160,
+                                              ),
+                                              width: 24,
+                                              height: 24,
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? AppColors.secondary
+                                                    : Colors.transparent,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? AppColors.secondary
+                                                      : const Color(
+                                                          0xFFCBD5E1,
+                                                        ),
+                                                ),
+                                              ),
+                                              child: isSelected
+                                                  ? const Icon(
+                                                      Icons.check,
+                                                      size: 16,
+                                                      color: Colors.white,
+                                                    )
+                                                  : null,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                setModalState(() => shouldShowErrors = true);
+                                if (!formKey.currentState!.validate() ||
+                                    selectedModalidade == null) {
+                                  setModalState(() {});
+                                  return;
+                                }
+
+                                setModalState(() => isSaving = true);
+                                try {
+                                  await _timeService.updateTime(time.id, {
+                                    'nome': nomeController.text.trim(),
+                                    'modalidadeCatalogoId':
+                                        selectedModalidade!.id,
+                                    'atletaIds': selectedAtletaIds,
+                                  });
+
+                                  if (ctx.mounted) Navigator.of(ctx).pop(true);
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Time atualizado com sucesso!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!ctx.mounted) return;
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(content: Text('Erro: $e')),
+                                  );
+                                } finally {
+                                  if (ctx.mounted) {
+                                    setModalState(() => isSaving = false);
+                                  }
+                                }
+                              },
+                        icon: isSaving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.save_rounded),
+                        label: const Text(
+                          'SALVAR ALTERAÇÕES',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.bold,
@@ -1462,26 +1843,67 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
                   ],
                 ),
               ),
-              if (time.genero?.isNotEmpty == true)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    _generoLabel(time.genero),
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (time.genero?.isNotEmpty == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        _generoLabel(time.genero),
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () => _showEditarTimeModal(time),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.edit_rounded,
+                            size: 16,
+                            color: AppColors.secondary,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Editar',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
+              ),
             ],
           ),
         );

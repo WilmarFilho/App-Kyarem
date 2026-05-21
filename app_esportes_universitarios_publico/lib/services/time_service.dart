@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../core/api_client.dart';
 import '../models/time_atletica.dart';
+import 'package:http/http.dart' as http;
 
 class TimeService {
   final ApiClient _apiClient = ApiClient();
@@ -24,7 +25,18 @@ class TimeService {
     if (response.statusCode == 201) {
       return TimeAtletica.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Falha ao criar o time');
+      throw Exception(_extractErrorMessage(response, 'Falha ao criar o time'));
+    }
+  }
+
+  Future<TimeAtletica> updateTime(
+      String timeId, Map<String, dynamic> data) async {
+    final response = await _apiClient.put('/times/atletica/$timeId', data);
+
+    if (response.statusCode == 200) {
+      return TimeAtletica.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception(_extractErrorMessage(response, 'Falha ao atualizar o time'));
     }
   }
 
@@ -36,7 +48,28 @@ class TimeService {
     );
 
     if (response.statusCode != 201) {
-      throw Exception('Falha ao adicionar atletas ao time permanente');
+      throw Exception(
+        _extractErrorMessage(
+          response,
+          'Falha ao adicionar atletas ao time permanente',
+        ),
+      );
+    }
+  }
+
+  Future<List<TimeAtleticaAtleta>> getAtletasTimePermanente(String timeId) async {
+    final response = await _apiClient.get('/times/atletica/$timeId/atletas');
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => TimeAtleticaAtleta.fromJson(json)).toList();
+    } else {
+      throw Exception(
+        _extractErrorMessage(
+          response,
+          'Falha ao carregar atletas do time permanente',
+        ),
+      );
     }
   }
 
@@ -44,7 +77,7 @@ class TimeService {
     final response = await _apiClient.delete('/times/atletica/$timeId');
 
     if (response.statusCode != 204) {
-      throw Exception('Falha ao excluir o time');
+      throw Exception(_extractErrorMessage(response, 'Falha ao excluir o time'));
     }
   }
 
@@ -76,7 +109,9 @@ class TimeService {
     if (response.statusCode == 201) {
       return CampeonatoTime.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Falha ao inscrever o time no campeonato');
+      throw Exception(
+        _extractErrorMessage(response, 'Falha ao inscrever o time no campeonato'),
+      );
     }
   }
 
@@ -155,7 +190,47 @@ class TimeService {
   }
 }
 
+String _extractErrorMessage(http.Response response, String fallback) {
+  try {
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      final detail = decoded['detail'];
+      if (detail is String && detail.trim().isNotEmpty) {
+        return detail;
+      }
+      final message = decoded['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+    }
+  } catch (_) {}
+  return fallback;
+}
+
 // ─── Modelos auxiliares ────────────────────────────────────────────────────────
+
+class TimeAtleticaAtleta {
+  final String id;
+  final String nome;
+  final String? email;
+  final String? fotoUrl;
+
+  TimeAtleticaAtleta({
+    required this.id,
+    required this.nome,
+    this.email,
+    this.fotoUrl,
+  });
+
+  factory TimeAtleticaAtleta.fromJson(Map<String, dynamic> json) {
+    return TimeAtleticaAtleta(
+      id: json['id'],
+      nome: json['nome'] ?? '',
+      email: json['email'],
+      fotoUrl: json['fotoUrl'],
+    );
+  }
+}
 
 class CampeonatoTime {
   final String id;

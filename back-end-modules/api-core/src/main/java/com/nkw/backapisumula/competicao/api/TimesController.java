@@ -1,6 +1,7 @@
 package com.nkw.backapisumula.competicao.api;
 
 import com.nkw.backapisumula.cadastros.Atletica;
+import com.nkw.backapisumula.cadastros.repo.AtleticaMembroRepository;
 import com.nkw.backapisumula.common.outbox.EventPublisherService;
 import com.nkw.backapisumula.competicao.CampeonatoModalidade;
 import com.nkw.backapisumula.competicao.CampeonatoTime;
@@ -25,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -38,6 +41,7 @@ public class TimesController {
         private final CampeonatoModalidadeRepository campeonatoModalidadeRepository;
         private final EventPublisherService eventPublisherService;
         private final EquipeStaffRepository equipeStaffRepository;
+        private final AtleticaMembroRepository atleticaMembroRepository;
 
         @Autowired
         private EntityManager entityManager;
@@ -47,13 +51,15 @@ public class TimesController {
                         ModalidadeCatalogoRepository modalidadeCatalogoRepository,
                         CampeonatoModalidadeRepository campeonatoModalidadeRepository,
                         EventPublisherService eventPublisherService,
-                        EquipeStaffRepository equipeStaffRepository) {
+                        EquipeStaffRepository equipeStaffRepository,
+                        AtleticaMembroRepository atleticaMembroRepository) {
                 this.timeAtleticaRepository = timeAtleticaRepository;
                 this.campeonatoTimeRepository = campeonatoTimeRepository;
                 this.modalidadeCatalogoRepository = modalidadeCatalogoRepository;
                 this.campeonatoModalidadeRepository = campeonatoModalidadeRepository;
                 this.eventPublisherService = eventPublisherService;
                 this.equipeStaffRepository = equipeStaffRepository;
+                this.atleticaMembroRepository = atleticaMembroRepository;
         }
 
         @GetMapping("/atletica/{atleticaId}")
@@ -82,7 +88,9 @@ public class TimesController {
                 time.setNome(request.nome());
                 time.setCriadoEm(OffsetDateTime.now());
 
-                return TimeAtleticaResponse.from(timeAtleticaRepository.save(time));
+                TimeAtletica saved = timeAtleticaRepository.save(time);
+                syncAtletasTimePermanente(saved, request.atletaIds());
+                return TimeAtleticaResponse.from(saved);
         }
 
         @PutMapping("/atletica/{timeId}")
@@ -103,7 +111,12 @@ public class TimesController {
                         time.setModalidade(modalidade);
                 }
 
-                return TimeAtleticaResponse.from(timeAtleticaRepository.save(time));
+                TimeAtletica saved = timeAtleticaRepository.save(time);
+                if (request.atletaIds() != null) {
+                        syncAtletasTimePermanente(saved, request.atletaIds());
+                }
+
+                return TimeAtleticaResponse.from(saved);
         }
 
         @DeleteMapping("/atletica/{timeId}")
@@ -113,14 +126,44 @@ public class TimesController {
                 timeAtleticaRepository.deleteById(timeId);
         }
 
+        @GetMapping("/atletica/{timeId}/atletas")
+        @Transactional(readOnly = true)
+        @SuppressWarnings("unchecked")
+        public List<TimeAtletaResponse> listAtletasTimePermanente(@PathVariable UUID timeId) {
+                timeAtleticaRepository.findById(timeId)
+                                .orElseThrow(() -> new IllegalStateException("Time da atlética não encontrado."));
+
+                List<Object[]> rows = entityManager.createNativeQuery("""
+                                SELECT p.id,
+                                       COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS nome,
+                                       p.email,
+                                       p.avatar_url
+                                FROM operational.time_atletica_atletas taa
+                                JOIN operational.profiles p ON p.id = taa.atleta_id
+                                WHERE taa.time_atletica_id = :timeId
+                                  AND taa.status = 'ATIVO'
+                                ORDER BY COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) ASC
+                                """)
+                                .setParameter("timeId", timeId)
+                                .getResultList();
+
+                return rows.stream()
+                                .map(row -> new TimeAtletaResponse(
+                                                (UUID) row[0],
+                                                (String) row[1],
+                                                (String) row[2],
+                                                (String) row[3]))
+                                .toList();
+        }
+
         @PostMapping("/atletica/{timeId}/atletas")
         @ResponseStatus(HttpStatus.CREATED)
         @PreAuthorize("isAuthenticated()")
         public void adicionarAtletasTimePermanente(@PathVariable UUID timeId,
                         @Valid @RequestBody AddAtletasRequest request) {
-                // Feature descontinuada: A tabela operational.time_atletica_atletas foi removida (V25).
-                // O vínculo de atletas a times permanentes não é mais suportado no BD,
-                // devendo ser feito através de campeonato_atletas (por campeonato).
+                TimeAtletica time = timeAtleticaRepository.findById(timeId)
+                                .orElseThrow(() -> new IllegalStateException("Time da atlética não encontrado."));
+                syncAtletasTimePermanente(time, request.atletaIds());
         }
 
         @GetMapping("/campeonato/{campeonatoId}")
@@ -151,22 +194,15 @@ public class TimesController {
                 campeonatoTime.setCampeonatoModalidade(campeonatoModalidade);
                 campeonatoTime.setTime(timeAtletica);
                 campeonatoTime.setStatus("CONFIRMADA");
-                UUID campeonatoAtleticaId;
-                try {
-                        campeonatoAtleticaId = (UUID) entityManager.createNativeQuery(
-                                        "SELECT id FROM operational.campeonato_atleticas WHERE campeonato_id = :campeonatoId AND atletica_id = :atleticaId")
-                                        .setParameter("campeonatoId", campeonatoModalidade.getCampeonato().getId())
-                                        .setParameter("atleticaId", timeAtletica.getAtletica().getId())
-                                        .getSingleResult();
-                } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new IllegalStateException("A atlética não está inscrita neste campeonato. Erro real: " + e.getMessage(), e);
-                }
+                UUID campeonatoAtleticaId = ensureCampeonatoAtletica(
+                                campeonatoModalidade.getCampeonato().getId(),
+                                timeAtletica.getAtletica().getId());
 
                 campeonatoTime.setCampeonatoAtleticaId(campeonatoAtleticaId);
                 campeonatoTime.setCriadoEm(OffsetDateTime.now());
 
                 CampeonatoTime saved = campeonatoTimeRepository.save(campeonatoTime);
+                seedCampeonatoAtletas(saved);
                 eventPublisherService.publish(
                                 "CampeonatoTime",
                                 saved.getId().toString(),
@@ -319,7 +355,8 @@ public class TimesController {
 
         public record UpdateTimeAtleticaRequest(
                         UUID modalidadeCatalogoId,
-                        String nome) {
+                        String nome,
+                        List<UUID> atletaIds) {
         }
 
         public record InscricaoTimeRequest(
@@ -395,6 +432,13 @@ public class TimesController {
                         @NotNull List<UUID> atletaIds) {
         }
 
+        public record TimeAtletaResponse(
+                        UUID id,
+                        String nome,
+                        String email,
+                        String fotoUrl) {
+        }
+
         public record AddStaffRequest(
                         UUID userId,
                         @NotBlank String nome,
@@ -413,5 +457,158 @@ public class TimesController {
                                         staff.getNome(),
                                         staff.getCargo());
                 }
+        }
+
+        private void syncAtletasTimePermanente(TimeAtletica time, List<UUID> atletaIds) {
+                List<UUID> requestedIds = atletaIds == null
+                                ? List.of()
+                                : atletaIds.stream()
+                                                .filter(java.util.Objects::nonNull)
+                                                .distinct()
+                                                .toList();
+
+                validateAtletasPertencemAoElenco(time.getAtletica().getId(), requestedIds);
+
+                entityManager.createNativeQuery("""
+                                DELETE FROM operational.time_atletica_atletas
+                                WHERE time_atletica_id = :timeId
+                                """)
+                                .setParameter("timeId", time.getId())
+                                .executeUpdate();
+
+                for (UUID atletaId : requestedIds) {
+                        entityManager.createNativeQuery("""
+                                        INSERT INTO operational.time_atletica_atletas (
+                                                id,
+                                                time_atletica_id,
+                                                atleta_id,
+                                                status,
+                                                adicionado_em
+                                        ) VALUES (
+                                                gen_random_uuid(),
+                                                :timeId,
+                                                :atletaId,
+                                                'ATIVO',
+                                                now()
+                                        )
+                                        """)
+                                        .setParameter("timeId", time.getId())
+                                        .setParameter("atletaId", atletaId)
+                                        .executeUpdate();
+                }
+        }
+
+        private void validateAtletasPertencemAoElenco(UUID atleticaId, List<UUID> atletaIds) {
+                if (atletaIds.isEmpty()) {
+                        return;
+                }
+
+                Set<UUID> atletasAtivosDaAtletica = atleticaMembroRepository
+                                .findByAtletica_IdOrderByCriadoEmAsc(atleticaId)
+                                .stream()
+                                .filter(membro -> membro.getUser() != null && membro.getUser().getId() != null)
+                                .filter(membro -> "ATHLETE".equalsIgnoreCase(membro.getPapelCodigo()))
+                                .filter(membro -> "ATIVO".equalsIgnoreCase(membro.getStatus()))
+                                .map(membro -> membro.getUser().getId())
+                                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+                boolean hasInvalidAthlete = atletaIds.stream()
+                                .anyMatch(atletaId -> !atletasAtivosDaAtletica.contains(atletaId));
+
+                if (hasInvalidAthlete) {
+                        throw new IllegalArgumentException(
+                                        "Selecione apenas atletas ativos que pertencem ao elenco desta atlética.");
+                }
+        }
+
+        @SuppressWarnings("unchecked")
+        private void seedCampeonatoAtletas(CampeonatoTime campeonatoTime) {
+                List<Object[]> conflitos = entityManager.createNativeQuery("""
+                                SELECT DISTINCT p.id,
+                                       COALESCE(NULLIF(p.nome_exibicao, ''), p.nome_completo) AS nome
+                                FROM operational.time_atletica_atletas taa
+                                JOIN operational.campeonato_atletas ca
+                                  ON ca.atleta_id = taa.atleta_id
+                                 AND ca.campeonato_id = :campeonatoId
+                                 AND ca.status = 'ATIVO'
+                                JOIN operational.profiles p ON p.id = taa.atleta_id
+                                WHERE taa.time_atletica_id = :timeAtleticaId
+                                  AND taa.status = 'ATIVO'
+                                """)
+                                .setParameter("campeonatoId", campeonatoTime.getCampeonato().getId())
+                                .setParameter("timeAtleticaId", campeonatoTime.getTime().getId())
+                                .getResultList();
+
+                if (!conflitos.isEmpty()) {
+                        String nomes = conflitos.stream()
+                                        .map(row -> (String) row[1])
+                                        .filter(java.util.Objects::nonNull)
+                                        .distinct()
+                                        .limit(5)
+                                        .reduce((a, b) -> a + ", " + b)
+                                        .orElse("um ou mais atletas");
+                        throw new IllegalStateException(
+                                        "Alguns atletas deste time já estão inscritos neste campeonato: " + nomes + ".");
+                }
+
+                entityManager.createNativeQuery("""
+                                INSERT INTO operational.campeonato_atletas (
+                                        id,
+                                        campeonato_id,
+                                        atletica_id,
+                                        campeonato_time_id,
+                                        atleta_id,
+                                        status,
+                                        inscrito_em
+                                )
+                                SELECT gen_random_uuid(),
+                                       :campeonatoId,
+                                       :atleticaId,
+                                       :campeonatoTimeId,
+                                       taa.atleta_id,
+                                       'ATIVO',
+                                       now()
+                                FROM operational.time_atletica_atletas taa
+                                WHERE taa.time_atletica_id = :timeAtleticaId
+                                  AND taa.status = 'ATIVO'
+                                """)
+                                .setParameter("campeonatoId", campeonatoTime.getCampeonato().getId())
+                                .setParameter("atleticaId", campeonatoTime.getTime().getAtletica().getId())
+                                .setParameter("campeonatoTimeId", campeonatoTime.getId())
+                                .setParameter("timeAtleticaId", campeonatoTime.getTime().getId())
+                                .executeUpdate();
+        }
+
+        private UUID ensureCampeonatoAtletica(UUID campeonatoId, UUID atleticaId) {
+                List<?> existingIds = entityManager.createNativeQuery(
+                                "SELECT id FROM operational.campeonato_atleticas WHERE campeonato_id = :campeonatoId AND atletica_id = :atleticaId")
+                                .setParameter("campeonatoId", campeonatoId)
+                                .setParameter("atleticaId", atleticaId)
+                                .getResultList();
+
+                if (!existingIds.isEmpty()) {
+                        return (UUID) existingIds.get(0);
+                }
+
+                UUID createdId = UUID.randomUUID();
+                entityManager.createNativeQuery("""
+                                INSERT INTO operational.campeonato_atleticas (
+                                        id,
+                                        campeonato_id,
+                                        atletica_id,
+                                        criado_em
+                                ) VALUES (
+                                        :id,
+                                        :campeonatoId,
+                                        :atleticaId,
+                                        now()
+                                )
+                                """)
+                                .setParameter("id", createdId)
+                                .setParameter("campeonatoId", campeonatoId)
+                                .setParameter("atleticaId", atleticaId)
+                                .executeUpdate();
+
+                return createdId;
         }
 }
