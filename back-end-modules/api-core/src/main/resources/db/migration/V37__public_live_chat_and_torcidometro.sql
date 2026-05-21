@@ -1,5 +1,5 @@
 -- =============================================================================
--- V37 - Chat ao vivo e torcidometro publico com realtime
+-- V37 - Chat ao vivo e torcidometro publico com realtime...
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.touch_updated_at()
