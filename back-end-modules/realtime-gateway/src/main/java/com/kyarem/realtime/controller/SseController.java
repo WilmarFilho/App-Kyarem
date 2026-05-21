@@ -1,6 +1,7 @@
 package com.kyarem.realtime.controller;
 
 import com.kyarem.realtime.hub.MatchEventHub;
+import com.kyarem.realtime.hub.SocialEventHub;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -27,9 +28,11 @@ import java.time.Duration;
 public class SseController {
 
     private final MatchEventHub hub;
+    private final SocialEventHub socialEventHub;
 
-    public SseController(MatchEventHub hub) {
+    public SseController(MatchEventHub hub, SocialEventHub socialEventHub) {
         this.hub = hub;
+        this.socialEventHub = socialEventHub;
     }
 
     @GetMapping(value = "/{matchId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -42,6 +45,23 @@ public class SseController {
                         .build());
 
         // Heartbeat a cada 30s para evitar timeout de proxies/firewalls
+        Flux<ServerSentEvent<String>> heartbeat = Flux.interval(Duration.ofSeconds(30))
+                .map(tick -> ServerSentEvent.<String>builder()
+                        .event("heartbeat")
+                        .data("{\"status\":\"alive\"}")
+                        .build());
+
+        return Flux.merge(events, heartbeat);
+    }
+
+    @GetMapping(value = "/social", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> streamSocialEvents() {
+        Flux<ServerSentEvent<String>> events = socialEventHub.subscribe()
+                .map(payload -> ServerSentEvent.<String>builder()
+                        .event("social-update")
+                        .data(payload)
+                        .build());
+
         Flux<ServerSentEvent<String>> heartbeat = Flux.interval(Duration.ofSeconds(30))
                 .map(tick -> ServerSentEvent.<String>builder()
                         .event("heartbeat")

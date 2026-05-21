@@ -103,7 +103,7 @@ class MainTopBar extends StatelessWidget {
                     ),
                     SizedBox(width: 10),
                     Text(
-                      'Buscar partidas, atléticas...',
+                      'Buscar perfis, partidas, atléticas...',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,

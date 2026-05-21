@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/app_colors.dart';
+import '../../../../models/user_profile.dart';
+import '../../../../services/profile_service.dart';
+import 'public_profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -11,62 +17,85 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ProfileService _profileService = ProfileService();
+  Timer? _debounce;
   String _query = '';
+  bool _loading = false;
+  List<UserProfile> _profiles = const [];
 
-  // Sugestões rápidas
-  final List<Map<String, dynamic>> _quickLinks = [
+  final List<Map<String, dynamic>> _quickLinks = const [
     {
-      'title': 'Campeonatos',
-      'subtitle': 'Ver todos os campeonatos ativos',
-      'icon': Icons.emoji_events_rounded,
+      'title': 'Perfis',
+      'subtitle': 'Buscar pessoas e abrir o perfil público',
+      'icon': Icons.person_search_rounded,
     },
     {
       'title': 'Atléticas',
-      'subtitle': 'Explorar e seguir atléticas',
+      'subtitle': 'Explorar torcidas e elencos ativos',
       'icon': Icons.groups_rounded,
     },
     {
       'title': 'Feed',
-      'subtitle': 'Últimas novidades do ecossistema',
+      'subtitle': 'Ver as últimas postagens da sua rede',
       'icon': Icons.dynamic_feed_rounded,
     },
   ];
 
-  // Categorias de esporte
-  final List<Map<String, dynamic>> _esportes = [
-    {'nome': 'Futebol', 'icon': Icons.sports_soccer},
-    {'nome': 'Futsal', 'icon': Icons.sports_soccer},
-    {'nome': 'Vôlei', 'icon': Icons.sports_volleyball},
-    {'nome': 'Basquete', 'icon': Icons.sports_basketball},
-    {'nome': 'Handebol', 'icon': Icons.sports_handball},
-    {'nome': 'Tênis', 'icon': Icons.sports_tennis},
-    {'nome': 'Natação', 'icon': Icons.pool_rounded},
-    {'nome': 'Atletismo', 'icon': Icons.directions_run_rounded},
-  ];
-
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _filteredLinks {
-    if (_query.trim().isEmpty) return _quickLinks;
-    final q = _query.toLowerCase();
-    return _quickLinks.where((item) {
-      return item['title'].toString().toLowerCase().contains(q) ||
-          item['subtitle'].toString().toLowerCase().contains(q);
-    }).toList();
+  void _onChanged(String value) {
+    setState(() => _query = value);
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      _searchProfiles();
+    });
+  }
+
+  Future<void> _searchProfiles() async {
+    final query = _query.trim();
+    if (query.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _profiles = const [];
+      });
+      return;
+    }
+
+    setState(() => _loading = true);
+    final profiles = await _profileService.searchProfiles(query);
+    if (!mounted) return;
+    setState(() {
+      _profiles = profiles;
+      _loading = false;
+    });
+  }
+
+  void _openProfile(UserProfile profile) {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(
+          profileId: profile.id,
+          currentUserId: currentUserId,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final showResults = _query.trim().isNotEmpty;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // ── barra superior
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 16, 16, 12),
               child: Row(
@@ -114,14 +143,14 @@ class _SearchScreenState extends State<SearchScreen> {
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
                                 disabledBorder: InputBorder.none,
-                                hintText: 'Buscar campeonatos, atléticas...',
+                                hintText: 'Buscar perfis, atléticas, torcida...',
                                 hintStyle: TextStyle(
                                   color: Color(0xFF99AABB),
                                   fontFamily: 'Poppins',
                                 ),
                                 contentPadding: EdgeInsets.zero,
                               ),
-                              onChanged: (val) => setState(() => _query = val),
+                              onChanged: _onChanged,
                             ),
                           ),
                           if (_query.isNotEmpty)
@@ -133,7 +162,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               onPressed: () {
                                 _searchController.clear();
-                                setState(() => _query = '');
+                                _onChanged('');
                               },
                             ),
                         ],
@@ -143,80 +172,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
-
-            // ── conteúdo
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                 children: [
-                  if (_query.isEmpty) ...[
-                    // Esportes em destaque
-                    Text(
-                      'Esportes',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 0.85,
-                          ),
-                      itemCount: _esportes.length,
-                      itemBuilder: (context, i) {
-                        final esporte = _esportes[i];
-                        return InkWell(
-                          onTap: () {},
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.secondary.withValues(
-                                  alpha: 0.08,
-                                ),
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  esporte['icon'] as IconData,
-                                  size: 26,
-                                  color: AppColors.secondary,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  esporte['nome'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Links rápidos / resultados de busca
                   Text(
-                    _query.isEmpty ? 'Atalhos' : 'Resultados',
+                    showResults ? 'Perfis encontrados' : 'Atalhos',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: AppColors.textMuted,
                       fontWeight: FontWeight.w600,
@@ -224,8 +185,14 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-
-                  if (_filteredLinks.isEmpty)
+                  if (!showResults)
+                    ..._quickLinks.map(_buildQuickCard)
+                  else if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_profiles.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 40),
                       child: Column(
@@ -237,7 +204,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Nenhum resultado encontrado.',
+                            'Nenhum perfil encontrado.',
                             style: Theme.of(context).textTheme.bodyLarge
                                 ?.copyWith(color: AppColors.textMuted),
                           ),
@@ -245,7 +212,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                     )
                   else
-                    ...(_filteredLinks.map((item) => _buildResultCard(item))),
+                    ..._profiles.map(_buildProfileCard),
                 ],
               ),
             ),
@@ -255,78 +222,138 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildResultCard(Map<String, dynamic> item) {
+  Widget _buildQuickCard(Map<String, dynamic> item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEBEFF4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => Navigator.pop(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              item['icon'] as IconData,
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    item['icon'] as IconData,
-                    color: AppColors.secondary,
-                    size: 20,
+                Text(
+                  item['title'] as String,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item['title'] as String,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Text(
-                        item['subtitle'] as String,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 4),
+                Text(
+                  item['subtitle'] as String,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    color: AppColors.textMuted,
+                    height: 1.45,
                   ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: Color(0xFFCCCCCC),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileCard(UserProfile profile) {
+    return InkWell(
+      onTap: () => _openProfile(profile),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE8EDF5)),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: const Color(0xFFEAF0FA),
+              backgroundImage: profile.fotoUrl != null
+                  ? NetworkImage(profile.fotoUrl!)
+                  : null,
+              child: profile.fotoUrl == null
+                  ? Text(
+                      profile.nomeExibicao.characters.first.toUpperCase(),
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    profile.nomeExibicao,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _roleLabel(profile.role),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  String _roleLabel(String role) {
+    switch (role.trim().toUpperCase()) {
+      case 'ATHLETE':
+        return 'Atleta';
+      case 'DIRECTOR':
+        return 'Diretoria';
+      case 'PRESIDENT':
+        return 'Presidente';
+      case 'ADMIN':
+        return 'Admin';
+      default:
+        return 'Perfil';
+    }
   }
 }

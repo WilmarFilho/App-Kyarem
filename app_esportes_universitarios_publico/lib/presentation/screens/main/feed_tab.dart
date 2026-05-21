@@ -1,146 +1,20 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/app_colors.dart';
+import '../../../../models/social_models.dart';
+import '../../../../services/profile_service.dart';
+import '../../../../services/social_realtime_service.dart';
+import '../../../../services/social_service.dart';
 import '../../widgets/layout/main_top_bar.dart';
+import '../../widgets/social/social_comments_sheet.dart';
+import '../../widgets/social/social_post_card.dart';
+import 'public_profile_screen.dart';
 
-class _FeedComment {
-  final String author;
-  final String athletic;
-  final String avatarUrl;
-  final String text;
-  final String timeLabel;
-  final List<_FeedComment> replies;
-
-  const _FeedComment({
-    required this.author,
-    required this.athletic,
-    required this.avatarUrl,
-    required this.text,
-    required this.timeLabel,
-    this.replies = const [],
-  });
-}
-
-class _FeedPost {
-  final String author;
-  final String athletic;
-  final String avatarUrl;
-  final String timeLabel;
-  final String text;
-  final String? imageUrl;
-  final int likes;
-  final int comments;
-  final int shares;
-  final bool liked;
-  final List<_FeedComment> commentPreview;
-
-  const _FeedPost({
-    required this.author,
-    required this.athletic,
-    required this.avatarUrl,
-    required this.timeLabel,
-    required this.text,
-    this.imageUrl,
-    required this.likes,
-    required this.comments,
-    required this.shares,
-    this.liked = false,
-    this.commentPreview = const [],
-  });
-}
-
-const _feedPosts = [
-  _FeedPost(
-    author: 'Marina Costa',
-    athletic: 'Torcedora da AAAFEI',
-    avatarUrl: 'https://i.pravatar.cc/160?img=12',
-    timeLabel: 'Hoje, 14:12',
-    text:
-        'A energia no ginásio está absurda. AAAFEI começou pressionando desde o aquecimento e a bateria da torcida não parou um segundo.',
-    likes: 128,
-    comments: 18,
-    shares: 7,
-    liked: true,
-    commentPreview: [
-      _FeedComment(
-        author: 'Leo Martins',
-        athletic: 'CAASO',
-        avatarUrl: 'https://i.pravatar.cc/160?img=24',
-        text: 'Esse clima de jogo universitário é bom demais.',
-        timeLabel: 'há 12 min',
-        replies: [
-          _FeedComment(
-            author: 'Marina Costa',
-            athletic: 'AAAFEI',
-            avatarUrl: 'https://i.pravatar.cc/160?img=12',
-            text: 'Total. E o pessoal ainda promete mosaico no segundo tempo.',
-            timeLabel: 'há 8 min',
-          ),
-        ],
-      ),
-    ],
-  ),
-  _FeedPost(
-    author: 'João Vilela',
-    athletic: 'Torcedor da AAAUSP',
-    avatarUrl: 'https://i.pravatar.cc/160?img=33',
-    timeLabel: 'Hoje, 13:41',
-    text:
-        'Chegada das delegações no complexo. Organização caprichou demais nessa entrada.',
-    imageUrl: 'https://picsum.photos/seed/delegacoes-feed/900/620',
-    likes: 206,
-    comments: 31,
-    shares: 14,
-    commentPreview: [
-      _FeedComment(
-        author: 'Bia Nogueira',
-        athletic: 'UNESP Rio Claro',
-        avatarUrl: 'https://i.pravatar.cc/160?img=41',
-        text: 'Ficou lindo. A cobertura visual desse evento está muito boa.',
-        timeLabel: 'há 20 min',
-      ),
-      _FeedComment(
-        author: 'Gui Teles',
-        athletic: 'Atlética Medicina',
-        avatarUrl: 'https://i.pravatar.cc/160?img=56',
-        text: 'Quero ver a quadra principal à noite também.',
-        timeLabel: 'há 16 min',
-      ),
-    ],
-  ),
-  _FeedPost(
-    author: 'Ana Luiza',
-    athletic: 'Torcedora da AAUNICAMP',
-    avatarUrl: 'https://i.pravatar.cc/160?img=47',
-    timeLabel: 'Ontem, 22:08',
-    text:
-        'Resumo do dia: vôlei decidido no detalhe, ginásio cheio e muita gente nova conhecendo as atléticas pela primeira vez. Esse tipo de evento aproxima demais.',
-    imageUrl: 'https://picsum.photos/seed/volei-noturno/900/620',
-    likes: 94,
-    comments: 12,
-    shares: 5,
-    commentPreview: [
-      _FeedComment(
-        author: 'Carol Prado',
-        athletic: 'Torcedora da CAAFEA',
-        avatarUrl: 'https://i.pravatar.cc/160?img=18',
-        text: 'As fotos da noite ficaram incríveis.',
-        timeLabel: 'há 1 h',
-        replies: [
-          _FeedComment(
-            author: 'Ana Luiza',
-            athletic: 'AAUNICAMP',
-            avatarUrl: 'https://i.pravatar.cc/160?img=47',
-            text: 'Vou subir mais algumas depois. Te marco lá.',
-            timeLabel: 'há 53 min',
-          ),
-        ],
-      ),
-    ],
-  ),
-];
-
-class FeedTab extends StatelessWidget {
+class FeedTab extends StatefulWidget {
   const FeedTab({
     super.key,
     required this.onProfileTap,
@@ -151,441 +25,451 @@ class FeedTab extends StatelessWidget {
   final bool hasPendingInvite;
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-      children: [
-        MainTopBar(
-          onProfileTap: onProfileTap,
-          hasPendingInvite: hasPendingInvite,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Feed',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+  State<FeedTab> createState() => _FeedTabState();
+}
+
+class _FeedTabState extends State<FeedTab> {
+  final SocialService _socialService = SocialService();
+  final ProfileService _profileService = ProfileService();
+  final SocialRealtimeService _realtimeService = SocialRealtimeService.instance;
+  final ImagePicker _imagePicker = ImagePicker();
+
+  List<SocialPost> _posts = const [];
+  bool _loading = true;
+  bool _publishing = false;
+  String? _myUserId;
+  String? _myAvatarUrl;
+  StreamSubscription<void>? _realtimeSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeed();
+    _loadMe();
+    _realtimeService.start();
+    _realtimeSubscription = _realtimeService.updates.listen((_) {
+      if (mounted) _loadFeed(silent: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadMe() async {
+    final profile = await _profileService.getMyProfile();
+    if (!mounted || profile == null) return;
+    setState(() {
+      _myUserId = profile.id;
+      _myAvatarUrl = profile.fotoUrl;
+    });
+  }
+
+  Future<void> _loadFeed({bool silent = false}) async {
+    if (!silent) {
+      setState(() => _loading = true);
+    }
+    try {
+      final posts = await _socialService.fetchFeed();
+      if (!mounted) return;
+      setState(() {
+        _posts = posts;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggleLike(SocialPost post) async {
+    try {
+      final updated = post.likedByMe
+          ? await _socialService.unlikePost(post.id)
+          : await _socialService.likePost(post.id);
+      if (!mounted) return;
+      setState(() {
+        _posts = _posts
+            .map((item) => item.id == updated.id ? updated : item)
+            .toList();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _openComments(SocialPost post) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return SocialCommentsSheet(
+          post: post,
+          socialService: _socialService,
+          onAuthorTap: _openAuthorProfile,
+        );
+      },
+    );
+    await _loadFeed(silent: true);
+  }
+
+  Future<void> _openCreatePostSheet() async {
+    final textController = TextEditingController();
+    String? uploadedImageUrl;
+    File? selectedImage;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> pickImage() async {
+              final image = await _imagePicker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 88,
+              );
+              if (image == null) return;
+              setSheetState(() => selectedImage = File(image.path));
+            }
+
+            Future<void> publish() async {
+              if (_publishing) return;
+              final text = textController.text.trim();
+              if (text.isEmpty && selectedImage == null) return;
+
+              setState(() => _publishing = true);
+              try {
+                if (selectedImage != null) {
+                  uploadedImageUrl =
+                      await _socialService.uploadPostImage(selectedImage!);
+                }
+                await _socialService.createPost(
+                  content: text.isEmpty ? null : text,
+                  imageUrl: uploadedImageUrl,
+                );
+                if (!mounted) return;
+                Navigator.of(sheetContext).pop();
+                await _loadFeed(silent: true);
+              } catch (_) {
+              } finally {
+                if (mounted) {
+                  setState(() => _publishing = false);
+                }
+              }
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 18,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Acompanhe comentários, bastidores, fotos e reações das atléticas em tempo real.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textMuted,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0A2342), Color(0xFF194B8F)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Clima do evento',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFFAFC7F3),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Torcida aquecida, quadras lotando e muita postagem nova subindo agora.',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              height: 1.35,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: const [
-                              _StatusChip(label: '128 posts hoje'),
-                              _StatusChip(label: '36 fotos novas'),
-                            ],
-                          ),
-                        ],
+                    const Text(
+                      'Novo post',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Compartilhe o clima da torcida, uma foto do evento ou um comentário rápido.',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: AppColors.textMuted,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: textController,
+                      maxLines: 5,
+                      minLines: 4,
+                      style: const TextStyle(fontFamily: 'Poppins'),
+                      decoration: InputDecoration(
+                        hintText: 'O que está rolando por aí?',
+                        hintStyle: const TextStyle(
+                          fontFamily: 'Poppins',
+                          color: AppColors.textMuted,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF4F7FB),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    if (selectedImage != null) ...[
+                      ClipRRect(
                         borderRadius: BorderRadius.circular(18),
+                        child: Image.file(
+                          selectedImage!,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.dynamic_feed_rounded,
-                        size: 28,
-                        color: Colors.white,
-                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: pickImage,
+                          icon: const Icon(Icons.image_outlined),
+                          label: const Text('Adicionar imagem'),
+                        ),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: _publishing ? null : publish,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: _publishing
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Publicar',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-              ..._feedPosts.map((post) => _FeedPostCard(post: post)),
-            ],
-          ),
-        ),
-      ],
+            );
+          },
+        );
+      },
     );
   }
-}
 
-class _FeedPostCard extends StatelessWidget {
-  const _FeedPostCard({required this.post});
-
-  final _FeedPost post;
+  void _openAuthorProfile(SocialAuthor author) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(
+          profileId: author.id,
+          currentUserId: _myUserId,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE8EDF5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+    final totalPosts = _posts.length;
+    final totalFotos = _posts.where((post) => (post.imageUrl ?? '').isNotEmpty).length;
+
+    return RefreshIndicator(
+      onRefresh: _loadFeed,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+        children: [
+          MainTopBar(
+            onProfileTap: widget.onProfileTap,
+            hasPendingInvite: widget.hasPendingInvite,
+            trailing: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: _openCreatePostSheet,
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.secondary.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 22,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: NetworkImage(post.avatarUrl),
+                Text(
+                  'Feed',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 8),
+                Text(
+                  'Acompanhe comentários, bastidores, fotos e reações das pessoas que você decidiu seguir.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textMuted,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0A2342), Color(0xFF194B8F)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
                     children: [
-                      Text(
-                        post.author,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Clima da sua bolha',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFAFC7F3),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Torcida aquecida, fotos novas subindo e comentários ao vivo de quem você acompanha.',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _StatusChip(label: '$totalPosts posts'),
+                                _StatusChip(label: '$totalFotos fotos'),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        post.athletic,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        post.timeLabel,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11,
-                          color: AppColors.textMuted,
-                        ),
+                      const SizedBox(width: 16),
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.white.withValues(alpha: 0.14),
+                        backgroundImage: _myAvatarUrl != null
+                            ? NetworkImage(_myAvatarUrl!)
+                            : null,
+                        child: _myAvatarUrl == null
+                            ? const Icon(
+                                Icons.dynamic_feed_rounded,
+                                size: 28,
+                                color: Colors.white,
+                              )
+                            : null,
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.more_horiz_rounded,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Text(
-              post.text,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                height: 1.55,
-              ),
-            ),
-          ),
-          if (post.imageUrl != null) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: Image.network(
-                post.imageUrl!,
-                height: 220,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ],
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Row(
-              children: [
-                _EngagementPill(
-                  icon: post.liked
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  label: '${post.likes}',
-                  active: post.liked,
-                ),
-                const SizedBox(width: 8),
-                _EngagementPill(
-                  icon: Icons.mode_comment_outlined,
-                  label: '${post.comments}',
-                ),
-                const SizedBox(width: 8),
-                _EngagementPill(
-                  icon: Icons.repeat_rounded,
-                  label: '${post.shares}',
-                ),
-              ],
-            ),
-          ),
-          if (post.commentPreview.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7FAFE),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: post.commentPreview
-                      .map((comment) => _CommentTile(comment: comment))
-                      .toList(),
-                ),
-              ),
-            ),
-          ],
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
+                const SizedBox(height: 18),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 60),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_posts.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF4F7FB),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE8EDF5)),
                     ),
-                    child: const Text(
-                      'Escrever comentário...',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.send_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, this.isReply = false});
-
-  final _FeedComment comment;
-  final bool isReply;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isReply ? 0 : 12,
-        left: isReply ? 18 : 0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: isReply ? 14 : 16,
-                backgroundImage: NetworkImage(comment.avatarUrl),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                    child: const Column(
                       children: [
+                        Icon(
+                          Icons.groups_rounded,
+                          size: 44,
+                          color: AppColors.secondary,
+                        ),
+                        SizedBox(height: 12),
                         Text(
-                          comment.author,
-                          style: const TextStyle(
+                          'Seu feed ainda está vazio.',
+                          style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 12,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
                           ),
                         ),
+                        SizedBox(height: 8),
                         Text(
-                          comment.athletic,
-                          style: const TextStyle(
+                          'Siga perfis pela busca e publique os primeiros bastidores para começar a conversa.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 11,
-                            color: AppColors.secondary,
-                          ),
-                        ),
-                        Text(
-                          comment.timeLabel,
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 11,
                             color: AppColors.textMuted,
+                            height: 1.5,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      comment.text,
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        color: AppColors.textPrimary,
-                        height: 1.45,
-                      ),
+                  )
+                else
+                  ..._posts.map(
+                    (post) => SocialPostCard(
+                      post: post,
+                      onAuthorTap: _openAuthorProfile,
+                      onToggleLike: _toggleLike,
+                      onOpenComments: () => _openComments(post),
                     ),
-                    if (!isReply) ...[
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Curtir  •  Responder',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (comment.replies.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ...comment.replies.map(
-              (reply) => _CommentTile(comment: reply, isReply: true),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _EngagementPill extends StatelessWidget {
-  const _EngagementPill({
-    required this.icon,
-    required this.label,
-    this.active = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: active
-            ? AppColors.danger.withValues(alpha: 0.08)
-            : const Color(0xFFF7FAFE),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: active ? AppColors.danger : AppColors.textMuted,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: active ? AppColors.danger : AppColors.textMuted,
+                  ),
+              ],
             ),
           ),
         ],

@@ -29,4 +29,9 @@ public class RabbitTopologyConfig {
     Binding bindRealtimeNotify(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
         return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("match.score.updated");
     }
+
+    @Bean
+    Binding bindRealtimeSocial(Queue realtimeNotifyQueue, TopicExchange kyaremExchange) {
+        return BindingBuilder.bind(realtimeNotifyQueue).to(kyaremExchange).with("social.#");
+    }
 }
