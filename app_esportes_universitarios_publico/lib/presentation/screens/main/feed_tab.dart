@@ -138,8 +138,6 @@ class _FeedTabState extends State<FeedTab> {
 
   @override
   Widget build(BuildContext context) {
-    final totalPosts = _posts.length;
-    final totalFotos = _posts.where((post) => (post.imageUrl ?? '').isNotEmpty).length;
 
     return RefreshIndicator(
       onRefresh: _loadFeed,
@@ -316,6 +314,7 @@ class _FeedTabState extends State<FeedTab> {
   }
 }
 
+// ignore: unused_element
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.label});
 
