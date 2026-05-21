@@ -49,6 +49,11 @@ class PublicInteractionService {
     await prefs.setString(_atleticaTorcidaKey(campeonatoAtleticaId), atleticaId);
   }
 
+  Future<void> clearAtleticaTorcida(String campeonatoAtleticaId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_atleticaTorcidaKey(campeonatoAtleticaId));
+  }
+
   Future<void> submitChatMessage({
     required String partidaId,
     required String displayName,
@@ -88,11 +93,19 @@ class PublicInteractionService {
   Future<void> submitAtleticaTorcida({
     required String campeonatoAtleticaId,
     required String atleticaId,
+    bool removeVote = false,
   }) async {
+    if (campeonatoAtleticaId.trim().isEmpty || atleticaId.trim().isEmpty) {
+      throw Exception(
+        'Não foi possível atualizar a torcida desta atlética agora.',
+      );
+    }
+
     final response = await _supabase.functions.invoke(
       'public-vote-submit',
       body: {
         'scope': 'atletica',
+        'action': removeVote ? 'remove' : 'upsert',
         'campeonatoAtleticaId': campeonatoAtleticaId,
         'atleticaId': atleticaId,
         'deviceId': await getDeviceId(),
@@ -100,7 +113,11 @@ class PublicInteractionService {
     );
 
     _throwIfFunctionFailed(response.data);
-    await saveAtleticaTorcida(campeonatoAtleticaId, atleticaId);
+    if (removeVote) {
+      await clearAtleticaTorcida(campeonatoAtleticaId);
+    } else {
+      await saveAtleticaTorcida(campeonatoAtleticaId, atleticaId);
+    }
   }
 
   void _throwIfFunctionFailed(dynamic data) {

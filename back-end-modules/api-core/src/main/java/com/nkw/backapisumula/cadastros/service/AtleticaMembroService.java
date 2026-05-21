@@ -58,7 +58,7 @@ public class AtleticaMembroService {
 
     public List<AtleticaMembro> listConvitesByUser(UUID userId) {
         return membroRepository.findByUser_IdOrderByCriadoEmDesc(userId).stream()
-                .filter(membro -> isManagerPapel(membro.getPapelCodigo()))
+                .filter(membro -> isRespondableInvitePapel(membro.getPapelCodigo()))
                 .toList();
     }
 
@@ -257,6 +257,12 @@ public class AtleticaMembroService {
                 || "DIRECTOR".equalsIgnoreCase(papelCodigo);
     }
 
+    private boolean isRespondableInvitePapel(String papelCodigo) {
+        return "PRESIDENT".equalsIgnoreCase(papelCodigo)
+                || "DIRECTOR".equalsIgnoreCase(papelCodigo)
+                || "ATHLETE".equalsIgnoreCase(papelCodigo);
+    }
+
     private String normalizePapel(String papelCodigo) {
         return papelCodigo == null ? "" : papelCodigo.trim().toUpperCase(Locale.ROOT);
     }
@@ -266,7 +272,7 @@ public class AtleticaMembroService {
             throw new IllegalStateException("Essa convocação não pertence ao usuário autenticado.");
         }
 
-        if (!isManagerPapel(membro.getPapelCodigo())) {
+        if (!isRespondableInvitePapel(membro.getPapelCodigo())) {
             throw new IllegalStateException("Este vínculo não pode ser respondido por este fluxo.");
         }
     }

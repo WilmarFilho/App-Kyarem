@@ -30,11 +30,15 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
 
   List<Campeonato> _campeonatos = [];
   List<dynamic> _modalidades = [];
+  List<Atletica> _atleticas = [];
+  List<Equipe> _equipesDoCampeonato = [];
   List<Equipe> _equipes = [];
   List<Arbitro> _arbitros = [];
 
   String? _selectedCampeonatoId;
   String? _selectedModalidadeId;
+  String? _selectedAtleticaAId;
+  String? _selectedAtleticaBId;
   String? _selectedEquipeAId;
   String? _selectedEquipeBId;
 
@@ -103,13 +107,16 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
     setState(() => _isLoadingBase = true);
 
     final campeonatosFuture = _apiService.listarCampeonatos();
+    final atleticasFuture = _apiService.listarAtleticas();
     final arbitrosFuture = _apiService.listarArbitros();
     final campeonatosResult = await campeonatosFuture;
+    final atleticasResult = await atleticasFuture;
     final arbitrosResult = await arbitrosFuture;
 
     if (!mounted) return;
     setState(() {
       _campeonatos = campeonatosResult;
+      _atleticas = atleticasResult;
       _arbitros = arbitrosResult;
     });
 
@@ -175,8 +182,11 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
             (m) => m['id']?.toString() == _selectedModalidadeId,
           )) {
         _selectedModalidadeId = null;
+        _selectedAtleticaAId = null;
+        _selectedAtleticaBId = null;
         _selectedEquipeAId = null;
         _selectedEquipeBId = null;
+        _equipesDoCampeonato = [];
         _equipes = [];
       }
       _isLoadingModalidades = false;
@@ -190,6 +200,7 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
   Future<void> _carregarEquipes(String modalidadeId) async {
     setState(() {
       _isLoadingEquipes = true;
+      _equipesDoCampeonato = [];
       _equipes = [];
     });
     if (_selectedCampeonatoId == null) {
@@ -204,6 +215,7 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
 
     if (!mounted) return;
     setState(() {
+      _equipesDoCampeonato = equipesResult;
       _equipes = equipesResult
           .where((e) => e.campeonatoModalidadeId == modalidadeId)
           .toList();
@@ -214,6 +226,14 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
       if (_selectedEquipeBId != null &&
           !_equipes.any((e) => e.id == _selectedEquipeBId)) {
         _selectedEquipeBId = null;
+      }
+      final equipeA = _selectedEquipeA;
+      if (equipeA != null) {
+        _selectedAtleticaAId = _resolveEquipeAtleticaId(equipeA);
+      }
+      final equipeB = _selectedEquipeB;
+      if (equipeB != null) {
+        _selectedAtleticaBId = _resolveEquipeAtleticaId(equipeB);
       }
       _isLoadingEquipes = false;
     });
@@ -233,9 +253,12 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
     setState(() {
       _selectedCampeonatoId = newId;
       _selectedModalidadeId = null;
+      _selectedAtleticaAId = null;
+      _selectedAtleticaBId = null;
       _selectedEquipeAId = null;
       _selectedEquipeBId = null;
       _modalidades = [];
+      _equipesDoCampeonato = [];
       _equipes = [];
     });
     if (newId != null) _carregarModalidades(newId);
@@ -244,11 +267,34 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
   void _onModalidadeChanged(String? newId) {
     setState(() {
       _selectedModalidadeId = newId;
+      _selectedAtleticaAId = null;
+      _selectedAtleticaBId = null;
       _selectedEquipeAId = null;
       _selectedEquipeBId = null;
+      _equipesDoCampeonato = [];
       _equipes = [];
     });
     if (newId != null) _carregarEquipes(newId);
+  }
+
+  void _onAtleticaAChanged(String? newId) {
+    setState(() {
+      _selectedAtleticaAId = newId;
+      if (_selectedEquipeA != null &&
+          _resolveEquipeAtleticaId(_selectedEquipeA!) != newId) {
+        _selectedEquipeAId = null;
+      }
+    });
+  }
+
+  void _onAtleticaBChanged(String? newId) {
+    setState(() {
+      _selectedAtleticaBId = newId;
+      if (_selectedEquipeB != null &&
+          _resolveEquipeAtleticaId(_selectedEquipeB!) != newId) {
+        _selectedEquipeBId = null;
+      }
+    });
   }
 
   String? _safeValue(String? value, List<String> validIds) {
@@ -265,6 +311,99 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
         return !idsSelecionados.contains(a.id);
       }).toList()
       ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+  }
+
+  Equipe? get _selectedEquipeA {
+    if (_selectedEquipeAId == null) return null;
+    for (final equipe in _equipes) {
+      if (equipe.id == _selectedEquipeAId) return equipe;
+    }
+    return null;
+  }
+
+  Equipe? get _selectedEquipeB {
+    if (_selectedEquipeBId == null) return null;
+    for (final equipe in _equipes) {
+      if (equipe.id == _selectedEquipeBId) return equipe;
+    }
+    return null;
+  }
+
+  Atletica? _findAtleticaById(String? atleticaId) {
+    if (atleticaId == null || atleticaId.isEmpty) return null;
+    for (final atletica in _atleticas) {
+      if (atletica.id == atleticaId) return atletica;
+    }
+    return null;
+  }
+
+  String _resolveEquipeAtleticaId(Equipe equipe) {
+    if (equipe.atleticaId.isNotEmpty) return equipe.atleticaId;
+    if (equipe.atletica?.id.isNotEmpty == true) return equipe.atletica!.id;
+
+    final nomeAtletica = equipe.atletica?.nome.trim().toLowerCase();
+    if (nomeAtletica != null && nomeAtletica.isNotEmpty) {
+      for (final atletica in _atleticas) {
+        if (atletica.nome.trim().toLowerCase() == nomeAtletica) {
+          return atletica.id;
+        }
+      }
+    }
+
+    return '';
+  }
+
+  List<Equipe> _equipesDaAtletica(String? atleticaId) {
+    if (atleticaId == null || atleticaId.isEmpty) return const [];
+    return _equipes
+        .where((equipe) => _resolveEquipeAtleticaId(equipe) == atleticaId)
+        .toList();
+  }
+
+  List<Atletica> get _atleticasDisponiveisParaSelecao {
+    if (_selectedCampeonatoId == null) return const [];
+    if (_atleticas.isEmpty) return const [];
+    if (_equipesDoCampeonato.isEmpty) {
+      final fallback = List<Atletica>.from(_atleticas);
+      fallback.sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+      return fallback;
+    }
+
+    final atleticasPorId = <String, Atletica>{};
+    for (final equipe in _equipesDoCampeonato) {
+      final atleticaId = _resolveEquipeAtleticaId(equipe);
+      if (atleticaId.isEmpty) continue;
+      final atletica = _findAtleticaById(atleticaId) ?? equipe.atletica;
+      if (atletica != null) {
+        atleticasPorId[atleticaId] = atletica;
+      }
+    }
+
+    if (atleticasPorId.isEmpty) {
+      final fallback = List<Atletica>.from(_atleticas);
+      fallback.sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+      return fallback;
+    }
+
+    final result = atleticasPorId.values.toList();
+    result.sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+    return result;
+  }
+
+  String _atleticaLabel(Atletica atletica) {
+    final sigla = atletica.sigla?.trim();
+    if (sigla != null && sigla.isNotEmpty) {
+      return '$sigla · ${atletica.nome}';
+    }
+    return atletica.nome;
+  }
+
+  String _equipeLabel(Equipe equipe) {
+    final sigla = equipe.atletica?.sigla?.trim();
+    if (sigla != null && sigla.isNotEmpty) {
+      return '$sigla · ${equipe.nome}';
+    }
+    return equipe.nome;
   }
 
   Future<void> _adicionarArbitro() async {
@@ -457,6 +596,8 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
     required List<T> items,
     required String Function(T) labelBuilder,
     required void Function(T) onSelected,
+    String Function(T)? subtitleBuilder,
+    String searchHint = 'Buscar...',
   }) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -465,55 +606,16 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      title: Text(labelBuilder(item)),
-                      onTap: () {
-                        onSelected(item);
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+        return _SearchableSelectionSheet<T>(
+          title: title,
+          items: items,
+          labelBuilder: labelBuilder,
+          subtitleBuilder: subtitleBuilder,
+          searchHint: searchHint,
+          onSelected: (item) {
+            onSelected(item);
+            Navigator.pop(context);
+          },
         );
       },
     );
@@ -701,32 +803,70 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                       _buildSectionHeader(Icons.groups, 'Times / Equipes'),
                       const SizedBox(height: 12),
                       CustomSelectorField<String>(
+                        label: 'Atlética do Time A',
+                        hint: _selectedModalidadeId == null
+                            ? 'Selecione a modalidade do campeonato primeiro'
+                            : 'Selecione a atlética do Time A',
+                        value: _safeValue(
+                          _selectedAtleticaAId,
+                          _atleticasDisponiveisParaSelecao
+                              .map((a) => a.id)
+                              .toList(),
+                        ),
+                        valueText: _selectedAtleticaAId == null
+                            ? null
+                            : _findAtleticaById(_selectedAtleticaAId) == null
+                            ? null
+                            : _atleticaLabel(
+                                _findAtleticaById(_selectedAtleticaAId)!,
+                              ),
+                        onTap: _selectedModalidadeId == null
+                            ? null
+                            : () => _showSelectionModal<Atletica>(
+                                title: 'Selecione a Atlética do Time A',
+                                items: _atleticasDisponiveisParaSelecao,
+                                labelBuilder: _atleticaLabel,
+                                subtitleBuilder: (a) =>
+                                    a.status?.isNotEmpty == true
+                                    ? a.status!
+                                    : 'Atlética',
+                                searchHint: 'Buscar atlética...',
+                                onSelected: (a) => _onAtleticaAChanged(a.id),
+                              ),
+                        validator: (v) => _selectedAtleticaAId == null
+                            ? 'Obrigatório'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      CustomSelectorField<String>(
                         label: 'Time inscrito A',
                         hint: _selectedModalidadeId == null
                             ? 'Selecione a modalidade do campeonato primeiro'
+                            : _selectedAtleticaAId == null
+                            ? 'Selecione a atlética do Time A primeiro'
                             : 'Selecione o time inscrito A',
                         isLoading: _isLoadingEquipes,
                         value: _safeValue(
                           _selectedEquipeAId,
-                          _equipes.map((e) => e.id).toList(),
+                          _equipesDaAtletica(_selectedAtleticaAId)
+                              .map((e) => e.id)
+                              .toList(),
                         ),
-                        valueText: _selectedEquipeAId == null
+                        valueText: _selectedEquipeA?.nome == null
                             ? null
-                            : () {
-                                final e = _equipes.firstWhere(
-                                  (eq) => eq.id == _selectedEquipeAId,
-                                  orElse: () => _equipes.first,
-                                );
-                                return '${e.atletica?.sigla ?? ''} · ${e.nome}';
-                              }(),
-                        onTap: () => _showSelectionModal<Equipe>(
-                          title: 'Selecione o Time A',
-                          items: _equipes,
-                          labelBuilder: (e) =>
-                              '${e.atletica?.sigla ?? ''} · ${e.nome}',
-                          onSelected: (e) =>
-                              setState(() => _selectedEquipeAId = e.id),
-                        ),
+                            : _equipeLabel(_selectedEquipeA!),
+                        onTap: _selectedAtleticaAId == null
+                            ? null
+                            : () => _showSelectionModal<Equipe>(
+                                title: 'Selecione o Time A',
+                                items: _equipesDaAtletica(_selectedAtleticaAId),
+                                labelBuilder: _equipeLabel,
+                                subtitleBuilder: (e) =>
+                                    e.atletica?.nome ?? 'Time inscrito',
+                                searchHint: 'Buscar time...',
+                                onSelected: (e) =>
+                                    setState(() => _selectedEquipeAId = e.id),
+                              ),
                         validator: (v) =>
                             _selectedEquipeAId == null ? 'Obrigatório' : null,
                       ),
@@ -734,32 +874,70 @@ class _PartidaFormScreenState extends State<PartidaFormScreen> {
                         _buildVerAtletasButton(_selectedEquipeAId!, 'Time A'),
                       const SizedBox(height: 14),
                       CustomSelectorField<String>(
+                        label: 'Atlética do Time B',
+                        hint: _selectedModalidadeId == null
+                            ? 'Selecione a modalidade do campeonato primeiro'
+                            : 'Selecione a atlética do Time B',
+                        value: _safeValue(
+                          _selectedAtleticaBId,
+                          _atleticasDisponiveisParaSelecao
+                              .map((a) => a.id)
+                              .toList(),
+                        ),
+                        valueText: _selectedAtleticaBId == null
+                            ? null
+                            : _findAtleticaById(_selectedAtleticaBId) == null
+                            ? null
+                            : _atleticaLabel(
+                                _findAtleticaById(_selectedAtleticaBId)!,
+                              ),
+                        onTap: _selectedModalidadeId == null
+                            ? null
+                            : () => _showSelectionModal<Atletica>(
+                                title: 'Selecione a Atlética do Time B',
+                                items: _atleticasDisponiveisParaSelecao,
+                                labelBuilder: _atleticaLabel,
+                                subtitleBuilder: (a) =>
+                                    a.status?.isNotEmpty == true
+                                    ? a.status!
+                                    : 'Atlética',
+                                searchHint: 'Buscar atlética...',
+                                onSelected: (a) => _onAtleticaBChanged(a.id),
+                              ),
+                        validator: (v) => _selectedAtleticaBId == null
+                            ? 'Obrigatório'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      CustomSelectorField<String>(
                         label: 'Time inscrito B',
                         hint: _selectedModalidadeId == null
                             ? 'Selecione a modalidade do campeonato primeiro'
+                            : _selectedAtleticaBId == null
+                            ? 'Selecione a atlética do Time B primeiro'
                             : 'Selecione o time inscrito B',
                         isLoading: _isLoadingEquipes,
                         value: _safeValue(
                           _selectedEquipeBId,
-                          _equipes.map((e) => e.id).toList(),
+                          _equipesDaAtletica(_selectedAtleticaBId)
+                              .map((e) => e.id)
+                              .toList(),
                         ),
-                        valueText: _selectedEquipeBId == null
+                        valueText: _selectedEquipeB?.nome == null
                             ? null
-                            : () {
-                                final e = _equipes.firstWhere(
-                                  (eq) => eq.id == _selectedEquipeBId,
-                                  orElse: () => _equipes.first,
-                                );
-                                return '${e.atletica?.sigla ?? ''} · ${e.nome}';
-                              }(),
-                        onTap: () => _showSelectionModal<Equipe>(
-                          title: 'Selecione o Time B',
-                          items: _equipes,
-                          labelBuilder: (e) =>
-                              '${e.atletica?.sigla ?? ''} · ${e.nome}',
-                          onSelected: (e) =>
-                              setState(() => _selectedEquipeBId = e.id),
-                        ),
+                            : _equipeLabel(_selectedEquipeB!),
+                        onTap: _selectedAtleticaBId == null
+                            ? null
+                            : () => _showSelectionModal<Equipe>(
+                                title: 'Selecione o Time B',
+                                items: _equipesDaAtletica(_selectedAtleticaBId),
+                                labelBuilder: _equipeLabel,
+                                subtitleBuilder: (e) =>
+                                    e.atletica?.nome ?? 'Time inscrito',
+                                searchHint: 'Buscar time...',
+                                onSelected: (e) =>
+                                    setState(() => _selectedEquipeBId = e.id),
+                              ),
                         validator: (v) =>
                             _selectedEquipeBId == null ? 'Obrigatório' : null,
                       ),
@@ -1227,6 +1405,160 @@ class _ArbitroAssociationResult {
   const _ArbitroAssociationResult({this.falhas = const []});
 
   bool get temFalhas => falhas.isNotEmpty;
+}
+
+class _SearchableSelectionSheet<T> extends StatefulWidget {
+  final String title;
+  final List<T> items;
+  final String Function(T) labelBuilder;
+  final String Function(T)? subtitleBuilder;
+  final String searchHint;
+  final void Function(T) onSelected;
+
+  const _SearchableSelectionSheet({
+    required this.title,
+    required this.items,
+    required this.labelBuilder,
+    required this.onSelected,
+    this.subtitleBuilder,
+    this.searchHint = 'Buscar...',
+  });
+
+  @override
+  State<_SearchableSelectionSheet<T>> createState() =>
+      _SearchableSelectionSheetState<T>();
+}
+
+class _SearchableSelectionSheetState<T>
+    extends State<_SearchableSelectionSheet<T>> {
+  final TextEditingController _searchController = TextEditingController();
+  late List<T> _filteredItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = widget.items;
+    _searchController.addListener(_filterItems);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterItems() {
+    final term = _searchController.text.trim().toLowerCase();
+    setState(() {
+      _filteredItems = term.isEmpty
+          ? widget.items
+          : widget.items.where((item) {
+              final label = widget.labelBuilder(item).toLowerCase();
+              final subtitle =
+                  widget.subtitleBuilder?.call(item).toLowerCase() ?? '';
+              return label.contains(term) || subtitle.contains(term);
+            }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.45,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFF85C39)),
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _filteredItems.isEmpty
+                    ? const Center(
+                        child: Text('Nenhum resultado encontrado.'),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        itemCount: _filteredItems.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = _filteredItems[index];
+                          final subtitle = widget.subtitleBuilder?.call(item);
+                          return ListTile(
+                            title: Text(widget.labelBuilder(item)),
+                            subtitle: subtitle == null || subtitle.isEmpty
+                                ? null
+                                : Text(subtitle),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.black38,
+                            ),
+                            onTap: () => widget.onSelected(item),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _SelecionarArbitroSheet extends StatefulWidget {

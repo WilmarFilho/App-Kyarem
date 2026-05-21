@@ -349,9 +349,7 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
     bool shouldShowErrors = false;
     List<Campeonato> campeonatos = [];
     List<CampeonatoModalidade> modalidadesDoCampeonato = [];
-    final atletasDisponiveis = _membros
-        .where((m) => m.papelCodigo.toUpperCase() == 'ATHLETE')
-        .toList();
+    final atletasDisponiveis = _membros.where(_isMembroElegivelParaTime).toList();
 
     try {
       campeonatos = await _campeonatoService.getCampeonatos();
@@ -809,9 +807,7 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
     ModalidadeCatalogo? selectedModalidade;
     List<ModalidadeCatalogo> modalidadesCatalogo = [];
     List<String> selectedAtletaIds = [];
-    final atletasDisponiveis = _membros
-        .where((m) => m.papelCodigo.toUpperCase() == 'ATHLETE')
-        .toList();
+    final atletasDisponiveis = _membros.where(_isMembroElegivelParaTime).toList();
 
     try {
       final results = await Future.wait([
@@ -820,7 +816,11 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
       ]);
       modalidadesCatalogo = results[0] as List<ModalidadeCatalogo>;
       final atletasDoTime = results[1] as List<TimeAtleticaAtleta>;
-      selectedAtletaIds = atletasDoTime.map((atleta) => atleta.id).toList();
+      final atletaIdsElegiveis = atletasDisponiveis.map((m) => m.userId).toSet();
+      selectedAtletaIds = atletasDoTime
+          .map((atleta) => atleta.id)
+          .where(atletaIdsElegiveis.contains)
+          .toList();
       for (final modalidade in modalidadesCatalogo) {
         if (modalidade.id == time.modalidadeCatalogoId) {
           selectedModalidade = modalidade;
@@ -1555,6 +1555,44 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
         .toList();
   }
 
+  bool _isMembroElegivelParaTime(AtleticaMembro membro) {
+    return membro.papelCodigo.toUpperCase() == 'ATHLETE' &&
+        membro.status.trim().toUpperCase() == 'ATIVO';
+  }
+
+  String _membroStatusLabel(String status) {
+    switch (status.trim().toUpperCase()) {
+      case 'ATIVO':
+        return 'Convocação aceita';
+      case 'CONVOCADO':
+        return 'Aguardando aceite';
+      case 'RECUSADO':
+        return 'Convocação recusada';
+      default:
+        return status
+            .toLowerCase()
+            .replaceAll('_', ' ')
+            .split(' ')
+            .map((part) => part.isEmpty
+                ? part
+                : '${part[0].toUpperCase()}${part.substring(1)}')
+            .join(' ');
+    }
+  }
+
+  Color _membroStatusColor(String status) {
+    switch (status.trim().toUpperCase()) {
+      case 'ATIVO':
+        return Colors.green;
+      case 'CONVOCADO':
+        return Colors.orange;
+      case 'RECUSADO':
+        return Colors.redAccent;
+      default:
+        return AppColors.textMuted;
+    }
+  }
+
   List<TimeAtletica> get _timesFiltrados {
     if (_selectedModalidadeFilter == 'ALL') return _times;
     return _times
@@ -1752,24 +1790,54 @@ class _AtleticaRosterScreenState extends State<AtleticaRosterScreen> {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        m.papelLabel,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          color: AppColors.secondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            m.papelLabel,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              color: AppColors.secondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
+                        Builder(
+                          builder: (context) {
+                            final statusColor = _membroStatusColor(m.status);
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                _membroStatusLabel(m.status),
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  color: statusColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),

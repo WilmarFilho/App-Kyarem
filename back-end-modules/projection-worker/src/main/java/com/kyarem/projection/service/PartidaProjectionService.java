@@ -359,6 +359,7 @@ public class PartidaProjectionService {
 
     private void deleteCampeonatoTime(UUID campeonatoTimeId) {
         if (campeonatoTimeId != null) {
+            jdbcTemplate.update("DELETE FROM public.campeonato_atletas_publicos WHERE campeonato_time_id = ?", campeonatoTimeId);
             jdbcTemplate.update("DELETE FROM public.campeonato_times_publicos WHERE campeonato_time_id = ?", campeonatoTimeId);
         }
     }

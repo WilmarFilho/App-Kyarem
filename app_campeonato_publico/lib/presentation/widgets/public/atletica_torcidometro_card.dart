@@ -22,6 +22,10 @@ class _AtleticaTorcidometroCardState extends State<AtleticaTorcidometroCard> {
   String? _selectedAtleticaId;
   bool _isVoting = false;
 
+  bool get _hasValidIds =>
+      widget.atletica.campeonatoAtleticaId.trim().isNotEmpty &&
+      widget.atletica.atleticaId.trim().isNotEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -37,16 +41,37 @@ class _AtleticaTorcidometroCardState extends State<AtleticaTorcidometroCard> {
   }
 
   Future<void> _vote() async {
+    if (!_hasValidIds) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Esta atlética ainda não está pronta para receber torcida neste campeonato.',
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isVoting = true);
+    final isRemovingVote = _selectedAtleticaId == widget.atletica.atleticaId;
     try {
       await _interactionService.submitAtleticaTorcida(
         campeonatoAtleticaId: widget.atletica.campeonatoAtleticaId,
         atleticaId: widget.atletica.atleticaId,
+        removeVote: isRemovingVote,
       );
       if (!mounted) return;
-      setState(() => _selectedAtleticaId = widget.atletica.atleticaId);
+      setState(() {
+        _selectedAtleticaId = isRemovingVote ? null : widget.atletica.atleticaId;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Torcida da atlética registrada!')),
+        SnackBar(
+          content: Text(
+            isRemovingVote
+                ? 'Seu voto de torcida foi removido.'
+                : 'Torcida da atlética registrada!',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -69,6 +94,7 @@ class _AtleticaTorcidometroCardState extends State<AtleticaTorcidometroCard> {
         final votes = snapshot.data ?? const <Map<String, dynamic>>[];
         final total = votes.length;
         final isSelected = _selectedAtleticaId == widget.atletica.atleticaId;
+        final canVote = _hasValidIds && !_isVoting;
 
         return Container(
           width: double.infinity,
@@ -106,7 +132,7 @@ class _AtleticaTorcidometroCardState extends State<AtleticaTorcidometroCard> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _isVoting ? null : _vote,
+                  onPressed: canVote ? _vote : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         isSelected ? AppColors.orange : AppColors.primary,
@@ -127,13 +153,15 @@ class _AtleticaTorcidometroCardState extends State<AtleticaTorcidometroCard> {
                         )
                       : Icon(
                           isSelected
-                              ? Icons.check_circle_rounded
+                              ? Icons.remove_circle_outline_rounded
                               : Icons.campaign_outlined,
                         ),
                   label: Text(
                     isSelected
-                        ? 'Sua torcida está aqui'
-                        : 'Torcer por esta atlética',
+                        ? 'Remover minha torcida'
+                        : _hasValidIds
+                        ? 'Torcer por esta atlética'
+                        : 'Torcida indisponível no momento',
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,

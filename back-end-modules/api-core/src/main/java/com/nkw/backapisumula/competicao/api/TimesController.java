@@ -75,6 +75,7 @@ public class TimesController {
         @PostMapping("/atletica")
         @ResponseStatus(HttpStatus.CREATED)
         @PreAuthorize("isAuthenticated()")
+        @Transactional
         public TimeAtleticaResponse createTimeAtletica(@Valid @RequestBody CreateTimeAtleticaRequest request) {
                 ModalidadeCatalogo modalidade = modalidadeCatalogoRepository.findById(request.modalidadeCatalogoId())
                                 .orElseThrow(() -> new IllegalStateException("Modalidade catálogo não encontrada."));
@@ -95,6 +96,7 @@ public class TimesController {
 
         @PutMapping("/atletica/{timeId}")
         @PreAuthorize("isAuthenticated()")
+        @Transactional
         public TimeAtleticaResponse updateTimeAtletica(@PathVariable UUID timeId,
                         @Valid @RequestBody UpdateTimeAtleticaRequest request) {
                 TimeAtletica time = timeAtleticaRepository.findById(timeId)
@@ -159,6 +161,7 @@ public class TimesController {
         @PostMapping("/atletica/{timeId}/atletas")
         @ResponseStatus(HttpStatus.CREATED)
         @PreAuthorize("isAuthenticated()")
+        @Transactional
         public void adicionarAtletasTimePermanente(@PathVariable UUID timeId,
                         @Valid @RequestBody AddAtletasRequest request) {
                 TimeAtletica time = timeAtleticaRepository.findById(timeId)
@@ -223,10 +226,31 @@ public class TimesController {
                 CampeonatoTime time = campeonatoTimeRepository.findById(campeonatoTimeId)
                                 .orElseThrow(() -> new IllegalStateException("Time do campeonato não encontrado."));
 
+                @SuppressWarnings("unchecked")
+                List<UUID> campeonatoAtletaIds = entityManager.createNativeQuery("""
+                                SELECT id
+                                FROM operational.campeonato_atletas
+                                WHERE campeonato_time_id = :timeId
+                                """)
+                                .setParameter("timeId", campeonatoTimeId)
+                                .getResultList();
+
                 entityManager.createNativeQuery("DELETE FROM operational.campeonato_atletas WHERE campeonato_time_id = :timeId")
                                 .setParameter("timeId", campeonatoTimeId).executeUpdate();
                 entityManager.createNativeQuery("DELETE FROM operational.equipes_staff WHERE campeonato_time_id = :timeId")
                                 .setParameter("timeId", campeonatoTimeId).executeUpdate();
+
+                for (UUID campeonatoAtletaId : campeonatoAtletaIds) {
+                        eventPublisherService.publish(
+                                        "CampeonatoAtleta",
+                                        campeonatoAtletaId.toString(),
+                                        "CampeonatoAtletaExcluido",
+                                        java.util.Map.of(
+                                                        "campeonatoAtletaId", campeonatoAtletaId.toString(),
+                                                        "campeonatoTimeId", campeonatoTimeId.toString(),
+                                                        "campeonatoId", time.getCampeonato().getId().toString(),
+                                                        "campeonatoAtleticaId", time.getCampeonatoAtleticaId().toString()));
+                }
 
                 eventPublisherService.publish(
                                 "CampeonatoTime",
@@ -577,6 +601,29 @@ public class TimesController {
                                 .setParameter("campeonatoTimeId", campeonatoTime.getId())
                                 .setParameter("timeAtleticaId", campeonatoTime.getTime().getId())
                                 .executeUpdate();
+
+                @SuppressWarnings("unchecked")
+                List<UUID> campeonatoAtletaIds = entityManager.createNativeQuery("""
+                                SELECT id
+                                FROM operational.campeonato_atletas
+                                WHERE campeonato_time_id = :campeonatoTimeId
+                                """)
+                                .setParameter("campeonatoTimeId", campeonatoTime.getId())
+                                .getResultList();
+
+                for (UUID campeonatoAtletaId : campeonatoAtletaIds) {
+                        eventPublisherService.publish(
+                                        "CampeonatoAtleta",
+                                        campeonatoAtletaId.toString(),
+                                        "CampeonatoAtletaCriado",
+                                        java.util.Map.of(
+                                                        "campeonatoAtletaId", campeonatoAtletaId.toString(),
+                                                        "campeonatoTimeId", campeonatoTime.getId().toString(),
+                                                        "campeonatoId", campeonatoTime.getCampeonato().getId().toString(),
+                                                        "campeonatoAtleticaId",
+                                                        campeonatoTime.getCampeonatoAtleticaId().toString(),
+                                                        "atleticaId", campeonatoTime.getTime().getAtletica().getId().toString()));
+                }
         }
 
         private UUID ensureCampeonatoAtletica(UUID campeonatoId, UUID atleticaId) {
@@ -608,6 +655,15 @@ public class TimesController {
                                 .setParameter("campeonatoId", campeonatoId)
                                 .setParameter("atleticaId", atleticaId)
                                 .executeUpdate();
+
+                eventPublisherService.publish(
+                                "CampeonatoAtletica",
+                                createdId.toString(),
+                                "CampeonatoAtleticaCriada",
+                                java.util.Map.of(
+                                                "campeonatoAtleticaId", createdId.toString(),
+                                                "campeonatoId", campeonatoId.toString(),
+                                                "atleticaId", atleticaId.toString()));
 
                 return createdId;
         }

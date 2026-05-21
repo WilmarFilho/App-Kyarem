@@ -682,7 +682,7 @@ class _ProfileTabState extends State<ProfileTab>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Acompanhe suas convocações para presidência ou diretoria e responda quando houver pendências.',
+            'Acompanhe suas convocações para presidência, diretoria ou elenco e responda quando houver pendências.',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 12,
@@ -720,7 +720,7 @@ class _ProfileTabState extends State<ProfileTab>
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Nenhum convite para presidência ou diretoria encontrado até agora.',
+              'Nenhum convite de atlética encontrado até agora.',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 13,
@@ -743,9 +743,8 @@ class _ProfileTabState extends State<ProfileTab>
         : isAccepted
         ? const Color(0xFF2E8B57)
         : AppColors.danger;
-    final roleLabel = invite.papelCodigo.trim().toUpperCase() == 'PRESIDENT'
-        ? 'Presidente'
-        : 'Diretor';
+    final roleLabel = _inviteRoleLabel(invite.papelCodigo);
+    final roleIcon = _inviteRoleIcon(invite.papelCodigo);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -774,12 +773,12 @@ class _ProfileTabState extends State<ProfileTab>
                           invite.atleticaEscudoUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => Icon(
-                            Icons.shield_outlined,
+                            roleIcon,
                             color: statusColor,
                           ),
                         ),
                       )
-                    : Icon(Icons.shield_outlined, color: statusColor),
+                    : Icon(roleIcon, color: statusColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -797,7 +796,7 @@ class _ProfileTabState extends State<ProfileTab>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Convite para atuar como $roleLabel',
+                      _inviteSubtitle(invite.papelCodigo, roleLabel),
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
@@ -1113,8 +1112,44 @@ class _ProfileTabState extends State<ProfileTab>
         return 'Diretor';
       case 'PRESIDENT':
         return 'Presidente';
+      case 'ATHLETE':
+        return 'Atleta';
       default:
         return 'Usuário';
+    }
+  }
+
+  String _inviteRoleLabel(String role) {
+    switch (role.trim().toUpperCase()) {
+      case 'PRESIDENT':
+        return 'Presidente';
+      case 'DIRECTOR':
+        return 'Diretor';
+      case 'ATHLETE':
+        return 'Atleta';
+      default:
+        return 'Membro';
+    }
+  }
+
+  IconData _inviteRoleIcon(String role) {
+    switch (role.trim().toUpperCase()) {
+      case 'PRESIDENT':
+      case 'DIRECTOR':
+        return Icons.shield_outlined;
+      case 'ATHLETE':
+        return Icons.sports_handball_outlined;
+      default:
+        return Icons.group_outlined;
+    }
+  }
+
+  String _inviteSubtitle(String role, String roleLabel) {
+    switch (role.trim().toUpperCase()) {
+      case 'ATHLETE':
+        return 'Convocação para entrar no elenco como $roleLabel';
+      default:
+        return 'Convite para atuar como $roleLabel';
     }
   }
 
@@ -1130,13 +1165,18 @@ class _ProfileTabState extends State<ProfileTab>
   }
 
   String _inviteStatusDescription(String status, String roleLabel) {
+    final isAthlete = roleLabel == 'Atleta';
     switch (status.trim().toUpperCase()) {
       case 'ATIVO':
-        return 'Você aceitou este convite e já está vinculado como $roleLabel desta atlética.';
+        return isAthlete
+            ? 'Você aceitou esta convocação e já faz parte do elenco desta atlética como $roleLabel.'
+            : 'Você aceitou este convite e já está vinculado como $roleLabel desta atlética.';
       case 'RECUSADO':
         return 'Você recusou este convite. Se precisar retomar o vínculo, será necessária uma nova convocação.';
       default:
-        return 'Existe uma convocação aguardando sua resposta para assumir o papel de $roleLabel nesta atlética.';
+        return isAthlete
+            ? 'Existe uma convocação aguardando sua resposta para entrar no elenco desta atlética como $roleLabel.'
+            : 'Existe uma convocação aguardando sua resposta para assumir o papel de $roleLabel nesta atlética.';
     }
   }
 }
@@ -1168,9 +1208,16 @@ class _InviteDecisionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final roleLabel = invite.papelCodigo.trim().toUpperCase() == 'PRESIDENT'
-        ? 'Presidente'
-        : 'Diretor';
+    final roleCode = invite.papelCodigo.trim().toUpperCase();
+    final roleLabel = switch (roleCode) {
+      'PRESIDENT' => 'Presidente',
+      'DIRECTOR' => 'Diretor',
+      'ATHLETE' => 'Atleta',
+      _ => 'Membro',
+    };
+    final invitationText = roleCode == 'ATHLETE'
+        ? 'Você foi convocado para integrar o elenco de ${invite.atleticaNome ?? 'uma atlética'} como $roleLabel.'
+        : 'Você foi convocado para atuar como $roleLabel em ${invite.atleticaNome ?? 'uma atlética'}.';
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -1191,7 +1238,7 @@ class _InviteDecisionDialog extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Você foi convocado para atuar como $roleLabel em ${invite.atleticaNome ?? 'uma atlética'}.',
+              invitationText,
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 13,
