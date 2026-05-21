@@ -213,8 +213,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                                 : null,
                             child: profile.fotoUrl == null
                                 ? Text(
-                                    profile.nomeExibicao.characters.first
-                                        .toUpperCase(),
+                                    profile.nomeExibicao.substring(0, 1).toUpperCase(),
                                     style: const TextStyle(
                                       fontFamily: 'Poppins',
                                       fontSize: 28,

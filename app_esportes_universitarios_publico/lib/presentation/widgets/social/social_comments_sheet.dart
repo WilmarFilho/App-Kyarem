@@ -315,8 +315,7 @@ class _CommentThread extends StatelessWidget {
                       : null,
                   child: comment.author.fotoUrl == null
                       ? Text(
-                          comment.author.nomeExibicao.characters.first
-                              .toUpperCase(),
+                          comment.author.nomeExibicao.substring(0, 1).toUpperCase(),
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,

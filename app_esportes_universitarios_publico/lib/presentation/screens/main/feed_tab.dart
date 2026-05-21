@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/app_colors.dart';
 import '../../../../models/social_models.dart';
 import '../../../../services/profile_service.dart';
 import '../../../../services/social_realtime_service.dart';
 import '../../../../services/social_service.dart';
+import 'create_post_screen.dart';
 import '../../widgets/layout/main_top_bar.dart';
 import '../../widgets/social/social_comments_sheet.dart';
 import '../../widgets/social/social_post_card.dart';
@@ -32,11 +31,9 @@ class _FeedTabState extends State<FeedTab> {
   final SocialService _socialService = SocialService();
   final ProfileService _profileService = ProfileService();
   final SocialRealtimeService _realtimeService = SocialRealtimeService.instance;
-  final ImagePicker _imagePicker = ImagePicker();
 
   List<SocialPost> _posts = const [];
   bool _loading = true;
-  bool _publishing = false;
   String? _myUserId;
   String? _myAvatarUrl;
   StreamSubscription<void>? _realtimeSubscription;
@@ -117,167 +114,15 @@ class _FeedTabState extends State<FeedTab> {
     await _loadFeed(silent: true);
   }
 
-  Future<void> _openCreatePostSheet() async {
-    final textController = TextEditingController();
-    String? uploadedImageUrl;
-    File? selectedImage;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+  Future<void> _openCreatePostScreen() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CreatePostScreen(socialService: _socialService),
       ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            Future<void> pickImage() async {
-              final image = await _imagePicker.pickImage(
-                source: ImageSource.gallery,
-                imageQuality: 88,
-              );
-              if (image == null) return;
-              setSheetState(() => selectedImage = File(image.path));
-            }
-
-            Future<void> publish() async {
-              if (_publishing) return;
-              final text = textController.text.trim();
-              if (text.isEmpty && selectedImage == null) return;
-
-              setState(() => _publishing = true);
-              try {
-                if (selectedImage != null) {
-                  uploadedImageUrl =
-                      await _socialService.uploadPostImage(selectedImage!);
-                }
-                await _socialService.createPost(
-                  content: text.isEmpty ? null : text,
-                  imageUrl: uploadedImageUrl,
-                );
-                if (!mounted) return;
-                Navigator.of(sheetContext).pop();
-                await _loadFeed(silent: true);
-              } catch (_) {
-              } finally {
-                if (mounted) {
-                  setState(() => _publishing = false);
-                }
-              }
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 18,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Novo post',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Compartilhe o clima da torcida, uma foto do evento ou um comentário rápido.',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: AppColors.textMuted,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    TextField(
-                      controller: textController,
-                      maxLines: 5,
-                      minLines: 4,
-                      style: const TextStyle(fontFamily: 'Poppins'),
-                      decoration: InputDecoration(
-                        hintText: 'O que está rolando por aí?',
-                        hintStyle: const TextStyle(
-                          fontFamily: 'Poppins',
-                          color: AppColors.textMuted,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF4F7FB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    if (selectedImage != null) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: Image.file(
-                          selectedImage!,
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: pickImage,
-                          icon: const Icon(Icons.image_outlined),
-                          label: const Text('Adicionar imagem'),
-                        ),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: _publishing ? null : publish,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.secondary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: _publishing
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Publicar',
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
+    if (created == true) {
+      await _loadFeed(silent: true);
+    }
   }
 
   void _openAuthorProfile(SocialAuthor author) {
@@ -309,7 +154,7 @@ class _FeedTabState extends State<FeedTab> {
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
-                onTap: _openCreatePostSheet,
+                onTap: _openCreatePostScreen,
                 child: Container(
                   width: 46,
                   height: 46,
@@ -376,24 +221,17 @@ class _FeedTabState extends State<FeedTab> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Torcida aquecida, fotos novas subindo e comentários ao vivo de quem você acompanha.',
+                              'Torcida aquecida, fotos e comentários ao vivo de quem você acompanha.',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
                                 height: 1.35,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _StatusChip(label: '$totalPosts posts'),
-                                _StatusChip(label: '$totalFotos fotos'),
-                              ],
-                            ),
+                           
                           ],
                         ),
                       ),

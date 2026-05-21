@@ -29,6 +29,17 @@ class CampeonatoService {
     }
   }
 
+  Future<CampeonatoModalidade> getModalidadeById(String modalidadeId) async {
+    final response = await _apiClient.get('/modalidades/$modalidadeId');
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return CampeonatoModalidade.fromJson(data);
+    } else {
+      throw Exception('Falha ao carregar a modalidade');
+    }
+  }
+
   /// Inscreve um time da atlética em uma modalidade do campeonato.
   /// [campeonatoModalidadeId] = ID da instância da modalidade no campeonato
   /// [timeAtleticaId] = ID do time permanente da atlética

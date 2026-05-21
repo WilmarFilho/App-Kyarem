@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
+import '../../../models/partida_feed_item.dart';
 import '../../widgets/shared/partida_card_widget.dart';
 
 class MatchesScreen extends StatelessWidget {
   const MatchesScreen({super.key, required this.partidas});
 
-  final List<PartidaMock> partidas;
+  final List<PartidaFeedItem> partidas;
 
   @override
   Widget build(BuildContext context) {

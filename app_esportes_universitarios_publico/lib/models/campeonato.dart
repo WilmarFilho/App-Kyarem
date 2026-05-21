@@ -36,16 +36,24 @@ class Campeonato {
 class CampeonatoModalidade {
   final String id;
   final String campeonatoId;
+  final String? campeonatoNome;
   final String modalidadeId;
   final String modalidadeNome;
+  final String? esporteId;
+  final String? esporteNome;
+  final String? nomeExibicao;
   final String? genero;
   final String status;
 
   CampeonatoModalidade({
     required this.id,
     required this.campeonatoId,
+    this.campeonatoNome,
     required this.modalidadeId,
     required this.modalidadeNome,
+    this.esporteId,
+    this.esporteNome,
+    this.nomeExibicao,
     this.genero,
     required this.status,
   });
@@ -54,9 +62,13 @@ class CampeonatoModalidade {
     return CampeonatoModalidade(
       id: json['id'],
       campeonatoId: json['campeonatoId'] ?? '',
+      campeonatoNome: json['campeonatoNome'],
       // O backend retorna modalidadeCatalogoId no ModalidadeResponse
       modalidadeId: json['modalidadeCatalogoId'] ?? json['modalidadeId'] ?? '',
       modalidadeNome: json['nome'] ?? json['modalidadeNome'] ?? '',
+      esporteId: json['esporteId']?.toString(),
+      esporteNome: json['esporteNome'],
+      nomeExibicao: json['nomeExibicao'],
       genero: json['genero'] ?? json['generoCatalogo'],
       status: json['status'] ?? 'ATIVA',
     );

@@ -122,7 +122,7 @@ public class SocialService {
                 )
         );
 
-        return buildPostViews(List.of(post), authorUserId).getFirst();
+        return buildPostViews(List.of(post), authorUserId).get(0);
     }
 
     @Transactional
@@ -151,7 +151,7 @@ public class SocialService {
                     )
             );
         }
-        return buildPostViews(List.of(post), userId).getFirst();
+        return buildPostViews(List.of(post), userId).get(0);
     }
 
     @Transactional
@@ -173,7 +173,7 @@ public class SocialService {
                     )
             );
         });
-        return buildPostViews(List.of(post), userId).getFirst();
+        return buildPostViews(List.of(post), userId).get(0);
     }
 
     @Transactional(readOnly = true)

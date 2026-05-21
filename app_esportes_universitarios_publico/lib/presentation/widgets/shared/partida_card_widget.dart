@@ -1,39 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
-
-class PartidaMock {
-  final String esporte;
-  final IconData esporteIcon;
-  final String campeonatoNome;
-  final String campeonatoAvatarUrl;
-  final String timeA;
-  final String timeB;
-  final String horario;
-  final String dia;
-  final bool aoVivo;
-  final String? placarA;
-  final String? placarB;
-
-  const PartidaMock({
-    required this.esporte,
-    required this.esporteIcon,
-    required this.campeonatoNome,
-    required this.campeonatoAvatarUrl,
-    required this.timeA,
-    required this.timeB,
-    required this.horario,
-    required this.dia,
-    this.aoVivo = false,
-    this.placarA,
-    this.placarB,
-  });
-}
+import '../../../models/partida_feed_item.dart';
 
 class PartidaCardWidget extends StatefulWidget {
   const PartidaCardWidget({super.key, required this.partida});
 
-  final PartidaMock partida;
+  final PartidaFeedItem partida;
 
   @override
   State<PartidaCardWidget> createState() => _PartidaCardWidgetState();
@@ -46,7 +19,7 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
   @override
   Widget build(BuildContext context) {
     final partida = widget.partida;
-    final isLive = partida.aoVivo;
+    final isLive = partida.isLive;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -104,13 +77,13 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      partida.esporteIcon,
+                                      _iconForSport(partida.esporteNome),
                                       size: 13,
                                       color: AppColors.secondary,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      partida.esporte,
+                                      partida.esporteNome,
                                       style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -162,9 +135,18 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                               CircleAvatar(
                                 radius: 13,
                                 backgroundColor: AppColors.background,
-                                backgroundImage: NetworkImage(
-                                  partida.campeonatoAvatarUrl,
-                                ),
+                                backgroundImage: (partida.campeonatoEscudoUrl != null &&
+                                        partida.campeonatoEscudoUrl!.isNotEmpty)
+                                    ? NetworkImage(partida.campeonatoEscudoUrl!)
+                                    : null,
+                                child: (partida.campeonatoEscudoUrl == null ||
+                                        partida.campeonatoEscudoUrl!.isEmpty)
+                                    ? const Icon(
+                                        Icons.emoji_events_rounded,
+                                        size: 14,
+                                        color: AppColors.secondary,
+                                      )
+                                    : null,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -187,7 +169,7 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '${partida.dia}  •  ${partida.horario}',
+                      _timeLabel(partida),
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textMuted,
@@ -206,16 +188,11 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              partida.timeA,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                                fontFamily: 'Poppins',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: _TeamBlock(
+                              name: partida.timeA,
+                              subtitle: partida.atleticaNomeA,
+                              logoUrl: partida.atleticaEscudoUrlA,
+                              alignEnd: false,
                             ),
                           ),
                           Container(
@@ -230,43 +207,31 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                                   : AppColors.background,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child:
-                                (partida.placarA != null &&
-                                    partida.placarB != null)
-                                ? Text(
-                                    '${partida.placarA}  ×  ${partida.placarB}',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: isLive
-                                          ? AppColors.danger
-                                          : AppColors.primary,
-                                      fontFamily: 'Poppins',
-                                      letterSpacing: 0.5,
-                                    ),
-                                  )
-                                : const Text(
-                                    'VS',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textMuted,
-                                      fontFamily: 'Poppins',
-                                    ),
-                                  ),
+                            child: Text(
+                              partida.isLive ||
+                                      partida.placarA > 0 ||
+                                      partida.placarB > 0
+                                  ? '${partida.placarA}  ×  ${partida.placarB}'
+                                  : 'VS',
+                              style: TextStyle(
+                                fontSize: partida.isLive ? 15 : 13,
+                                fontWeight: FontWeight.w800,
+                                color: isLive
+                                    ? AppColors.danger
+                                    : partida.placarA > 0 || partida.placarB > 0
+                                    ? AppColors.primary
+                                    : AppColors.textMuted,
+                                fontFamily: 'Poppins',
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                           Expanded(
-                            child: Text(
-                              partida.timeB,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                                fontFamily: 'Poppins',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.end,
+                            child: _TeamBlock(
+                              name: partida.timeB,
+                              subtitle: partida.atleticaNomeB,
+                              logoUrl: partida.atleticaEscudoUrlB,
+                              alignEnd: true,
                             ),
                           ),
                         ],
@@ -274,33 +239,79 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                     ),
                   ],
                 ),
+                if ((partida.local ?? '').isNotEmpty ||
+                    (partida.fase ?? '').isNotEmpty ||
+                    (partida.categoria ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if ((partida.local ?? '').isNotEmpty)
+                        _MetaChip(
+                          icon: Icons.place_outlined,
+                          label: partida.local!,
+                        ),
+                      if ((partida.fase ?? '').isNotEmpty)
+                        _MetaChip(
+                          icon: Icons.flag_outlined,
+                          label: partida.fase!,
+                        ),
+                      if ((partida.categoria ?? '').isNotEmpty)
+                        _MetaChip(
+                          icon: Icons.shield_outlined,
+                          label: partida.categoria!,
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(
-                      child: _CardActionButton(
-                        icon: _isFavorite
-                            ? Icons.star_rounded
-                            : Icons.star_border_rounded,
-                        active: _isFavorite,
-                        onTap: () {
-                          setState(() => _isFavorite = !_isFavorite);
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() => _isNotificationEnabled =
+                              !_isNotificationEnabled);
                         },
+                        icon: Icon(
+                          _isNotificationEnabled
+                              ? Icons.notifications_active_rounded
+                              : Icons.notifications_none_rounded,
+                          size: 18,
+                        ),
+                        label: Text(
+                          _isNotificationEnabled ? 'Acompanhando' : 'Alertar',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(
+                            color: AppColors.secondary.withValues(alpha: 0.18),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: _CardActionButton(
-                        icon: _isNotificationEnabled
-                            ? Icons.notifications_rounded
-                            : Icons.notifications_none_rounded,
-                        active: _isNotificationEnabled,
-                        onTap: () {
-                          setState(
-                            () => _isNotificationEnabled =
-                                !_isNotificationEnabled,
-                          );
-                        },
+                    IconButton(
+                      onPressed: () {
+                        setState(() => _isFavorite = !_isFavorite);
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFFF4F7FB),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: Icon(
+                        _isFavorite
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: _isFavorite
+                            ? const Color(0xFFF3B63F)
+                            : AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -312,44 +323,152 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
       ),
     );
   }
+
+  IconData _iconForSport(String sport) {
+    final normalized = sport.trim().toLowerCase();
+    if (normalized.contains('volei')) return Icons.sports_volleyball;
+    if (normalized.contains('basquete')) return Icons.sports_basketball;
+    if (normalized.contains('handebol')) return Icons.sports_handball;
+    if (normalized.contains('tenis')) return Icons.sports_tennis;
+    if (normalized.contains('nat')) return Icons.pool_rounded;
+    return Icons.sports_soccer;
+  }
+
+  String _timeLabel(PartidaFeedItem partida) {
+    final date = partida.agendadoPara ?? partida.iniciadaEm ?? partida.encerradaEm;
+    if (date == null) return partida.status;
+    final now = DateTime.now();
+    final day = DateUtils.dateOnly(date);
+    final today = DateUtils.dateOnly(now);
+    final tomorrow = today.add(const Duration(days: 1));
+    final time =
+        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    final dayLabel = day == today
+        ? 'Hoje'
+        : day == tomorrow
+        ? 'Amanhã'
+        : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+    return '$dayLabel  •  $time';
+  }
 }
 
-class _CardActionButton extends StatelessWidget {
-  const _CardActionButton({
-    required this.icon,
-    required this.active,
-    required this.onTap,
+class _TeamBlock extends StatelessWidget {
+  const _TeamBlock({
+    required this.name,
+    required this.subtitle,
+    required this.logoUrl,
+    required this.alignEnd,
   });
 
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
+  final String name;
+  final String? subtitle;
+  final String? logoUrl;
+  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? AppColors.secondary : const Color(0xFFF8FBFF),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: active ? AppColors.secondary : const Color(0xFFF8FBFF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: active
-                  ? AppColors.secondary
-                  : const Color(0xFFEBEFF4),
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment:
+              alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            if (!alignEnd) ...[
+              _TeamAvatar(logoUrl: logoUrl),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                  fontFamily: 'Poppins',
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+              ),
+            ),
+            if (alignEnd) ...[
+              const SizedBox(width: 8),
+              _TeamAvatar(logoUrl: logoUrl),
+            ],
+          ],
+        ),
+        if ((subtitle ?? '').isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textMuted,
+              fontFamily: 'Poppins',
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TeamAvatar extends StatelessWidget {
+  const _TeamAvatar({required this.logoUrl});
+
+  final String? logoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 12,
+      backgroundColor: const Color(0xFFF1F5FB),
+      backgroundImage:
+          logoUrl != null && logoUrl!.isNotEmpty ? NetworkImage(logoUrl!) : null,
+      child: logoUrl == null || logoUrl!.isEmpty
+          ? const Icon(
+              Icons.shield_outlined,
+              size: 13,
+              color: AppColors.secondary,
+            )
+          : null,
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFE),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textMuted),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11,
+              color: AppColors.textMuted,
             ),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: active ? Colors.white : AppColors.textMuted,
-          ),
-        ),
+        ],
       ),
     );
   }

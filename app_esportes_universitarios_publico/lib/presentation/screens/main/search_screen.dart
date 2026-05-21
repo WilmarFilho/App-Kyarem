@@ -297,7 +297,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   : null,
               child: profile.fotoUrl == null
                   ? Text(
-                      profile.nomeExibicao.characters.first.toUpperCase(),
+                      profile.nomeExibicao.substring(0, 1).toUpperCase(),
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,

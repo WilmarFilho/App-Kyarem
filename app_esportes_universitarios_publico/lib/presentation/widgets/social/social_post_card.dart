@@ -235,8 +235,8 @@ class SocialPostCard extends StatelessWidget {
   String _initials(String value) {
     final parts = value.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty) return 'U';
-    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
-    return '${parts.first.characters.first}${parts.last.characters.first}'
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
         .toUpperCase();
   }
 
@@ -285,8 +285,7 @@ class _CommentTile extends StatelessWidget {
                       : null,
                   child: comment.author.fotoUrl == null
                       ? Text(
-                          comment.author.nomeExibicao.characters.first
-                              .toUpperCase(),
+                          comment.author.nomeExibicao.substring(0, 1).toUpperCase(),
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 11,
