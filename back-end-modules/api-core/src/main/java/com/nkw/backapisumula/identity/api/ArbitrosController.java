@@ -106,6 +106,7 @@ public class ArbitrosController {
                 req.email(),
                 req.senha(),
                 req.nome(),
+                null,
                 "USER"
         );
 

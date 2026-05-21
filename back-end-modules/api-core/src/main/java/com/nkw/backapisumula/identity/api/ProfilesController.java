@@ -242,6 +242,7 @@ public class ProfilesController {
                 req.email(),
                 req.senha(),
                 req.nomeExibicao(),
+                null,
                 "USER"
         );
 
