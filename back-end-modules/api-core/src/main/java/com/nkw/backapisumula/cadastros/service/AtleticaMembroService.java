@@ -252,11 +252,6 @@ public class AtleticaMembroService {
                 || "COACH".equalsIgnoreCase(papelCodigo);
     }
 
-    private boolean isManagerPapel(String papelCodigo) {
-        return "PRESIDENT".equalsIgnoreCase(papelCodigo)
-                || "DIRECTOR".equalsIgnoreCase(papelCodigo);
-    }
-
     private boolean isRespondableInvitePapel(String papelCodigo) {
         return "PRESIDENT".equalsIgnoreCase(papelCodigo)
                 || "DIRECTOR".equalsIgnoreCase(papelCodigo)

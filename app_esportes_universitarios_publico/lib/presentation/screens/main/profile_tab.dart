@@ -8,17 +8,12 @@ import '../../../core/app_colors.dart';
 import '../../../models/atletica.dart';
 import '../../../models/user_profile.dart';
 import '../../../services/atletica_service.dart';
-import '../../../models/user_profile.dart';
-import '../../../services/atletica_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/profile_service.dart';
 import '../../widgets/profile/edit_profile_sheet.dart';
 
 class ProfileTab extends StatefulWidget {
-  const ProfileTab({
-    super.key,
-    required this.authService,
-  });
+  const ProfileTab({super.key, required this.authService});
 
   final AuthService authService;
 
@@ -75,10 +70,7 @@ class _ProfileTabState extends State<ProfileTab>
       invites = const [];
     }
 
-    return _ProfileTabData(
-      profile: profile,
-      invites: invites,
-    );
+    return _ProfileTabData(profile: profile, invites: invites);
   }
 
   Future<void> _pickAndUploadPhoto() async {
@@ -172,10 +164,10 @@ class _ProfileTabState extends State<ProfileTab>
       await widget.authService.signOut();
     } catch (_) {}
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/login',
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   Future<void> _respondToInvite(MinhaAtletica invite, bool accept) async {
@@ -270,7 +262,9 @@ class _ProfileTabState extends State<ProfileTab>
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: AppColors.secondary),
+                    child: CircularProgressIndicator(
+                      color: AppColors.secondary,
+                    ),
                   );
                 }
 
@@ -312,15 +306,15 @@ class _ProfileTabState extends State<ProfileTab>
                             photoUrl: photoUrl,
                           ),
                           const SizedBox(height: 18),
-                            _buildInfoSection(
-                              profile: profile,
-                              nome: nome,
-                              email: email,
-                              cpf: cpf,
-                              telefone: telefone,
-                              genero: genero,
-                              role: role,
-                            ),
+                          _buildInfoSection(
+                            profile: profile,
+                            nome: nome,
+                            email: email,
+                            cpf: cpf,
+                            telefone: telefone,
+                            genero: genero,
+                            role: role,
+                          ),
                           const SizedBox(height: 18),
                           _buildInviteSection(invites),
                           const SizedBox(height: 18),
@@ -349,7 +343,9 @@ class _ProfileTabState extends State<ProfileTab>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.30)),
+              border: Border.all(
+                color: AppColors.secondarySoft.withValues(alpha: 0.30),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.secondary.withValues(alpha: 0.12),
@@ -377,10 +373,7 @@ class _ProfileTabState extends State<ProfileTab>
               ),
               Text(
                 'Conta pública do ecossistema esportivo',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMuted,
-                ),
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
             ],
           ),
@@ -401,7 +394,9 @@ class _ProfileTabState extends State<ProfileTab>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.secondarySoft.withValues(alpha: 0.22),
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.secondary.withValues(alpha: 0.12),
@@ -537,7 +532,9 @@ class _ProfileTabState extends State<ProfileTab>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.secondarySoft.withValues(alpha: 0.22),
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.secondary.withValues(alpha: 0.10),
@@ -565,7 +562,10 @@ class _ProfileTabState extends State<ProfileTab>
                 TextButton.icon(
                   onPressed: () => _openEditProfile(profile),
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('Editar', style: TextStyle(fontFamily: 'Poppins')),
+                  label: const Text(
+                    'Editar',
+                    style: TextStyle(fontFamily: 'Poppins'),
+                  ),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.secondary,
                     visualDensity: VisualDensity.compact,
@@ -621,7 +621,9 @@ class _ProfileTabState extends State<ProfileTab>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.secondarySoft.withValues(alpha: 0.22),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -679,7 +681,9 @@ class _ProfileTabState extends State<ProfileTab>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.secondarySoft.withValues(alpha: 0.22),
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.secondary.withValues(alpha: 0.10),
@@ -730,10 +734,8 @@ class _ProfileTabState extends State<ProfileTab>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => EditProfileSheet(
-        profile: profile,
-        profileService: _profileService,
-      ),
+      builder: (_) =>
+          EditProfileSheet(profile: profile, profileService: _profileService),
     );
     if (result == true) {
       _showSnackBar('Perfil atualizado com sucesso.');
@@ -748,7 +750,9 @@ class _ProfileTabState extends State<ProfileTab>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.secondarySoft.withValues(alpha: 0.22),
+        ),
       ),
       child: const Row(
         children: [
@@ -801,17 +805,16 @@ class _ProfileTabState extends State<ProfileTab>
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: invite.atleticaEscudoUrl != null &&
+                child:
+                    invite.atleticaEscudoUrl != null &&
                         invite.atleticaEscudoUrl!.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: Image.network(
                           invite.atleticaEscudoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Icon(
-                            roleIcon,
-                            color: statusColor,
-                          ),
+                          errorBuilder: (_, _, _) =>
+                              Icon(roleIcon, color: statusColor),
                         ),
                       )
                     : Icon(roleIcon, color: statusColor),
@@ -866,7 +869,9 @@ class _ProfileTabState extends State<ProfileTab>
                         : () => _respondToInvite(invite, false),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(46),
-                      side: BorderSide(color: statusColor.withValues(alpha: 0.34)),
+                      side: BorderSide(
+                        color: statusColor.withValues(alpha: 0.34),
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -937,7 +942,9 @@ class _ProfileTabState extends State<ProfileTab>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.secondarySoft.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: AppColors.secondarySoft.withValues(alpha: 0.22),
+        ),
       ),
       child: Row(
         children: [
@@ -1218,10 +1225,7 @@ class _ProfileTabState extends State<ProfileTab>
 }
 
 class _ProfileTabData {
-  const _ProfileTabData({
-    required this.profile,
-    required this.invites,
-  });
+  const _ProfileTabData({required this.profile, required this.invites});
 
   final UserProfile? profile;
   final List<MinhaAtletica> invites;
