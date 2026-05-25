@@ -10,12 +10,14 @@ class SocialPostCard extends StatelessWidget {
     required this.onAuthorTap,
     required this.onToggleLike,
     required this.onOpenComments,
+    this.onPostTap,
   });
 
   final SocialPost post;
   final ValueChanged<SocialAuthor> onAuthorTap;
   final Future<void> Function(SocialPost post) onToggleLike;
   final VoidCallback onOpenComments;
+  final VoidCallback? onPostTap;
 
   @override
   Widget build(BuildContext context) {
@@ -34,199 +36,227 @@ class SocialPostCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () => onAuthorTap(post.author),
-                    child: CircleAvatar(
-                      radius: 24,
-                      backgroundColor: const Color(0xFFE9EEF7),
-                      backgroundImage: post.author.fotoUrl != null
-                          ? NetworkImage(post.author.fotoUrl!)
-                          : null,
-                      child: post.author.fotoUrl == null
-                          ? Text(
-                              _initials(post.author.nomeExibicao),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onPostTap ?? onOpenComments,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () => onAuthorTap(post.author),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: const Color(0xFFE9EEF7),
+                        backgroundImage: post.author.fotoUrl != null
+                            ? NetworkImage(post.author.fotoUrl!)
+                            : null,
+                        child: post.author.fotoUrl == null
+                            ? Text(
+                                _initials(post.author.nomeExibicao),
+                                style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => onAuthorTap(post.author),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post.author.nomeExibicao,
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
+                                fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
                               ),
-                            )
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => onAuthorTap(post.author),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            post.author.nomeExibicao,
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
                             ),
-                          ),
-                          if (athleticLabel != null && athleticLabel.isNotEmpty) ...[
-                            const SizedBox(height: 2),
+                            if (athleticLabel != null &&
+                                athleticLabel.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                athleticLabel,
+                                style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
                             Text(
-                              athleticLabel,
+                              _formatDate(post.createdAt),
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.secondary,
+                                fontSize: 11,
+                                color: AppColors.textMuted,
                               ),
                             ),
                           ],
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatDate(post.createdAt),
-                            style: const TextStyle(
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (post.content != null && post.content!.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    post.content!,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                      height: 1.55,
+                    ),
+                  ),
+                ),
+              if (post.imageUrl != null &&
+                  post.imageUrl!.trim().isNotEmpty) ...[
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      DialogRoute(
+                        context: context,
+                        builder: (_) => Scaffold(
+                          backgroundColor: Colors.black,
+                          appBar: AppBar(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            iconTheme: const IconThemeData(color: Colors.white),
+                          ),
+                          body: Center(
+                            child: InteractiveViewer(
+                              child: Image.network(post.imageUrl!),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Image.network(
+                      post.imageUrl!,
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Row(
+                  children: [
+                    _EngagementPill(
+                      icon: post.likedByMe
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      label: '${post.likeCount}',
+                      active: post.likedByMe,
+                      onTap: () => onToggleLike(post),
+                    ),
+                    const SizedBox(width: 8),
+                    _EngagementPill(
+                      icon: Icons.mode_comment_outlined,
+                      label: '${post.commentCount}',
+                      onTap: onOpenComments,
+                    ),
+                  ],
+                ),
+              ),
+              if (post.commentPreview.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7FAFE),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...post.commentPreview.map(
+                          (comment) => _CommentTile(
+                            comment: comment,
+                            onAuthorTap: onAuthorTap,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: onOpenComments,
+                          child: const Text(
+                            'Ver conversa completa',
+                            style: TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: InkWell(
+                  onTap: onOpenComments,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F7FB),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Escrever comentário...',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
                               color: AppColors.textMuted,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        Icon(
+                          Icons.send_rounded,
+                          color: AppColors.secondary,
+                          size: 18,
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            if (post.content != null && post.content!.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: Text(
-                  post.content!,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                    height: 1.55,
-                  ),
-                ),
-              ),
-            if (post.imageUrl != null && post.imageUrl!.trim().isNotEmpty) ...[
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: Image.network(
-                  post.imageUrl!,
-                  height: 220,
-                  fit: BoxFit.cover,
                 ),
               ),
             ],
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Row(
-                children: [
-                  _EngagementPill(
-                    icon: post.likedByMe
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    label: '${post.likeCount}',
-                    active: post.likedByMe,
-                    onTap: () => onToggleLike(post),
-                  ),
-                  const SizedBox(width: 8),
-                  _EngagementPill(
-                    icon: Icons.mode_comment_outlined,
-                    label: '${post.commentCount}',
-                    onTap: onOpenComments,
-                  ),
-                ],
-              ),
-            ),
-            if (post.commentPreview.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7FAFE),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ...post.commentPreview.map(
-                        (comment) => _CommentTile(
-                          comment: comment,
-                          onAuthorTap: onAuthorTap,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      GestureDetector(
-                        onTap: onOpenComments,
-                        child: const Text(
-                          'Ver conversa completa',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.secondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: InkWell(
-                onTap: onOpenComments,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F7FB),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Escrever comentário...',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.send_rounded,
-                        color: AppColors.secondary,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -285,7 +315,9 @@ class _CommentTile extends StatelessWidget {
                       : null,
                   child: comment.author.fotoUrl == null
                       ? Text(
-                          comment.author.nomeExibicao.substring(0, 1).toUpperCase(),
+                          comment.author.nomeExibicao
+                              .substring(0, 1)
+                              .toUpperCase(),
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 11,
@@ -361,7 +393,7 @@ class _CommentTile extends StatelessWidget {
   }
 }
 
-class _EngagementPill extends StatelessWidget {
+class _EngagementPill extends StatefulWidget {
   const _EngagementPill({
     required this.icon,
     required this.label,
@@ -372,19 +404,41 @@ class _EngagementPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
-  final VoidCallback? onTap;
+  final dynamic onTap; // pode ser Future ou void
+
+  @override
+  State<_EngagementPill> createState() => _EngagementPillState();
+}
+
+class _EngagementPillState extends State<_EngagementPill> {
+  bool _loading = false;
+
+  void _handleTap() async {
+    if (widget.onTap == null || _loading) return;
+
+    if (widget.onTap is Future Function()) {
+      setState(() => _loading = true);
+      try {
+        await widget.onTap();
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
+    } else {
+      widget.onTap();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: _handleTap,
         borderRadius: BorderRadius.circular(14),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: active
+            color: widget.active
                 ? AppColors.danger.withValues(alpha: 0.08)
                 : const Color(0xFFF7FAFE),
             borderRadius: BorderRadius.circular(14),
@@ -392,19 +446,31 @@ class _EngagementPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: active ? AppColors.danger : AppColors.textMuted,
-              ),
+              if (_loading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: widget.active
+                        ? AppColors.danger
+                        : AppColors.textMuted,
+                  ),
+                )
+              else
+                Icon(
+                  widget.icon,
+                  size: 16,
+                  color: widget.active ? AppColors.danger : AppColors.textMuted,
+                ),
               const SizedBox(width: 6),
               Text(
-                label,
+                widget.label,
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: active ? AppColors.danger : AppColors.textMuted,
+                  color: widget.active ? AppColors.danger : AppColors.textMuted,
                 ),
               ),
             ],

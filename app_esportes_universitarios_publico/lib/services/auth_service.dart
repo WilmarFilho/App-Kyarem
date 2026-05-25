@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/cache_manager.dart';
 
 class AuthService {
   AuthService({SupabaseClient? client}) : _client = client;
@@ -53,5 +54,8 @@ class AuthService {
     return client.auth.updateUser(UserAttributes(password: password.trim()));
   }
 
-  Future<void> signOut() => client.auth.signOut();
+  Future<void> signOut() async {
+    CacheManager.instance.clear();
+    await client.auth.signOut();
+  }
 }

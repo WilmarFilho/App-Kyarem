@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
 import '../../../models/partida_feed_item.dart';
+import '../../screens/main/match_details_screen.dart';
 
 class PartidaCardWidget extends StatefulWidget {
   const PartidaCardWidget({super.key, required this.partida});
@@ -47,7 +48,13 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => MatchDetailsScreen(partida: partida),
+              ),
+            );
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Column(

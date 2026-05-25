@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/app_theme.dart';
@@ -23,22 +24,54 @@ const _supabaseAnonKey = String.fromEnvironment(
 );
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+    // Captura erros do framework Flutter (build, layout, paint)
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      debugPrint('FLUTTER ERROR: ${details.exception}');
+      debugPrint('${details.stack}');
+    };
 
-  await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+    // Captura erros assíncronos não tratados (Zone / PlatformDispatcher)
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint('PLATFORM ERROR: $error');
+      debugPrint('$stack');
+      return true; // true = erro tratado, não propaga para o sistema
+    };
 
-  Supabase.instance.client.auth.onAuthStateChange.listen((state) {
-    if (state.event == AuthChangeEvent.passwordRecovery) {
-      navigatorKey.currentState?.pushNamedAndRemoveUntil(
-        '/reset-password',
-        (route) => false,
-      );
-    }
-  });
+    await dotenv.load(fileName: ".env");
+    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
 
-  runApp(const KyaremPublicSportsApp());
+    Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          '/reset-password',
+          (route) => false,
+        );
+      }
+    });
+
+    runApp(const KyaremPublicSportsApp());
+  } catch (e, stackTrace) {
+    debugPrint('FATAL ERROR: $e');
+    debugPrint('$stackTrace');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SingleChildScrollView(
+              child: Text(
+                'Failed to start app:\n$e\n$stackTrace',
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class KyaremPublicSportsApp extends StatelessWidget {

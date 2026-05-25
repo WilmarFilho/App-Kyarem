@@ -12,6 +12,7 @@ import '../../widgets/layout/main_top_bar.dart';
 import '../../widgets/social/social_comments_sheet.dart';
 import '../../widgets/social/social_post_card.dart';
 import 'public_profile_screen.dart';
+import 'single_post_screen.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({
@@ -110,6 +111,20 @@ class _FeedTabState extends State<FeedTab> {
           onAuthorTap: _openAuthorProfile,
         );
       },
+    );
+    await _loadFeed(silent: true);
+  }
+
+  Future<void> _openSinglePost(SocialPost post) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SinglePostScreen(
+          post: post,
+          socialService: _socialService,
+          onAuthorTap: _openAuthorProfile,
+          onToggleLike: _toggleLike,
+        ),
+      ),
     );
     await _loadFeed(silent: true);
   }
@@ -303,6 +318,7 @@ class _FeedTabState extends State<FeedTab> {
                       onAuthorTap: _openAuthorProfile,
                       onToggleLike: _toggleLike,
                       onOpenComments: () => _openComments(post),
+                      onPostTap: () => _openSinglePost(post),
                     ),
                   ),
               ],

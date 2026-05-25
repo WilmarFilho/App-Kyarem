@@ -8,6 +8,7 @@ import '../../../../services/social_realtime_service.dart';
 import '../../../../services/social_service.dart';
 import '../../widgets/social/social_comments_sheet.dart';
 import '../../widgets/social/social_post_card.dart';
+import 'single_post_screen.dart';
 
 class PublicProfileScreen extends StatefulWidget {
   const PublicProfileScreen({
@@ -132,6 +133,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           },
         );
       },
+    );
+    await _load(silent: true);
+  }
+
+  Future<void> _openSinglePost(SocialPost post) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SinglePostScreen(
+          post: post,
+          socialService: _socialService,
+          onAuthorTap: _openAuthorProfile,
+          onToggleLike: _toggleLike,
+        ),
+      ),
     );
     await _load(silent: true);
   }
@@ -363,6 +378,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           onAuthorTap: _openAuthorProfile,
                           onToggleLike: _toggleLike,
                           onOpenComments: () => _openComments(post),
+                          onPostTap: () => _openSinglePost(post),
                         ),
                       ),
                   ],

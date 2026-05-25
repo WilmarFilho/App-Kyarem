@@ -8,8 +8,11 @@ import '../../../core/app_colors.dart';
 import '../../../models/atletica.dart';
 import '../../../models/user_profile.dart';
 import '../../../services/atletica_service.dart';
+import '../../../models/user_profile.dart';
+import '../../../services/atletica_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/profile_service.dart';
+import '../../widgets/profile/edit_profile_sheet.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({
@@ -309,14 +312,15 @@ class _ProfileTabState extends State<ProfileTab>
                             photoUrl: photoUrl,
                           ),
                           const SizedBox(height: 18),
-                          _buildInfoSection(
-                            nome: nome,
-                            email: email,
-                            cpf: cpf,
-                            telefone: telefone,
-                            genero: genero,
-                            role: role,
-                          ),
+                            _buildInfoSection(
+                              profile: profile,
+                              nome: nome,
+                              email: email,
+                              cpf: cpf,
+                              telefone: telefone,
+                              genero: genero,
+                              role: role,
+                            ),
                           const SizedBox(height: 18),
                           _buildInviteSection(invites),
                           const SizedBox(height: 18),
@@ -519,6 +523,7 @@ class _ProfileTabState extends State<ProfileTab>
   }
 
   Widget _buildInfoSection({
+    UserProfile? profile,
     required String nome,
     required String email,
     required String cpf,
@@ -544,14 +549,29 @@ class _ProfileTabState extends State<ProfileTab>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'DADOS DO PERFIL',
-            style: TextStyle(
-              fontFamily: 'Bebas Neue',
-              fontSize: 24,
-              letterSpacing: 1,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'DADOS DO PERFIL',
+                style: TextStyle(
+                  fontFamily: 'Bebas Neue',
+                  fontSize: 24,
+                  letterSpacing: 1,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (profile != null)
+                TextButton.icon(
+                  onPressed: () => _openEditProfile(profile),
+                  icon: const Icon(Icons.edit_rounded, size: 16),
+                  label: const Text('Editar', style: TextStyle(fontFamily: 'Poppins')),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.secondary,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           _buildInfoCard(
@@ -703,6 +723,22 @@ class _ProfileTabState extends State<ProfileTab>
         ],
       ),
     );
+  }
+
+  Future<void> _openEditProfile(UserProfile profile) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditProfileSheet(
+        profile: profile,
+        profileService: _profileService,
+      ),
+    );
+    if (result == true) {
+      _showSnackBar('Perfil atualizado com sucesso.');
+      await _reloadProfile();
+    }
   }
 
   Widget _buildEmptyInviteState() {

@@ -71,4 +71,13 @@ class ProfileService {
       return null;
     }
   }
+
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiClient.patch('/profiles/me', data);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
 }

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/app_colors.dart';
+import '../../screens/main/calendar_screen.dart';
+import '../../screens/main/favorites_screen.dart';
+import '../../screens/main/matches_screen.dart';
 import '../../screens/main/search_screen.dart';
+import '../../../services/partida_service.dart';
 
 class MainTopBar extends StatelessWidget {
   const MainTopBar({
@@ -126,10 +130,7 @@ class MainTopBar extends StatelessWidget {
             onTap: onProfileTap,
             highlighted: hasPendingInvite,
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 8),
-            trailing!,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 8), trailing!],
         ],
       ),
     );
@@ -202,33 +203,88 @@ class MainTopBarIconButton extends StatelessWidget {
   }
 }
 
+// ── Painel de Acesso Rápido ────────────────────────────────────────────────────
+
 class _QuickLinksPanel extends StatelessWidget {
   const _QuickLinksPanel({required this.width});
 
   final double width;
 
+  void _navigate(BuildContext context, Widget screen) {
+    // Captura o navigator ANTES do pop — após pop() o contexto do diálogo
+    // é deactivated e Navigator.of(context) lançaria uma assertion.
+    final nav = Navigator.of(context);
+    nav.pop();
+    nav.push(
+      PageRouteBuilder(
+        pageBuilder: (_, animation, __) => screen,
+        transitionsBuilder: (_, animation, __, child) {
+          return SlideTransition(
+            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+                .animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 340),
+      ),
+    );
+  }
+
+  /// Abre a tela de partidas — busca os dados no cache ou API.
+  Future<void> _openResultados(BuildContext context) async {
+    // Captura o navigator ANTES do pop pelo mesmo motivo que _navigate.
+    final nav = Navigator.of(context);
+    nav.pop();
+    try {
+      final partidas = await PartidaService().getPartidasFeed();
+      nav.push(
+        PageRouteBuilder(
+          pageBuilder: (_, animation, __) => MatchesScreen(partidas: partidas),
+          transitionsBuilder: (_, animation, __, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 340),
+        ),
+      );
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
-    const atalhos = [
+    final atalhos = [
       _QuickShortcut(
         title: 'Calendário',
-        subtitle: 'Ver agenda de partidas da semana',
+        subtitle: 'Veja a agenda de partidas no calendário',
         icon: Icons.calendar_month_rounded,
+        onTap: () => _navigate(context, const CalendarScreen()),
       ),
       _QuickShortcut(
         title: 'Resultados',
         subtitle: 'Checar placares e destaques recentes',
         icon: Icons.scoreboard_rounded,
+        onTap: () => _openResultados(context),
       ),
       _QuickShortcut(
-        title: 'Atléticas favoritas',
-        subtitle: 'Abrir as torcidas que você acompanha',
-        icon: Icons.groups_rounded,
-      ),
-      _QuickShortcut(
-        title: 'Alertas',
-        subtitle: 'Visualizar notificações e lembretes',
-        icon: Icons.notifications_active_rounded,
+        title: 'Favoritos',
+        subtitle: 'Todos seus favoritados',
+        icon: Icons.star_rounded,
+        onTap: () => _navigate(context, const FavoritesScreen()),
       ),
     ];
 
@@ -275,82 +331,41 @@ class _QuickLinksPanel extends StatelessWidget {
                 ...atalhos.map(
                   (atalho) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Material(
-                      color: const Color(0xFFF7FAFE),
-                      borderRadius: BorderRadius.circular(18),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () {},
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  atalho.icon,
-                                  color: AppColors.secondary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      atalho.title,
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      atalho.subtitle,
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 11,
-                                        color: AppColors.textMuted,
-                                        height: 1.35,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: _ShortcutTile(atalho: atalho),
                   ),
                 ),
                 const Spacer(),
+                // Rodapé decorativo
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, Color(0xFF1A3A6B)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(18),
                   ),
-                  child: const Text(
-                    'Mais atalhos e ações contextuais entram aqui depois.',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      color: Colors.white,
-                      height: 1.4,
-                    ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.bolt_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Acesse rapidamente o que importa.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -362,14 +377,113 @@ class _QuickLinksPanel extends StatelessWidget {
   }
 }
 
+// ── Tile individual do atalho ──────────────────────────────────────────────────
+
+class _ShortcutTile extends StatefulWidget {
+  const _ShortcutTile({required this.atalho});
+  final _QuickShortcut atalho;
+
+  @override
+  State<_ShortcutTile> createState() => _ShortcutTileState();
+}
+
+class _ShortcutTileState extends State<_ShortcutTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.atalho.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _pressed
+                ? AppColors.secondary.withValues(alpha: 0.06)
+                : const Color(0xFFF7FAFE),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _pressed
+                  ? AppColors.secondary.withValues(alpha: 0.25)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  widget.atalho.icon,
+                  color: AppColors.secondary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.atalho.title,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.atalho.subtitle,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textMuted,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Modelo ─────────────────────────────────────────────────────────────────────
+
 class _QuickShortcut {
   final String title;
   final String subtitle;
   final IconData icon;
+  final VoidCallback onTap;
 
   const _QuickShortcut({
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.onTap,
   });
 }

@@ -170,7 +170,7 @@ class _SocialCommentsSheetState extends State<SocialCommentsSheet> {
                         padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
                         children: _comments
                             .map(
-                              (comment) => _CommentThread(
+                              (comment) => SocialCommentThread(
                                 comment: comment,
                                 onAuthorTap: widget.onAuthorTap,
                                 onReply: (target) => setState(() {
@@ -277,8 +277,9 @@ class _SocialCommentsSheetState extends State<SocialCommentsSheet> {
   }
 }
 
-class _CommentThread extends StatelessWidget {
-  const _CommentThread({
+class SocialCommentThread extends StatefulWidget {
+  const SocialCommentThread({
+    super.key,
     required this.comment,
     required this.onAuthorTap,
     required this.onReply,
@@ -289,15 +290,32 @@ class _CommentThread extends StatelessWidget {
   final SocialComment comment;
   final ValueChanged<SocialAuthor> onAuthorTap;
   final ValueChanged<SocialComment> onReply;
-  final ValueChanged<SocialComment> onToggleLike;
+  final Future<void> Function(SocialComment) onToggleLike;
   final bool isReply;
+
+  @override
+  State<SocialCommentThread> createState() => _SocialCommentThreadState();
+}
+
+class _SocialCommentThreadState extends State<SocialCommentThread> {
+  bool _liking = false;
+
+  void _handleLike() async {
+    if (_liking) return;
+    setState(() => _liking = true);
+    try {
+      await widget.onToggleLike(widget.comment);
+    } finally {
+      if (mounted) setState(() => _liking = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
         bottom: 14,
-        left: isReply ? 24 : 0,
+        left: widget.isReply ? 24 : 0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,16 +324,16 @@ class _CommentThread extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               GestureDetector(
-                onTap: () => onAuthorTap(comment.author),
+                onTap: () => widget.onAuthorTap(widget.comment.author),
                 child: CircleAvatar(
-                  radius: isReply ? 15 : 18,
+                  radius: widget.isReply ? 15 : 18,
                   backgroundColor: const Color(0xFFE9EEF7),
-                  backgroundImage: comment.author.fotoUrl != null
-                      ? NetworkImage(comment.author.fotoUrl!)
+                  backgroundImage: widget.comment.author.fotoUrl != null
+                      ? NetworkImage(widget.comment.author.fotoUrl!)
                       : null,
-                  child: comment.author.fotoUrl == null
+                  child: widget.comment.author.fotoUrl == null
                       ? Text(
-                          comment.author.nomeExibicao.substring(0, 1).toUpperCase(),
+                          widget.comment.author.nomeExibicao.substring(0, 1).toUpperCase(),
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,
@@ -328,12 +346,12 @@ class _CommentThread extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => onAuthorTap(comment.author),
+                  onTap: () => widget.onAuthorTap(widget.comment.author),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        comment.author.nomeExibicao,
+                        widget.comment.author.nomeExibicao,
                         style: const TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 13,
@@ -343,7 +361,7 @@ class _CommentThread extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        comment.content,
+                        widget.comment.content,
                         style: const TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 12,
@@ -355,25 +373,41 @@ class _CommentThread extends StatelessWidget {
                       Row(
                         children: [
                           GestureDetector(
-                            onTap: () => onToggleLike(comment),
-                            child: Text(
-                              comment.likedByMe
-                                  ? 'Curtido (${comment.likeCount})'
-                                  : 'Curtir (${comment.likeCount})',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: comment.likedByMe
-                                    ? AppColors.danger
-                                    : AppColors.textMuted,
-                              ),
+                            onTap: _handleLike,
+                            child: Row(
+                              children: [
+                                if (_liking)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: widget.comment.likedByMe
+                                          ? AppColors.danger
+                                          : AppColors.textMuted,
+                                    ),
+                                  ),
+                                Text(
+                                  widget.comment.likedByMe
+                                      ? 'Curtido (${widget.comment.likeCount})'
+                                      : 'Curtir (${widget.comment.likeCount})',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: widget.comment.likedByMe
+                                        ? AppColors.danger
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 14),
-                          if (!isReply)
+                          if (!widget.isReply)
                             GestureDetector(
-                              onTap: () => onReply(comment),
+                              onTap: () => widget.onReply(widget.comment),
                               child: const Text(
                                 'Responder',
                                 style: TextStyle(
@@ -392,14 +426,14 @@ class _CommentThread extends StatelessWidget {
               ),
             ],
           ),
-          if (comment.replies.isNotEmpty) ...[
+          if (widget.comment.replies.isNotEmpty) ...[
             const SizedBox(height: 10),
-            ...comment.replies.map(
-              (reply) => _CommentThread(
+            ...widget.comment.replies.map(
+              (reply) => SocialCommentThread(
                 comment: reply,
-                onAuthorTap: onAuthorTap,
-                onReply: onReply,
-                onToggleLike: onToggleLike,
+                onAuthorTap: widget.onAuthorTap,
+                onReply: widget.onReply,
+                onToggleLike: widget.onToggleLike,
                 isReply: true,
               ),
             ),
