@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/campeonato.dart';
 import '../../../../services/campeonato_service.dart';
+import '../../../../services/favorite_service.dart';
 import '../../widgets/layout/main_top_bar.dart';
 import 'championship_detail_screen.dart';
 
@@ -106,7 +107,7 @@ class _ChampionshipsTabState extends State<ChampionshipsTab> {
                 ..._campeonatos.map(
                   (championship) => Padding(
                     padding: const EdgeInsets.only(bottom: 14),
-                    child: _ChampionshipCard(
+                    child: ChampionshipCard(
                       championship: championship,
                       onTap: () => _openDetail(championship),
                     ),
@@ -120,8 +121,8 @@ class _ChampionshipsTabState extends State<ChampionshipsTab> {
   }
 }
 
-class _ChampionshipCard extends StatelessWidget {
-  const _ChampionshipCard({
+class ChampionshipCard extends StatefulWidget {
+  const ChampionshipCard({
     required this.championship,
     required this.onTap,
   });
@@ -130,13 +131,58 @@ class _ChampionshipCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<ChampionshipCard> createState() => _ChampionshipCardState();
+}
+
+class _ChampionshipCardState extends State<ChampionshipCard> {
+  bool _isFavorite = false;
+  final _favoriteService = FavoriteService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavorite();
+  }
+
+  Future<void> _checkFavorite() async {
+    final isFav = await _favoriteService.isFavorite(campeonatoId: widget.championship.id);
+    if (mounted) {
+      setState(() => _isFavorite = isFav);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_favoriteService.currentUserId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faça login para favoritar o campeonato')),
+      );
+      return;
+    }
+
+    final previousState = _isFavorite;
+    setState(() => _isFavorite = !_isFavorite);
+
+    try {
+      await _favoriteService.toggleFavorite(campeonatoId: widget.championship.id);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFavorite = previousState);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao favoritar: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
@@ -152,23 +198,42 @@ class _ChampionshipCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-                child: championship.escudoUrl != null && championship.escudoUrl!.isNotEmpty
-                    ? Image.network(
-                        championship.escudoUrl!,
-                        width: double.infinity,
-                        height: 160,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        width: double.infinity,
-                        height: 160,
-                        color: AppColors.surface,
-                        child: const Icon(Icons.emoji_events, size: 64, color: AppColors.textMuted),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    child: widget.championship.escudoUrl != null && widget.championship.escudoUrl!.isNotEmpty
+                        ? Image.network(
+                            widget.championship.escudoUrl!,
+                            width: double.infinity,
+                            height: 160,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: double.infinity,
+                            height: 160,
+                            color: AppColors.surface,
+                            child: const Icon(Icons.emoji_events, size: 64, color: AppColors.textMuted),
+                          ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        onPressed: _toggleFavorite,
+                        icon: Icon(
+                          _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                          color: _isFavorite ? const Color(0xFFF3B63F) : AppColors.textMuted,
+                        ),
                       ),
+                    ),
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -176,7 +241,7 @@ class _ChampionshipCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      championship.nome,
+                      widget.championship.nome,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 16,
@@ -186,7 +251,7 @@ class _ChampionshipCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      championship.edicao ?? 'Edição não informada',
+                      widget.championship.edicao ?? 'Edição não informada',
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
@@ -214,7 +279,7 @@ class _ChampionshipCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         Text(
-                          championship.dataInicio ?? 'A definir',
+                          widget.championship.dataInicio ?? 'A definir',
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 11,

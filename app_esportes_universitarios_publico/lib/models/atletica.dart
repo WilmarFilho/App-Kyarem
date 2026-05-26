@@ -26,6 +26,15 @@ class Atletica {
     );
   }
 
+  /// Construído a partir de um registro retornado pelo endpoint /favorites
+  factory Atletica.fromFavoriteJson(Map<String, dynamic> json) {
+    return Atletica(
+      id: json['atleticaId'] as String,
+      name: json['label'] as String? ?? '',
+      status: 'ATIVA',
+    );
+  }
+
   /// Alias para compatibilidade — a API retorna o campo como 'nome'
   String get nome => name;
 }

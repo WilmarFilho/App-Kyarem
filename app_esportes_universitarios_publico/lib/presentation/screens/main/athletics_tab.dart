@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/atletica.dart';
 import '../../../../services/atletica_service.dart';
+import '../../../../services/favorite_service.dart';
 import '../../widgets/layout/main_top_bar.dart';
 import 'athletic_detail_screen.dart';
 import 'atletica_management_screen.dart';
@@ -156,7 +157,7 @@ class _AthleticsTabState extends State<AthleticsTab> {
                       
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
-                        child: _AthleticCard(
+                        child: AthleticCard(
                           athletic: atletica,
                           isManaged: isManaged,
                           papel: papel,
@@ -180,8 +181,8 @@ class _AthleticsTabState extends State<AthleticsTab> {
   }
 }
 
-class _AthleticCard extends StatelessWidget {
-  const _AthleticCard({
+class AthleticCard extends StatefulWidget {
+  const AthleticCard({
     required this.athletic, 
     required this.onTap,
     this.isManaged = false,
@@ -194,18 +195,63 @@ class _AthleticCard extends StatelessWidget {
   final String? papel;
 
   @override
+  State<AthleticCard> createState() => _AthleticCardState();
+}
+
+class _AthleticCardState extends State<AthleticCard> {
+  bool _isFavorite = false;
+  final _favoriteService = FavoriteService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavorite();
+  }
+
+  Future<void> _checkFavorite() async {
+    final isFav = await _favoriteService.isFavorite(atleticaId: widget.athletic.id);
+    if (mounted) {
+      setState(() => _isFavorite = isFav);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_favoriteService.currentUserId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faça login para favoritar a atlética')),
+      );
+      return;
+    }
+
+    final previousState = _isFavorite;
+    setState(() => _isFavorite = !_isFavorite);
+
+    try {
+      await _favoriteService.toggleFavorite(atleticaId: widget.athletic.id);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFavorite = previousState);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao favoritar: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: isManaged 
+            border: widget.isManaged 
                 ? Border.all(color: AppColors.secondary, width: 2) 
                 : Border.all(color: const Color(0xFFE8EDF5)),
             boxShadow: [
@@ -225,9 +271,9 @@ class _AthleticCard extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    athletic.escudoUrl != null && athletic.escudoUrl!.isNotEmpty
+                    widget.athletic.escudoUrl != null && widget.athletic.escudoUrl!.isNotEmpty
                         ? Image.network(
-                            athletic.escudoUrl!,
+                            widget.athletic.escudoUrl!,
                             width: double.infinity,
                             height: 160,
                             fit: BoxFit.cover,
@@ -252,10 +298,10 @@ class _AthleticCard extends StatelessWidget {
                               color: AppColors.textMuted,
                             ),
                           ),
-                    if (isManaged && papel != null)
+                    if (widget.isManaged && widget.papel != null)
                       Positioned(
                         top: 12,
-                        right: 12,
+                        left: 12, // Move left so favorite can be on the right
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -263,7 +309,7 @@ class _AthleticCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            papel == 'PRESIDENT' ? 'PRESIDENTE' : 'DIRETORIA',
+                            widget.papel == 'PRESIDENT' ? 'PRESIDENTE' : 'DIRETORIA',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -273,6 +319,21 @@ class _AthleticCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Material(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          onPressed: _toggleFavorite,
+                          icon: Icon(
+                            _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                            color: _isFavorite ? const Color(0xFFF3B63F) : AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -282,7 +343,7 @@ class _AthleticCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      athletic.name,
+                      widget.athletic.name,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 16,
@@ -292,7 +353,7 @@ class _AthleticCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      athletic.sigla ?? '',
+                      widget.athletic.sigla ?? '',
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
@@ -310,7 +371,7 @@ class _AthleticCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          athletic.status,
+                          widget.athletic.status,
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 11,

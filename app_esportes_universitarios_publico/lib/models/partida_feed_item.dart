@@ -53,4 +53,56 @@ class PartidaFeedItem {
         normalized == 'INICIADA' ||
         normalized == 'AO_VIVO';
   }
+
+  factory PartidaFeedItem.fromJson(Map<String, dynamic> json) {
+    return PartidaFeedItem(
+      id: json['id'] as String? ?? '',
+      modalidadeId: json['modalidadeId'] as String? ?? '',
+      modalidadeNome: json['modalidadeNome'] as String? ?? '',
+      esporteNome: json['esporteNome'] as String? ?? '',
+      campeonatoId: json['campeonatoId'] as String? ?? '',
+      campeonatoNome: json['campeonatoNome'] as String? ?? '',
+      campeonatoEscudoUrl: json['campeonatoEscudoUrl'] as String?,
+      timeA: json['timeA'] as String? ?? 'Time A',
+      timeB: json['timeB'] as String? ?? 'Time B',
+      atleticaNomeA: json['atleticaNomeA'] as String?,
+      atleticaNomeB: json['atleticaNomeB'] as String?,
+      atleticaEscudoUrlA: json['atleticaEscudoUrlA'] as String?,
+      atleticaEscudoUrlB: json['atleticaEscudoUrlB'] as String?,
+      status: json['status'] as String? ?? 'AGENDADA',
+      agendadoPara: json['agendadoPara'] != null
+          ? DateTime.tryParse(json['agendadoPara'] as String)
+          : null,
+      iniciadaEm: json['iniciadaEm'] != null
+          ? DateTime.tryParse(json['iniciadaEm'] as String)
+          : null,
+      encerradaEm: json['encerradaEm'] != null
+          ? DateTime.tryParse(json['encerradaEm'] as String)
+          : null,
+      local: json['local'] as String?,
+      categoria: json['categoria'] as String?,
+      fase: json['fase'] as String?,
+      placarA: json['placarA'] as int? ?? 0,
+      placarB: json['placarB'] as int? ?? 0,
+    );
+  }
+
+  /// Construído a partir de um registro retornado pelo endpoint /favorites
+  /// O backend retorna apenas id e label; os demais campos ficam vazios
+  /// até que a tela de detalhes carregue os dados completos.
+  factory PartidaFeedItem.fromFavoriteJson(Map<String, dynamic> json) {
+    return PartidaFeedItem(
+      id: json['partidaId'] as String,
+      modalidadeId: '',
+      modalidadeNome: json['label'] as String? ?? 'Partida',
+      esporteNome: '',
+      campeonatoId: '',
+      campeonatoNome: '',
+      timeA: 'Time A',
+      timeB: 'Time B',
+      status: 'AGENDADA',
+      placarA: 0,
+      placarB: 0,
+    );
+  }
 }

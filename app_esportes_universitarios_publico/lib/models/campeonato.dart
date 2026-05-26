@@ -31,6 +31,15 @@ class Campeonato {
       modalidades: [],
     );
   }
+
+  /// Construído a partir de um registro retornado pelo endpoint /favorites
+  factory Campeonato.fromFavoriteJson(Map<String, dynamic> json) {
+    return Campeonato(
+      id: json['campeonatoId'] as String,
+      nome: json['label'] as String? ?? '',
+      status: 'EM_ANDAMENTO',
+    );
+  }
 }
 
 class CampeonatoModalidade {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/app_colors.dart';
 import '../../../models/partida_feed_item.dart';
 import '../../screens/main/match_details_screen.dart';
+import '../../../services/favorite_service.dart';
 
 class PartidaCardWidget extends StatefulWidget {
   const PartidaCardWidget({super.key, required this.partida});
@@ -16,6 +17,50 @@ class PartidaCardWidget extends StatefulWidget {
 class _PartidaCardWidgetState extends State<PartidaCardWidget> {
   bool _isFavorite = false;
   bool _isNotificationEnabled = false;
+  final _favoriteService = FavoriteService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavorite();
+  }
+
+  Future<void> _checkFavorite() async {
+    final isFav = await _favoriteService.isFavorite(partidaId: widget.partida.id);
+    if (mounted) {
+      setState(() {
+        _isFavorite = isFav;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_favoriteService.currentUserId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faça login para favoritar a partida')),
+      );
+      return;
+    }
+
+    final previousState = _isFavorite;
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+
+    try {
+      await _favoriteService.toggleFavorite(partidaId: widget.partida.id);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isFavorite = previousState;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao favoritar: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -303,9 +348,7 @@ class _PartidaCardWidgetState extends State<PartidaCardWidget> {
                     ),
                     const SizedBox(width: 10),
                     IconButton(
-                      onPressed: () {
-                        setState(() => _isFavorite = !_isFavorite);
-                      },
+                      onPressed: _toggleFavorite,
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xFFF4F7FB),
                         shape: RoundedRectangleBorder(
