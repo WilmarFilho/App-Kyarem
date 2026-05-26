@@ -52,12 +52,35 @@ public class EsportesController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
     public TipoEventoResponse createTipoEvento(@PathVariable UUID id, @Valid @RequestBody CreateTipoEventoRequest req) {
-        TipoEvento te = tipoEventoService.create(id, req.nome());
+        var data = new TipoEventoService.CreateTipoEventoData(
+                req.codigo(),
+                req.nome(),
+                req.escopo(),
+                req.impactaPlacar(),
+                req.pontosPro(),
+                req.pontosContra(),
+                req.ordemExibicao());
+        TipoEvento te = tipoEventoService.create(id, data);
         return TipoEventoResponse.from(te);
     }
 
+    @DeleteMapping("/{id}/tipos-eventos/{tipoEventoId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyAuthority('ROLE_admin','ROLE_director')")
+    public void deleteTipoEvento(@PathVariable UUID id, @PathVariable UUID tipoEventoId) {
+        tipoEventoService.delete(id, tipoEventoId);
+    }
+
     public record CreateEsporteRequest(@NotBlank String nome) {}
-    public record CreateTipoEventoRequest(@NotBlank String nome) {}
+    
+    public record CreateTipoEventoRequest(
+            String codigo,
+            @NotBlank String nome,
+            String escopo,
+            Boolean impactaPlacar,
+            Integer pontosPro,
+            Integer pontosContra,
+            Integer ordemExibicao) {}
 
     public record EsporteResponse(UUID id, String nome) {
         static EsporteResponse from(Esporte e) { return new EsporteResponse(e.getId(), e.getNome()); }
@@ -72,7 +95,8 @@ public class EsportesController {
             Boolean impactaPlacar,
             Integer pontosPro,
             Integer pontosContra,
-            Integer ordemExibicao) {
+            Integer ordemExibicao,
+            Boolean ativo) {
         static TipoEventoResponse from(TipoEvento te) {
             UUID modalidadeCatalogoId = te.getModalidadeCatalogo() != null ? te.getModalidadeCatalogo().getId() : null;
             return new TipoEventoResponse(
@@ -84,7 +108,8 @@ public class EsportesController {
                     te.getImpactaPlacar(),
                     te.getPontosPro(),
                     te.getPontosContra(),
-                    te.getOrdemExibicao());
+                    te.getOrdemExibicao(),
+                    te.getAtivo());
         }
     }
 }

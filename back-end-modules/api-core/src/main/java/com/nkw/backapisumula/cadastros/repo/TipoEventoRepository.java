@@ -7,5 +7,5 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TipoEventoRepository extends JpaRepository<TipoEvento, UUID> {
-    List<TipoEvento> findAllByModalidadeCatalogo_IdOrderByNomeAsc(UUID modalidadeCatalogoId);
+    List<TipoEvento> findAllByModalidadeCatalogo_IdOrderByOrdemExibicaoAscNomeAsc(UUID modalidadeCatalogoId);
 }

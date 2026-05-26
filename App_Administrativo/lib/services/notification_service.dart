@@ -7,10 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
+
 /// Handler de mensagens em background (top-level, fora de qualquer classe).
 /// Obrigatorio pelo Firebase Messaging para funcionar com app fechado.
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundMessageHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint(
     '[FCM Background] Mensagem recebida: ${message.notification?.title}',
   );

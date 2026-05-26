@@ -35,7 +35,9 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _carregarPerfil() async {
     final profile = await _authService.getUserProfile();
 
-    debugPrint('MainScreen perfil → isAdmin=${profile['isAdmin']} isArbitro=${profile['isArbitro']} role=${profile['role']} allowed=${profile['allowedAdminApp']}');
+    debugPrint(
+      'MainScreen perfil → isAdmin=${profile['isAdmin']} isArbitro=${profile['isArbitro']} role=${profile['role']} allowed=${profile['allowedAdminApp']}',
+    );
 
     if (!_authService.canAccessAdminApp(profile)) {
       await _authService.logout();
@@ -46,9 +48,11 @@ class _MainScreenState extends State<MainScreen> {
 
     if (mounted) {
       setState(() {
-        _isAdminRole = profile['isAdmin'] == true ||
+        _isAdminRole =
+            profile['isAdmin'] == true ||
             _authService.isAdminRole(profile['role'] as String? ?? '');
-        _isArbitro = profile['isArbitro'] == true ||
+        _isArbitro =
+            profile['isArbitro'] == true ||
             _authService.isArbitroRole(profile['role'] as String? ?? '');
         _perfilCarregado = true;
       });
@@ -88,17 +92,17 @@ class _MainScreenState extends State<MainScreen> {
     // para evitar flickering/tela branca ao inicializar.
     if (!_perfilCarregado) {
       return const Scaffold(
-        backgroundColor: Color(0xFF1B2B4B),
+        backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Colors.white),
+              CircularProgressIndicator(color: Color(0xFFF85C39)),
               SizedBox(height: 24),
               Text(
                 'Carregando...',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Colors.black87,
                   fontFamily: 'Poppins',
                   fontSize: 14,
                 ),

@@ -6,6 +6,7 @@ import 'package:kyarem_eventos/services/admin_api_service.dart';
 
 import 'modalidade_campeonato_associacao_screen.dart';
 import 'modalidade_form_screen.dart';
+import 'tipo_evento_form_screen.dart';
 
 class ModalidadeDetalheScreen extends StatefulWidget {
   final ModalidadeCatalogo modalidade;
@@ -22,6 +23,7 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
   late ModalidadeCatalogo _modalidade;
   List<ModalidadeCampeonato> _associacoes = [];
   List<Campeonato> _campeonatos = [];
+  List<Map<String, dynamic>> _tiposEventos = [];
   bool _isLoading = true;
 
   @override
@@ -36,11 +38,13 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
     final results = await Future.wait([
       _api.listarAssociacoesModalidadeCatalogo(_modalidade.id),
       _api.listarCampeonatos(),
+      _api.listarTiposEventosModalidadeCatalogo(_modalidade.id),
     ]);
     if (!mounted) return;
     setState(() {
       _associacoes = results[0] as List<ModalidadeCampeonato>;
       _campeonatos = results[1] as List<Campeonato>;
+      _tiposEventos = results[2] as List<Map<String, dynamic>>;
       _isLoading = false;
     });
   }
@@ -133,6 +137,72 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
     );
   }
 
+  Future<void> _abrirTipoEventoForm() async {
+    final data = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TipoEventoFormScreen(
+          modalidadeCatalogoId: _modalidade.id,
+          motorRegras: _modalidade.motorRegras,
+        ),
+      ),
+    );
+
+    if (data != null && mounted) {
+      setState(() => _isLoading = true);
+      final created = await _api.criarTipoEvento(_modalidade.id, data);
+      if (!mounted) return;
+      if (created != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de evento criado com sucesso.')),
+        );
+        await _carregar();
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao criar tipo de evento.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _excluirTipoEvento(String tipoEventoId, String nome) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir tipo de evento?'),
+        content: Text('Deseja excluir "$nome"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+    setState(() => _isLoading = true);
+    final ok = await _api.excluirTipoEvento(_modalidade.id, tipoEventoId);
+    if (!mounted) return;
+    if (ok) {
+      await _carregar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tipo de evento excluído.')),
+      );
+    } else {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao excluir tipo de evento.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,13 +236,44 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _abrirAssociacao,
-        backgroundColor: const Color(0xFFF85C39),
-        icon: const Icon(Icons.add_link, color: Colors.white),
-        label: const Text(
-          'Associar campeonato',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _abrirAssociacao,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF85C39),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_link),
+                  label: const Text('Campeonato'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _abrirTipoEventoForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E293B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.flash_on),
+                  label: const Text('Tipo Evento'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       body: _isLoading
@@ -180,11 +281,13 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
               child: CircularProgressIndicator(color: Color(0xFFF85C39)),
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 _buildHeaderCard(),
                 const SizedBox(height: 18),
                 _buildAssociacoesCard(),
+                const SizedBox(height: 18),
+                _buildTiposEventosCard(),
               ],
             ),
     );
@@ -331,6 +434,96 @@ class _ModalidadeDetalheScreenState extends State<ModalidadeDetalheScreen> {
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
+      ),
+    );
+  }
+  Widget _buildTiposEventosCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tipos de Eventos',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+          ),
+          const SizedBox(height: 12),
+          if (_tiposEventos.isEmpty)
+            Text(
+              'Não há tipos de eventos para esta modalidade.',
+              style: TextStyle(color: Colors.grey.shade600),
+            )
+          else
+            ..._tiposEventos.map(_buildTipoEventoTile),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipoEventoTile(Map<String, dynamic> te) {
+    final nome = te['nome'] ?? 'Sem nome';
+    final codigo = te['codigo'] ?? '';
+    final escopo = te['escopo'] ?? 'ATLETA';
+    final impacta = te['impactaPlacar'] == true;
+    final pPro = te['pontosPro'];
+    final pContra = te['pontosContra'];
+    
+    Color escopoColor = Colors.blue;
+    if (escopo == 'PARTIDA') escopoColor = Colors.purple;
+    if (escopo == 'EQUIPE') escopoColor = Colors.orange;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(nome, style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: escopoColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: escopoColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        escopo,
+                        style: TextStyle(color: escopoColor, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(codigo, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  ],
+                ),
+                if (impacta) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Impacta placar (Pró: ${pPro ?? 0}, Contra: ${pContra ?? 0})',
+                    style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ]
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _excluirTipoEvento(te['id'], nome),
+            icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
+          ),
+        ],
       ),
     );
   }

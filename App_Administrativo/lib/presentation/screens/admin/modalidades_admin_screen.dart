@@ -129,8 +129,29 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Excluir modalidade?'),
-        content: Text('Deseja excluir "${modalidade.nome}"?'),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Expanded(child: Text('Excluir modalidade?')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Deseja realmente excluir "${modalidade.nome}"?'),
+            const SizedBox(height: 12),
+            const Text(
+              'Atenção: Esta ação apagará também todos os tipos de eventos, associações de campeonatos, inscrições e partidas vinculadas a essa modalidade.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -138,7 +159,11 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Excluir'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir Tudo'),
           ),
         ],
       ),
@@ -463,7 +488,7 @@ class _ModalidadesAdminScreenState extends State<ModalidadesAdminScreen>
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${modalidade.esporteNome ?? 'Sem esporte'} Â· ${modalidade.genero}',
+          '${modalidade.esporteNome ?? 'Sem esporte'} · ${modalidade.genero}',
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

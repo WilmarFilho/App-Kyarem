@@ -1711,7 +1711,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       return;
     }
 
-    if (_jogadorSelecionado == null) {
+    if (!tipoObjeto.isEventoDePartida && _jogadorSelecionado == null) {
       _mostrarAviso("Selecione um jogador no campo primeiro!", Colors.red);
       return;
     }
@@ -1732,14 +1732,14 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
     if (!mounted) return;
     if (observacao == null) return;
 
-    final jogador = _jogadorSelecionado!;
-    final isTimeA = _jogadoresA.contains(jogador);
+    final jogador = _jogadorSelecionado;
+    final isTimeA = jogador != null ? _jogadoresA.contains(jogador) : false;
 
     final novoEventoFeed = EventoPartida(
       tipo: tipoObjeto.nomeFormatado,
-      corTime: jogador.corTime ?? Colors.grey,
-      jogadorNome: jogador.nome,
-      jogadorNumero: jogador.numero,
+      corTime: jogador?.corTime ?? Colors.grey,
+      jogadorNome: jogador?.nome,
+      jogadorNumero: jogador?.numero,
       horario: tempoFormatado,
       observacao: observacao,
     );
@@ -1752,7 +1752,7 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         if (isTimeA) {
           _golsA += pontosPro;
           _golsB += pontosContra;
-        } else {
+        } else if (jogador != null) {
           _golsB += pontosPro;
           _golsA += pontosContra;
         }
@@ -1762,16 +1762,15 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
       _jogadorSelecionado = null;
     });
 
-    final String equipeIdCorreta =
-        jogador.equipeId ??
-        (isTimeA ? widget.partida.equipeAId : widget.partida.equipeBId);
+    final String? equipeIdCorreta = jogador?.equipeId ??
+        (jogador != null ? (isTimeA ? widget.partida.equipeAId : widget.partida.equipeBId) : null);
 
     await _partidaService.salvarEvento(
       partidaId: widget.partida.id,
       equipeId: equipeIdCorreta,
       tipoEventoId: tipoObjeto.id,
       tempoFormatado: tempoFormatado,
-      atletaId: jogador.atletaId,
+      atletaId: jogador?.atletaId,
       descricao: observacao,
     );
 
@@ -1779,11 +1778,13 @@ class _PartidaRunningScreenState extends State<PartidaRunningScreen>
         ? ''
         : ' • Observação adicionada';
 
+    final nomeExibicao = jogador?.nome != null ? "${jogador?.nome} (#${jogador?.numero})" : "Partida";
+    
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          "${tipoObjeto.nomeFormatado} registrado: ${jogador.nome} (#${jogador.numero})$sufixoObservacao",
+          "${tipoObjeto.nomeFormatado} registrado: $nomeExibicao$sufixoObservacao",
         ),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),

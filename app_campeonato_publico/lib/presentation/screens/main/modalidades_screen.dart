@@ -1,7 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:kyarem_eventos_publico/core/app_colors.dart';
-
 import '../../../models/campeonato_model.dart';
 import '../../../models/modalidade_model.dart';
 import 'package:kyarem_eventos_publico/services/estatistica_service.dart';
@@ -11,24 +11,6 @@ import '../../widgets/layout/bottom_navigation_widget.dart';
 import '../../widgets/layout/gradient_background.dart';
 import '../modalidade/partidas_modalidade_screen.dart';
 import 'main_screen.dart';
-
-IconData _getModalidadeIcon(String nome) {
-  final n = nome.toLowerCase();
-  if (n.contains('futsal') || n.contains('futebol') || n.contains('campo')) {
-    return Icons.sports_soccer_rounded;
-  } else if (n.contains('basquete')) {
-    return Icons.sports_basketball_rounded;
-  } else if (n.contains('volei') || n.contains('vôlei')) {
-    return Icons.sports_volleyball_rounded;
-  } else if (n.contains('handebol')) {
-    return Icons.sports_handball_rounded;
-  } else if (n.contains('tenis') || n.contains('tênis')) {
-    return Icons.sports_tennis_rounded;
-  } else if (n.contains('e-sports') || n.contains('game')) {
-    return Icons.sports_esports_rounded;
-  }
-  return Icons.sports_rounded; // Ícone padrão
-}
 
 class ModalidadesScreen extends StatefulWidget {
   final Campeonato campeonato;
@@ -54,6 +36,62 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
   late final ModalidadeService _service =
       widget.modalidadeService ?? ModalidadeService();
   late Future<List<Modalidade>> _future;
+
+  // MAPA PARA CONFIGURAR IMAGEM E DESCRIÇÃO POR MODALIDADE
+  // As chaves devem estar em letras minúsculas (ex: 'futsal', 'basquete', 'vôlei')
+  // Se o nome da modalidade vinda da API contiver essa palavra, usará as info do map.
+  static const Map<String, Map<String, String>> _modalidadeInfo = {
+    'futsal': {
+      'imagem':
+          'https://hlgnackuzfhkhloemtey.supabase.co/storage/v1/object/public/social-posts/dc6cee27-804e-4057-939d-9ea964139857/img2.png',
+      'descricao': 'A emoção nas quadras',
+    },
+    'futebol': {
+      'imagem':
+          'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'A paixão nacional',
+    },
+    'basquete': {
+      'imagem':
+          'https://hlgnackuzfhkhloemtey.supabase.co/storage/v1/object/public/social-posts/dc6cee27-804e-4057-939d-9ea964139857/img1.png',
+      'descricao': 'Cestas e enterradas',
+    },
+    'vôlei': {
+      'imagem':
+          'https://images.unsplash.com/photo-1592656094267-764a45160876?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Saques e cortadas perfeitas',
+    },
+    'volei': {
+      'imagem':
+          'https://images.unsplash.com/photo-1592656094267-764a45160876?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Saques e cortadas perfeitas',
+    },
+    'handebol': {
+      'imagem':
+          'https://images.unsplash.com/photo-1589828139335-51d279183427?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Força e agilidade em quadra',
+    },
+    'tênis': {
+      'imagem':
+          'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Disputas acirradas',
+    },
+    'tenis': {
+      'imagem':
+          'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Disputas acirradas',
+    },
+    'e-sports': {
+      'imagem':
+          'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Batalhas virtuais épicas',
+    },
+    'game': {
+      'imagem':
+          'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop',
+      'descricao': 'Batalhas virtuais épicas',
+    },
+  };
 
   @override
   void initState() {
@@ -90,20 +128,13 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
               // === HEADER PREMIUM COM GRADIENTE ===
               SliverAppBar(
                 expandedHeight: 100.0,
-                floating: false,
                 pinned: true,
-                automaticallyImplyLeading:
-                    false, // Remove a seta e o espaço dela
+                automaticallyImplyLeading: false,
                 elevation: 0,
-                backgroundColor:
-                    Colors.transparent, // Deixa o gradiente brilhar
+                backgroundColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: false,
-                  titlePadding: EdgeInsets
-                      .zero, // Remove o padding que joga o texto para baixo
+                  titlePadding: EdgeInsets.zero,
                   title: Container(
-                    width: double.infinity,
-                    height: double.infinity,
                     alignment: Alignment.centerLeft,
                     padding: const EdgeInsets.only(left: 22, top: 32),
                     child: Text(
@@ -133,41 +164,55 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                 ),
               ),
               // === LISTA DE MODALIDADES ===
-              FutureBuilder<List<Modalidade>>(
-                future: _future,
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const SliverFillRemaining(
-                      child: Center(
-                        child: CircularProgressIndicator(color: primaryColor),
-                      ),
-                    );
-                  }
-
-                  final modalidades = snap.data ?? [];
-
-                  if (modalidades.isEmpty) {
-                    return SliverFillRemaining(child: _buildEmptyState());
-                  }
-
-                  return SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      18,
-                      24,
-                      18,
-                      widget.isMainScreenChild ? 100 : 120,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, i) {
-                        final m = modalidades[i];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildModalidadeCard(m),
+              SliverFillRemaining(
+                child: RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: _reload,
+                  child: FutureBuilder<List<Modalidade>>(
+                    future: _future,
+                    builder: (context, snap) {
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
                         );
-                      }, childCount: modalidades.length),
-                    ),
-                  );
-                },
+                      }
+
+                      final modalidades = snap.data ?? [];
+
+                      if (modalidades.isEmpty) {
+                        return ListView(
+                          padding: EdgeInsets.only(
+                            top: 120,
+                            bottom: widget.isMainScreenChild ? 100 : 120,
+                          ),
+                          children: [_buildEmptyState()],
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: EdgeInsets.fromLTRB(
+                          18,
+                          24,
+                          18,
+                          widget.isMainScreenChild ? 100 : 120,
+                        ),
+                        itemCount: modalidades.length,
+                        itemBuilder: (context, i) {
+                          final m = modalidades[i];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: AspectRatio(
+                              aspectRatio: 4 / 3,
+                              child: _buildModalidadeCard(m),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
               ),
             ],
           ),
@@ -185,18 +230,31 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
   Widget _buildModalidadeCard(Modalidade m) {
     final titulo = (m.nome ?? 'Modalidade').toUpperCase();
     final subtitulo = (m.esporteNome ?? '').trim();
-    final iconData = _getModalidadeIcon(m.nome ?? '');
+
+    // Busca informações no mapa criado acima
+    final nomeLower = (m.nome ?? '').toLowerCase();
+    String? matchedKey;
+    for (final key in _modalidadeInfo.keys) {
+      if (nomeLower.contains(key)) {
+        matchedKey = key;
+        break;
+      }
+    }
+    final info = matchedKey != null ? _modalidadeInfo[matchedKey] : null;
+
+    final imageUrl =
+        info?['imagem'] ??
+        'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=600&auto=format&fit=crop';
+    final descricao =
+        info?['descricao'] ??
+        (subtitulo.isNotEmpty ? subtitulo : "Ver competições");
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4), // Respiro entre cards
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        // Sutil sombra para dar profundidade sobre o fundo escuro
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -204,54 +262,37 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PartidasModalidadeScreen(
-                    modalidade: m,
-                    partidaService: widget.partidaService,
-                    estatisticaService: widget.estatisticaService,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey.shade900,
+                  child: const Icon(
+                    Icons.sports,
+                    color: Colors.white54,
+                    size: 50,
                   ),
                 ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  // ÍCONE DINÂMICO COM GRADIENTE
-                  Container(
-                    width: 56,
-                    height: 56,
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFFF2561D).withValues(alpha: 0.15),
-                          const Color(0xFFF22F1D).withValues(alpha: 0.15),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFF22F1D).withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
+                      color: Colors.black.withValues(alpha: 0.5),
                     ),
-                    child: Icon(
-                      iconData,
-                      color: const Color(0xFFF22F1D),
-                      size: 30,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-
-                  // TEXTOS
-                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -259,43 +300,52 @@ class _ModalidadesScreenState extends State<ModalidadesScreen> {
                         Text(
                           titulo,
                           style: GoogleFonts.oswald(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             letterSpacing: 0.5,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          subtitulo.isNotEmpty ? subtitulo : "Ver competições",
+                          descricao,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.3,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-
-                  // INDICADOR DE AÇÃO
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.03),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.white.withValues(alpha: 0.3),
-                      size: 14,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PartidasModalidadeScreen(
+                          modalidade: m,
+                          partidaService: widget.partidaService,
+                          estatisticaService: widget.estatisticaService,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -31,10 +31,7 @@ class GameActionsPanel extends StatelessWidget {
   }
 
   bool _podeAcionar(TipoEventoEsporte tipo) {
-    // Eventos de partida (início/fim de tempo) são sempre controlados pelos botões do timer
-    if (tipo.isEventoDePartida) return false;
-
-    // Nenhuma ação é permitida quando parado
+    // Nenhuma ação é permitida quando parado (exceto se você quiser permitir na pausa, etc. Mas mantemos a regra original)
     const estadosBloqueados = [
       PeriodoPartida.naoIniciada,
       PeriodoPartida.pausada,
@@ -44,8 +41,22 @@ class GameActionsPanel extends StatelessWidget {
     ];
     if (estadosBloqueados.contains(periodoAtual)) return false;
 
-    // Tanto eventos de atleta quanto de equipe exigem jogador selecionado:
-    // o jogador selecionado determina a equipe do evento.
+    // Se for um evento sistêmico (Início/Fim de tempo) que foi acidentalmente passado, desabilita
+    final nomeLow = tipo.nome.toLowerCase();
+    final sistemicos = [
+      'inicio_1_tempo',
+      'fim_1_tempo',
+      'inicio_2_tempo',
+      'fim_2_tempo',
+    ];
+    if (sistemicos.contains(nomeLow) ||
+        sistemicos.contains(tipo.codigo.toLowerCase()))
+      return false;
+
+    // Se for de escopo PARTIDA, não precisa de jogador selecionado
+    if (tipo.isEventoDePartida) return true;
+
+    // Eventos de atleta ou equipe exigem jogador selecionado
     return jogadorSelecionado != null;
   }
 
@@ -87,20 +98,33 @@ class GameActionsPanel extends StatelessWidget {
       'partida_retomada',
     ];
 
-    final outrosEventos = tiposDeEventos.where((e) {
-      final nomeLow = e.nome.toLowerCase();
-      final codigoLow = e.codigo.toLowerCase();
-      if (e.isEventoDePartida) return false;
-      return !nomesFixos.contains(nomeLow) &&
-          !nomesFixos.contains(codigoLow) &&
-          !nomesExcluidos.contains(nomeLow) &&
-          !nomesExcluidos.contains(codigoLow);
-    }).toList()
-      ..sort(
-        (a, b) => (a.ordemExibicao ?? a.idx ?? 999).compareTo(
-          b.ordemExibicao ?? b.idx ?? 999,
-        ),
-      );
+    final outrosEventos =
+        tiposDeEventos.where((e) {
+          final nomeLow = e.nome.toLowerCase();
+          final codigoLow = e.codigo.toLowerCase();
+          if (e.isEventoDePartida) return false; // Separa para outra lista
+          return !nomesFixos.contains(nomeLow) &&
+              !nomesFixos.contains(codigoLow) &&
+              !nomesExcluidos.contains(nomeLow) &&
+              !nomesExcluidos.contains(codigoLow);
+        }).toList()..sort(
+          (a, b) => (a.ordemExibicao ?? a.idx ?? 999).compareTo(
+            b.ordemExibicao ?? b.idx ?? 999,
+          ),
+        );
+
+    final eventosPartida =
+        tiposDeEventos.where((e) {
+          final nomeLow = e.nome.toLowerCase();
+          final codigoLow = e.codigo.toLowerCase();
+          if (!e.isEventoDePartida) return false;
+          return !nomesExcluidos.contains(nomeLow) &&
+              !nomesExcluidos.contains(codigoLow);
+        }).toList()..sort(
+          (a, b) => (a.ordemExibicao ?? a.idx ?? 999).compareTo(
+            b.ordemExibicao ?? b.idx ?? 999,
+          ),
+        );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -220,9 +244,6 @@ class GameActionsPanel extends StatelessWidget {
             const SizedBox(height: 8),
             LayoutBuilder(
               builder: (context, constraints) {
-                // Usamos as constraints do pai (o Container com padding 16)
-                // para calcular a largura exata.
-                // (Largura total disponível - espaçamento central de 8) / 2
                 final larguraBotao = (constraints.maxWidth - 8) / 2;
 
                 return Wrap(
@@ -237,6 +258,42 @@ class GameActionsPanel extends StatelessWidget {
                             ? () => onRegistrarEvento(tipo)
                             : null,
                         enabled: _podeAcionar(tipo),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+
+          // --- SEÇÃO 4: EVENTOS DE PARTIDA ---
+          if (eventosPartida.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              "CONTROLE DE PARTIDA",
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final larguraBotao = (constraints.maxWidth - 8) / 2;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: eventosPartida.map((tipo) {
+                    return SizedBox(
+                      width: larguraBotao,
+                      child: _buildExitButton(
+                        tipo.nomeFormatado,
+                        onTap: _podeAcionar(tipo)
+                            ? () => onRegistrarEvento(tipo)
+                            : null,
+                        enabled: _podeAcionar(tipo),
+                        textColor: const Color(0xFFE2B9FF), // Destaque visual
                       ),
                     );
                   }).toList(),
@@ -286,6 +343,7 @@ class GameActionsPanel extends StatelessWidget {
     String label, {
     required VoidCallback? onTap,
     bool enabled = true,
+    Color textColor = Colors.black,
   }) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
@@ -294,17 +352,23 @@ class GameActionsPanel extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: textColor == Colors.black
+                ? Colors.white
+                : const Color(0xFF383838),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[400]!),
+            border: Border.all(
+              color: textColor == Colors.black
+                  ? Colors.grey[400]!
+                  : textColor.withValues(alpha: 0.5),
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: textColor == Colors.black ? Colors.black : textColor,
             ),
           ),
         ),

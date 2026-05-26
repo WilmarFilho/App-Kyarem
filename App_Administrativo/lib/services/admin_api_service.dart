@@ -614,6 +614,37 @@ class AdminApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> criarTipoEvento(
+    String modalidadeCatalogoId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final res = await _dio.post(
+        '/esportes/$modalidadeCatalogoId/tipos-eventos',
+        data: data,
+      );
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint("Erro criarTipoEvento: $e");
+      return null;
+    }
+  }
+
+  Future<bool> excluirTipoEvento(
+    String modalidadeCatalogoId,
+    String tipoEventoId,
+  ) async {
+    try {
+      await _dio.delete(
+        '/esportes/$modalidadeCatalogoId/tipos-eventos/$tipoEventoId',
+      );
+      return true;
+    } catch (e) {
+      debugPrint("Erro excluirTipoEvento: $e");
+      return false;
+    }
+  }
+
   /// Busca uma modalidade específica pelo ID.
   /// Retorna o map com id, campeonatoId, campeonatoNome, esporteNome, nome.
   /// Endpoint: GET /api/v1/modalidades/{id} (público).

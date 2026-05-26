@@ -144,7 +144,8 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
                                   ),
                         builder: (context, votesSnapshot) {
                           final votes =
-                              votesSnapshot.data ?? const <Map<String, dynamic>>[];
+                              votesSnapshot.data ??
+                              const <Map<String, dynamic>>[];
                           final ranking = _buildRanking(atleticas, votes);
                           final totalVotes = votes.length;
 
@@ -177,12 +178,12 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
                 ),
               ),
             ],
+          ),
+          if (!widget.isMainScreenChild)
+            BottomNavigationWidget(
+              currentIndex: 2,
+              onTabSelected: _onBottomTabSelected,
             ),
-            if (!widget.isMainScreenChild)
-              BottomNavigationWidget(
-                currentIndex: 2,
-                onTabSelected: _onBottomTabSelected,
-              ),
         ],
       ),
     );
@@ -195,25 +196,31 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
     final counts = <String, int>{};
     for (final vote in votes) {
       final campeonatoAtleticaId = vote['campeonato_atletica_id']?.toString();
-      if (campeonatoAtleticaId == null || campeonatoAtleticaId.isEmpty) continue;
-      counts.update(campeonatoAtleticaId, (value) => value + 1, ifAbsent: () => 1);
+      if (campeonatoAtleticaId == null || campeonatoAtleticaId.isEmpty)
+        continue;
+      counts.update(
+        campeonatoAtleticaId,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
     }
 
-    final ranking = atleticas
-        .map(
-          (atletica) => _AtleticaTorcidaRank(
-            atletica: atletica,
-            votes: counts[atletica.campeonatoAtleticaId] ?? 0,
-          ),
-        )
-        .toList()
-      ..sort((a, b) {
-        final byVotes = b.votes.compareTo(a.votes);
-        if (byVotes != 0) return byVotes;
-        return a.atletica.nome.toLowerCase().compareTo(
-          b.atletica.nome.toLowerCase(),
-        );
-      });
+    final ranking =
+        atleticas
+            .map(
+              (atletica) => _AtleticaTorcidaRank(
+                atletica: atletica,
+                votes: counts[atletica.campeonatoAtleticaId] ?? 0,
+              ),
+            )
+            .toList()
+          ..sort((a, b) {
+            final byVotes = b.votes.compareTo(a.votes);
+            if (byVotes != 0) return byVotes;
+            return a.atletica.nome.toLowerCase().compareTo(
+              b.atletica.nome.toLowerCase(),
+            );
+          });
 
     for (var i = 0; i < ranking.length; i++) {
       ranking[i] = ranking[i].copyWith(position: i + 1);
@@ -259,7 +266,10 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
@@ -308,7 +318,7 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
                 ? 'Por enquanto ela reina sozinha no torcidômetro.'
                 : leaderGap == 0
                 ? 'A liderança está empatada. Qual torcida assume a ponta?'
-                : 'Vantagem de $leaderGap voto(s) sobre ${runnerUp.atletica.nome}.',
+                : 'Vantagem de $leaderGap voto(s).',
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'Poppins',
@@ -327,7 +337,8 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
     int leaderVotes,
   ) {
     final atletica = rank.atletica;
-    final hasLogo = atletica.escudoUrl != null && atletica.escudoUrl!.isNotEmpty;
+    final hasLogo =
+        atletica.escudoUrl != null && atletica.escudoUrl!.isNotEmpty;
     final normalizedLeaderVotes = leaderVotes > 0 ? leaderVotes : 1;
     final progress = totalVotes == 0 ? 0.0 : rank.votes / normalizedLeaderVotes;
     final isLeader = rank.position == 1 && rank.votes > 0;
@@ -450,9 +461,13 @@ class _AtleticasScreenState extends State<AtleticasScreen> {
                               ),
                             ),
                             child: Text(
-                              isLeader ? 'Líder da torcida' : 'Torcida #${rank.position}',
+                              isLeader
+                                  ? 'Líder da torcida'
+                                  : 'Torcida #${rank.position}',
                               style: TextStyle(
-                                color: isLeader ? AppColors.orange : Colors.white70,
+                                color: isLeader
+                                    ? AppColors.orange
+                                    : Colors.white70,
                                 fontFamily: 'Poppins',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,

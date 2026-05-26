@@ -67,7 +67,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
   }
 
   late ScrollController _scrollController;
-  double _headerCollapseProgress = 0.0;
+  final double _headerCollapseProgress = 0.0;
 
   @override
   void initState() {
@@ -81,18 +81,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
       curve: Curves.easeOut,
     );
 
-    _scrollController = ScrollController()
-      ..addListener(() {
-        if (_scrollController.hasClients) {
-          double offset = _scrollController.offset;
-          double newProgress = (offset / 100).clamp(0.0, 1.0);
-          if (newProgress != _headerCollapseProgress) {
-            setState(() {
-              _headerCollapseProgress = newProgress;
-            });
-          }
-        }
-      });
+    _scrollController = ScrollController();
 
     _animController.forward();
   }
@@ -118,7 +107,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen>
               slivers: [
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 170 + MediaQuery.of(context).padding.top,
+                    height: 190 + MediaQuery.of(context).padding.top,
                   ),
                 ),
                 SliverToBoxAdapter(child: _buildNotificacoesSection()),
