@@ -3,6 +3,7 @@ package com.nkw.backapisumula.social.service;
 import com.nkw.backapisumula.cadastros.Atletica;
 import com.nkw.backapisumula.cadastros.repo.AtleticaRepository;
 import com.nkw.backapisumula.competicao.Campeonato;
+import com.nkw.backapisumula.competicao.CampeonatoTime;
 import com.nkw.backapisumula.competicao.repo.CampeonatoRepository;
 import com.nkw.backapisumula.partidas.Partida;
 import com.nkw.backapisumula.partidas.repo.PartidaRepository;
@@ -48,9 +49,9 @@ public class FavoriteService {
 
     @Transactional(readOnly = true)
     public boolean isFavorite(UUID userId, UUID partidaId, UUID campeonatoId, UUID atleticaId) {
-        if (partidaId != null)     return favoriteRepository.existsByUserIdAndPartida_Id(userId, partidaId);
-        if (campeonatoId != null)  return favoriteRepository.existsByUserIdAndCampeonato_Id(userId, campeonatoId);
-        if (atleticaId != null)    return favoriteRepository.existsByUserIdAndAtletica_Id(userId, atleticaId);
+        if (partidaId != null)    return favoriteRepository.existsByUserIdAndPartida_Id(userId, partidaId);
+        if (campeonatoId != null) return favoriteRepository.existsByUserIdAndCampeonato_Id(userId, campeonatoId);
+        if (atleticaId != null)   return favoriteRepository.existsByUserIdAndAtletica_Id(userId, atleticaId);
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe partidaId, campeonatoId ou atleticaId.");
     }
 
@@ -58,12 +59,11 @@ public class FavoriteService {
     public FavoriteView toggle(UUID userId, UUID partidaId, UUID campeonatoId, UUID atleticaId) {
         validateExactlyOne(partidaId, campeonatoId, atleticaId);
 
-        // Verify existence of the referenced entity
         if (partidaId != null) {
             Optional<UserFavorite> existing = favoriteRepository.findByUserIdAndPartida_Id(userId, partidaId);
             if (existing.isPresent()) {
                 favoriteRepository.delete(existing.get());
-                return new FavoriteView(existing.get().getId(), userId, partidaId, null, null, false, null);
+                return FavoriteView.unfavorited(existing.get().getId(), userId, partidaId, null, null);
             }
             Partida partida = partidaRepository.findById(partidaId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partida não encontrada."));
@@ -74,7 +74,7 @@ public class FavoriteService {
             Optional<UserFavorite> existing = favoriteRepository.findByUserIdAndCampeonato_Id(userId, campeonatoId);
             if (existing.isPresent()) {
                 favoriteRepository.delete(existing.get());
-                return new FavoriteView(existing.get().getId(), userId, null, campeonatoId, null, false, null);
+                return FavoriteView.unfavorited(existing.get().getId(), userId, null, campeonatoId, null);
             }
             Campeonato campeonato = campeonatoRepository.findById(campeonatoId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Campeonato não encontrado."));
@@ -85,7 +85,7 @@ public class FavoriteService {
         Optional<UserFavorite> existing = favoriteRepository.findByUserIdAndAtletica_Id(userId, atleticaId);
         if (existing.isPresent()) {
             favoriteRepository.delete(existing.get());
-            return new FavoriteView(existing.get().getId(), userId, null, null, atleticaId, false, null);
+            return FavoriteView.unfavorited(existing.get().getId(), userId, null, null, atleticaId);
         }
         Atletica atletica = atleticaRepository.findById(atleticaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Atlética não encontrada."));
@@ -106,23 +106,84 @@ public class FavoriteService {
     }
 
     private FavoriteView toView(UserFavorite fav) {
-        String label = null;
-        UUID partidaId = null;
-        UUID campeonatoId = null;
-        UUID atleticaId = null;
-
         if (fav.getPartida() != null) {
-            partidaId = fav.getPartida().getId();
-            label = "Partida";
-        } else if (fav.getCampeonato() != null) {
-            campeonatoId = fav.getCampeonato().getId();
-            label = fav.getCampeonato().getNome();
-        } else if (fav.getAtletica() != null) {
-            atleticaId = fav.getAtletica().getId();
-            label = fav.getAtletica().getNome();
+            Partida p = fav.getPartida();
+            return new FavoriteView(
+                    fav.getId(),
+                    fav.getUserId(),
+                    p.getId(),
+                    null,
+                    null,
+                    true,
+                    // label fica como a modalidade da partida
+                    p.getCampeonatoModalidade() != null && p.getCampeonatoModalidade().getModalidade() != null
+                            ? p.getCampeonatoModalidade().getModalidade().getNome()
+                            : "Partida",
+                    // campeonato info
+                    p.getCampeonato() != null ? p.getCampeonato().getId() : null,
+                    p.getCampeonato() != null ? p.getCampeonato().getNome() : null,
+                    p.getCampeonato() != null ? p.getCampeonato().getEscudoUrl() : null,
+                    // esporte info
+                    p.getCampeonatoModalidade() != null
+                            && p.getCampeonatoModalidade().getModalidade() != null
+                            && p.getCampeonatoModalidade().getModalidade().getEsporte() != null
+                            ? p.getCampeonatoModalidade().getModalidade().getEsporte().getNome() : null,
+                    // status / placar
+                    p.getStatus(),
+                    p.getPlacarA(),
+                    p.getPlacarB(),
+                    p.getAgendadoPara(),
+                    p.getIniciadaEm(),
+                    p.getEncerradaEm(),
+                    p.getLocal(),
+                    p.getCategoria(),
+                    p.getFase(),
+                    // time A
+                    equipeNome(p.getCampeonatoTimeA()),
+                    atleticaNome(p.getCampeonatoTimeA()),
+                    atleticaEscudo(p.getCampeonatoTimeA()),
+                    // time B
+                    equipeNome(p.getCampeonatoTimeB()),
+                    atleticaNome(p.getCampeonatoTimeB()),
+                    atleticaEscudo(p.getCampeonatoTimeB())
+            );
         }
 
-        return new FavoriteView(fav.getId(), fav.getUserId(), partidaId, campeonatoId, atleticaId, true, label);
+        if (fav.getCampeonato() != null) {
+            Campeonato c = fav.getCampeonato();
+            return new FavoriteView(
+                    fav.getId(), fav.getUserId(), null, c.getId(), null, true, c.getNome(),
+                    c.getId(), c.getNome(), c.getEscudoUrl(),
+                    null, c.getStatus(), null, null, null, null, null, null, null,
+                    null, null, null, null,
+                    null, null, null
+            );
+        }
+
+        // atletica
+        Atletica a = fav.getAtletica();
+        return new FavoriteView(
+                fav.getId(), fav.getUserId(), null, null, a.getId(), true, a.getNome(),
+                null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null
+        );
+    }
+
+    private String equipeNome(CampeonatoTime ct) {
+        if (ct == null) return null;
+        return ct.getNomeEquipe();
+    }
+
+    private String atleticaNome(CampeonatoTime ct) {
+        if (ct == null || ct.getTime() == null || ct.getTime().getAtletica() == null) return null;
+        return ct.getTime().getAtletica().getNome();
+    }
+
+    private String atleticaEscudo(CampeonatoTime ct) {
+        if (ct == null || ct.getTime() == null || ct.getTime().getAtletica() == null) return null;
+        return ct.getTime().getAtletica().getEscudoUrl();
     }
 
     private void validateExactlyOne(UUID partidaId, UUID campeonatoId, UUID atleticaId) {
@@ -135,7 +196,7 @@ public class FavoriteService {
         }
     }
 
-    // ── View records ────────────────────────────────────────────────────────────
+    // ── View record ─────────────────────────────────────────────────────────────
 
     public record FavoriteView(
             UUID id,
@@ -144,6 +205,34 @@ public class FavoriteService {
             UUID campeonatoId,
             UUID atleticaId,
             boolean favorited,
-            String label
-    ) {}
+            String label,
+            // ── Partida / Campeonato common ──────────────────────────────────
+            UUID campeonatoRefId,
+            String campeonatoNome,
+            String campeonatoEscudoUrl,
+            // ── Partida specific ─────────────────────────────────────────────
+            String esporteNome,
+            String status,
+            Integer placarA,
+            Integer placarB,
+            OffsetDateTime agendadoPara,
+            OffsetDateTime iniciadaEm,
+            OffsetDateTime encerradaEm,
+            String local,
+            String categoria,
+            String fase,
+            String timeA,
+            String atleticaNomeA,
+            String atleticaEscudoUrlA,
+            String timeB,
+            String atleticaNomeB,
+            String atleticaEscudoUrlB
+    ) {
+        /** Resultado ao desfavoritar — sem dados de enriquecimento. */
+        static FavoriteView unfavorited(UUID id, UUID userId, UUID partidaId, UUID campeonatoId, UUID atleticaId) {
+            return new FavoriteView(id, userId, partidaId, campeonatoId, atleticaId,
+                    false, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null, null, null);
+        }
+    }
 }
